@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta name="theme-color" content="#3498db">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="ThepBotBill">
+    <meta name="apple-mobile-web-app-title" content="ThepBotBill">
+    
+    <title>ThepBotBill</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 400px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; margin-top: 0; border-bottom: 2px dashed #ccc; padding-bottom: 10px; line-height: 1.4; }
+        
+        .shop-phone { font-size: 11px; font-weight: normal; color: #555; }
+        
+        .camera-box { width: 100%; height: 250px; background-color: #000; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 10px; overflow: hidden; position: relative; }
+        #camera-stream { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #camera-status { color: #fff; font-weight: bold; position: absolute; }
+        
+        button { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 10px; color: white; transition: 0.3s; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        .btn-scan { background-color: #3498db; }
+        .btn-snap-read { 
+            display: none; 
+            background-color: #fff; 
+            color: #e74c3c; 
+            font-size: 22px; 
+            border: 3px solid #e74c3c; 
+            box-shadow: 0 4px 6px rgba(231, 76, 60, 0.3);
+        }
+        
+        .btn-voice { background-color: #9b59b6; margin-bottom: 10px; }
+        .btn-voice.listening { background-color: #e74c3c; animation: pulse 1.5s infinite; }
+        
+        .btn-add-item { background-color: #34495e; margin-top: 5px; margin-bottom: 15px; padding: 12px; font-size: 16px; }
+        .btn-pay { background-color: #2ecc71; }
+        
+        .btn-share-slip { background-color: #1abc9c; }
+        .btn-print { background-color: #e67e22; } 
+        
+        .items-container { max-height: 280px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; background: #fff; }
+        .bill-header { display: grid; grid-template-columns: 1fr 70px 55px 80px 35px; gap: 5px; font-weight: bold; background: #f9f9f9; padding: 10px 5px; border-bottom: 2px solid #ddd; text-align: center; font-size: 13px; position: sticky; top: 0; z-index: 1;}
+        .bill-header .h-name { text-align: left; }
+        
+        .bill-item { display: grid; grid-template-columns: 1fr 70px 55px 80px 35px; gap: 5px; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .name-val, .price-val, .qty-val { width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 6px 4px; font-size: 14px; }
+        .price-val, .qty-val { text-align: center; }
+        
+        .item-name-col { grid-column: 1 / span 4; grid-row: 1; margin-bottom: 5px; }
+        .del-wrap { grid-column: 5; grid-row: 1; text-align: center; margin-bottom: 5px; }
+        .btn-delete { background: #e74c3c; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;}
+
+        .price-wrap { grid-column: 2; grid-row: 2; }
+        .qty-wrap { grid-column: 3; grid-row: 2; }
+        .total-wrap { grid-column: 4; grid-row: 2; text-align: right; font-weight: bold; font-size: 14px; color: #d35400; padding-right: 2px; display: flex; align-items: center; justify-content: flex-end; }
+
+        .summary-box { background-color: #fef9e7; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 18px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        .summary-row.total { font-size: 22px; font-weight: bold; color: #e74c3c; }
+        .summary-row span:last-child { text-align: right; flex-grow: 1; display: block; }
+        .input-money { width: 100px; padding: 8px; font-size: 18px; text-align: right; border: 1px solid #ccc; border-radius: 5px; }
+        
+        /* ตกแต่งส่วนท้ายบิลหน้าจอให้เข้ากับขนาดบิลจริงและเน้นสีเขียวตามสไตล์ Line ของภาพตัวอย่าง */
+        .footer-info { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center; font-size: 11px; color: #555; background-color: #fcfcfc; border-radius: 5px; }
+        .footer-info .contact-line { font-weight: bold; color: #00b900; margin-bottom: 4px; font-size: 11px; }
+        .footer-info .contact-phone { font-weight: bold; color: #00b900; font-size: 11px; }
+
+        #bank-slip-template { width: 350px; background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); padding: 20px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; display: none; margin: 10px auto; color: #2c3e50;}
+        .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .slip-title { font-size: 18px; font-weight: bold; text-align: center; color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 8px; margin-bottom: 10px;}
+        .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>[ชื่อร้านลูกค้า]<br><span class="shop-phone">โทร: [เบอร์โทรร้านลูกค้า]</span></h2>
+
+    <div class="camera-box">
+        <span id="camera-status">กำลังรอกล้อง...</span>
+        <video id="camera-stream" autoplay playsinline allow="camera"></video>
+    </div>
+    
+    <button class="btn-scan" id="btn-start-camera">📷 เปิดกล้องเตรียมสแกน</button>
+    <button class="btn-snap-read" id="btn-snap-read">📸 ถ่ายสแกนชื่อและราคา</button>
+    <button class="btn-voice" id="btn-start-voice">🎤 กดแล้วพูดสั่งรายการสินค้า</button>
+    
+    <canvas id="snapshot-canvas" style="display:none;"></canvas>
+
+    <div class="items-container">
+        <div class="bill-header">
+            <div class="h-name">รายการ</div>
+            <div>ราคา</div>
+            <div>จำนวน</div>
+            <div>รวม</div>
+            <div>ลบ</div>
+        </div>
+        <div id="bill-items">
+            <div class="bill-item">
+                <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
+                <div class="del-wrap"><button class="btn-delete">❌</button></div>
+                <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
+                <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
+                <div class="total-wrap"><span class="row-total">0.00</span></div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
+
+    <div class="summary-box">
+        <div class="summary-row total">
+            <span>ยอดรวมทั้งสิ้น:</span>
+            <span id="grand-total">0.00</span>
+        </div>
+        <div class="summary-row">
+            <span>รับเงินมา:</span>
+            <div style="text-align: right; flex-grow: 1;"><input type="number" id="cash-input" class="input-money" placeholder="0.00"></div>
+        </div>
+        
+        <div id="cash-warning" style="color: #e74c3c; font-size: 14px; text-align: right; display: none; margin-top: -5px; margin-bottom: 5px; font-weight: bold;">
+            ⚠️ รับเงินมาไม่พอ!
+        </div>
+
+        <div class="summary-row" style="color: #27ae60; font-weight: bold;">
+            <span>เงินทอน:</span>
+            <span id="change-due">0.00</span>
+        </div>
+    </div>
+
+    <button class="btn-pay" id="btn-pay">✅ จบบิล / ดูสลิปแจ้งยอด</button>
+    <button class="btn-share-slip" id="btn-share-slip">🖼️ บันทึกภาพสลิปส่งให้ลูกค้า</button>
+    <button class="btn-print" id="btn-print">🖨️ พิมพ์สลิป (VoZY P50 58mm)</button>
+
+    <div id="bank-slip-template">
+        <div class="slip-card">
+            <div class="slip-title">ใบเสร็จรับเงินอิเล็กทรอนิกส์</div>
+            <div class="slip-detail-row"><span>ชื่อระบบ:</span><strong>ThepBotBill</strong></div>
+            <div class="slip-detail-row"><span>วันที่ทำรายการ:</span><span id="slip-date"></span></div>
+            <div id="slip-items-list"></div>
+            <div class="slip-detail-row" style="border-top: 2px solid #ccc; padding-top: 5px; font-size: 16px;"><span>ยอดรวมทั้งสิ้น:</span><strong id="slip-total" style="color:#e74c3c">0.00 บาท</strong></div>
+            <div class="slip-detail-row"><span>รับเงินมา:</span><span id="slip-cash">0.00 บาท</span></div>
+            <div class="slip-detail-row" style="color:#27ae60"><span>เงินทอน:</span><span id="slip-change">0.00 บาท</span></div>
+            <div style="text-align:center; margin-top:10px; font-size:11px; color:#7f8c8d;">--- ขอบคุณที่ใช้บริการ ---</div>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        <div class="contact-line">💬 Line: By ThepBot Agent</div>
+        <div class="contact-phone">📞 โทร: 098-7707456 , 0949975679</div>
+    </div>
+</div>
+
+<script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwwQI1aQF1SX3pYfq3PI2u-C_TpQnYJY56AL2i726HxfmOHbtjxO0Hi2zv_k7TqdGM1gg/exec";
+
+    const videoElement = document.getElementById('camera-stream');
+    const cameraStatus = document.getElementById('camera-status');
+    const btnStartCamera = document.getElementById('btn-start-camera');
+    const btnSnapRead = document.getElementById('btn-snap-read');
+    const canvasElement = document.getElementById('snapshot-canvas');
+    const btnAddItem = document.getElementById('btn-add-item');
+    const btnStartVoice = document.getElementById('btn-start-voice');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'th-TH';
+        recognition.interimResults = false;
+
+        btnStartVoice.addEventListener('click', function() {
+            recognition.start();
+            btnStartVoice.innerText = "🎤 กำลังฟังเสียงพูดของท่าน...";
+            btnStartVoice.classList.add('listening');
+        });
+
+        recognition.addEventListener('result', function(e) {
+            const speechToText = e.results[0][0].transcript.trim();
+            btnStartVoice.innerText = "🎤 กดแล้วพูดสั่งรายการสินค้า";
+            btnStartVoice.classList.remove('listening');
+            
+            if(speechToText.includes('จบบิล') || speechToText.includes('จบรายการ')) {
+                document.getElementById('btn-pay').click();
+                return;
+            }
+
+            let price = speechToText.match(/\d+/g);
+            let productName = speechToText.replace(/\d+/g, '').replace('บาท', '').replace('ชิ้น', '').replace('อัน', '').trim();
+
+            let finalQty = 1;
+            let finalPrice = 0;
+
+            if (price && price.length === 1) {
+                finalPrice = parseFloat(price[0]);
+            } else if (price && price.length >= 2) {
+                finalQty = parseFloat(price[0]);
+                finalPrice = parseFloat(price[1]);
+            }
+
+            const nameInputs = document.querySelectorAll('.name-val');
+            let currentRowIdx = nameInputs.length - 1;
+
+            if (nameInputs[currentRowIdx].value !== "") {
+                btnAddItem.click();
+                const updatedNames = document.querySelectorAll('.name-val');
+                currentRowIdx = updatedNames.length - 1;
+            }
+
+            const currentNames = document.querySelectorAll('.name-val');
+            const currentPrices = document.querySelectorAll('.price-val');
+            const currentQtys = document.querySelectorAll('.qty-val');
+
+            currentNames[currentRowIdx].value = productName || "สินค้าสั่งด้วยเสียง";
+            currentPrices[currentRowIdx].value = finalPrice;
+            currentQtys[currentRowIdx].value = finalQty;
+
+            calculateTotals();
+        });
+
+        recognition.addEventListener('speechend', function() {
+            recognition.stop();
+            btnStartVoice.innerText = "🎤 กดแล้วพูดสั่งรายการสินค้า";
+            btnStartVoice.classList.remove('listening');
+        });
+    } else {
+        btnStartVoice.innerText = "⚠️ มือถือเครื่องนี้ไม่รองรับระบบสั่งด้วยเสียง";
+        btnStartVoice.disabled = true;
+    }
+
+    btnStartCamera.addEventListener('click', async function() {
+        try {
+            cameraStatus.innerText = "กำลังขออนุญาตเปิดกล้อง...";
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+            });
+            videoElement.srcObject = stream;
+            videoElement.style.display = "block";
+            cameraStatus.style.display = "none";
+            btnStartCamera.style.display = "none";
+            btnSnapRead.style.display = "block";
+        } catch (error) {
+            cameraStatus.innerText = "❌ ไม่สามารถเปิดกล้องได้";
+        }
+    });
+
+    btnSnapRead.addEventListener('click', async function() {
+        const context = canvasElement.getContext('2d');
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        
+        const imageDataUrl = canvasElement.toDataURL('image/png');
+        const originalText = btnSnapRead.innerText;
+        btnSnapRead.innerText = "⏳ กำลังถอดรหัสข้อความและราคา...";
+        btnSnapRead.disabled = true;
+
+        try {
+            const result = await Tesseract.recognize(imageDataUrl, 'tha+eng');
+            const recognizedText = result.data.text.trim();
+
+            if(recognizedText) {
+                let priceExtract = recognizedText.match(/\b\d+(?:\.\d+)?\b/g); 
+                let finalPrice = 0;
+                let finalName = recognizedText;
+
+                if (priceExtract && priceExtract.length > 0) {
+                    finalPrice = parseFloat(priceExtract[priceExtract.length - 1]);
+                    finalName = recognizedText.replace(priceExtract[priceExtract.length - 1], '').trim();
+                }
+
+                const nameInputs = document.querySelectorAll('.name-val');
+                const priceInputs = document.querySelectorAll('.price-val');
+                const currentRowIdx = nameInputs.length - 1;
+
+                nameInputs[currentRowIdx].value = (nameInputs[currentRowIdx].value + " " + finalName).trim();
+                if(finalPrice > 0) {
+                    priceInputs[currentRowIdx].value = finalPrice;
+                }
+                
+                calculateTotals(); 
+            } else {
+                alert("อ่านป้ายไม่ชัดเจน รบกวนถ่ายใหม่อีกครั้งค่ะ");
+            }
+        } catch (error) {
+            alert("❌ เกิดข้อผิดพลาดในระบบนักอ่าน: " + error);
+        }
+
+        btnSnapRead.innerText = originalText;
+        btnSnapRead.disabled = false;
+    });
+
+    btnAddItem.addEventListener('click', function() {
+        const billItemsContainer = document.getElementById('bill-items');
+        const newRow = document.createElement('div');
+        newRow.className = 'bill-item';
+        newRow.innerHTML = `
+            <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
+            <div class="del-wrap"><button class="btn-delete">❌</button></div>
+            <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
+            <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
+            <div class="total-wrap"><span class="row-total">0.00</span></div>
+        `;
+        billItemsContainer.appendChild(newRow);
+        calculateTotals();
+    });
+
+    function calculateTotals() {
+        let grandTotal = 0;
+        const items = document.querySelectorAll('.bill-item');
+        items.forEach(item => {
+            const priceInput = item.querySelector('.price-val');
+            const qtyInput = item.querySelector('.qty-val');
+            const totalCell = item.querySelector('.row-total');
+            if (priceInput && qtyInput && totalCell) {
+                const price = parseFloat(priceInput.value) || 0;
+                const qty = parseFloat(qtyInput.value) || 0;
+                const rowTotal = price * qty;
+                totalCell.innerText = rowTotal.toFixed(2);
+                grandTotal += rowTotal;
+            }
+        });
+        document.getElementById('grand-total').innerText = grandTotal.toFixed(2);
+        calculateChange(); 
+    }
+
+    function calculateChange() {
+        const grandTotal = parseFloat(document.getElementById('grand-total').innerText) || 0;
+        const cashInputVal = document.getElementById('cash-input').value;
+        const cashInput = parseFloat(cashInputVal) || 0;
+        
+        const warningMsg = document.getElementById('cash-warning');
+        const btnPay = document.getElementById('btn-pay');
+        const changeDueEl = document.getElementById('change-due');
+
+        let change = cashInput - grandTotal;
+        
+        if (cashInputVal !== "" && cashInput < grandTotal && grandTotal > 0) {
+            warningMsg.style.display = "block"; 
+            btnPay.disabled = true; 
+            changeDueEl.innerText = "0.00";
+            changeDueEl.style.color = "#e74c3c"; 
+        } else {
+            warningMsg.style.display = "none"; 
+            btnPay.disabled = false; 
+            changeDueEl.style.color = "#27ae60"; 
+            
+            if (change < 0 || cashInputVal === "") change = 0;
+            changeDueEl.innerText = change.toFixed(2);
+        }
+    }
+
+    function deleteRow(btn) {
+        const itemBox = btn.closest('.bill-item');
+        itemBox.remove();
+        calculateTotals();
+    }
+
+    function clearBill() {
+        document.getElementById('bill-items').innerHTML = `
+            <div class="bill-item">
+                <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
+                <div class="del-wrap"><button class="btn-delete">❌</button></div>
+                <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
+                <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
+                <div class="total-wrap"><span class="row-total">0.00</span></div>
+            </div>`; 
+        document.getElementById('cash-input').value = '';    
+        calculateTotals();                                     
+    }
+
+    document.getElementById('btn-share-slip').addEventListener('click', function() {
+        const grandTotal = document.getElementById('grand-total').innerText;
+        const cashInput = document.getElementById('cash-input').value || "0.00";
+        const changeDue = document.getElementById('change-due').innerText;
+        const items = document.querySelectorAll('.bill-item');
+
+        if(items.length === 0 || grandTotal === "0.00") {
+            alert("⚠️ กรุณากรอกรายการสินค้าก่อนสร้างสลิปค่ะ");
+            return;
+        }
+
+        document.getElementById('slip-date').innerText = new Date().toLocaleString('th-TH');
+        document.getElementById('slip-total').innerText = grandTotal + " บาท";
+        document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
+        document.getElementById('slip-change').innerText = changeDue + " บาท";
+
+        let itemsListHtml = "";
+        items.forEach(item => {
+            const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
+            const price = item.querySelector('.price-val').value;
+            const qty = item.querySelector('.qty-val').value;
+            const total = item.querySelector('.row-total').innerText;
+            itemsListHtml += `<div class="slip-detail-row"><span>${name} (${price}x${qty})</span><strong>${total}</strong></div>`;
+        });
+        document.getElementById('slip-items-list').innerHTML = itemsListHtml;
+
+        const template = document.getElementById('bank-slip-template');
+        template.style.display = "block"; 
+
+        html2canvas(template).then(canvas => {
+            template.style.display = "none"; 
+            const imageBlob = canvas.toDataURL("image/png");
+            
+            const link = document.createElement('a');
+            link.download = 'ThepBotBill_Slip.png';
+            link.href = imageBlob;
+            link.click();
+            alert("🖼️ บันทึกภาพสลิปใบเสร็จลงในเครื่องสำเร็จแล้วค่ะ! ท่านสามารถกดแนบส่งให้ลูกค้าในแชท LINE ได้ทันทีค่ะ");
+        });
+    });
+
+    document.getElementById('bill-items').addEventListener('input', function(e) {
+        if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val')) calculateTotals();
+    });
+    document.getElementById('bill-items').addEventListener('click', function(e) {
+        if(e.target.classList.contains('btn-delete')) deleteRow(e.target);
+    });
+
+    document.getElementById('cash-input').addEventListener('input', calculateChange);
+    calculateTotals();
+
+    document.getElementById('btn-pay').addEventListener('click', function() {
+        const grandTotal = document.getElementById('grand-total').innerText;
+        const cashInput = document.getElementById('cash-input').value;
+        const changeDue = document.getElementById('change-due').innerText;
+        const items = document.querySelectorAll('.bill-item');
+        
+        if (items.length === 0) {
+            alert('⚠️ ไม่มีรายการสินค้าในบิลค่ะ');
+            return;
+        }
+
+        if (!cashInput || parseFloat(cashInput) < parseFloat(grandTotal)) {
+            alert('⚠️ กรุณาใส่จำนวน "รับเงินมา" ให้ครบถ้วนก่อนจบบิลค่ะ');
+            return;
+        }
+
+        let billDetails = "";
+        items.forEach(item => {
+            const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
+            const price = item.querySelector('.price-val').value;
+            const qty = item.querySelector('.qty-val').value;
+            const total = item.querySelector('.row-total').innerText;
+            billDetails += `${name} (${price}x${qty}=${total}) | `;
+        });
+
+        const payload = {
+            grandTotal: grandTotal,
+            cashInput: cashInput,
+            changeDue: changeDue,
+            billDetails: billDetails
+        };
+
+        const btnPay = document.getElementById('btn-pay');
+        btnPay.innerText = "⏳ กำลังบันทึกข้อมูล...";
+        btnPay.disabled = true;
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            alert('✅ จบบิลสำเร็จ! บันทึกยอดขายเรียบร้อยค่ะ');
+            clearBill(); 
+            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.disabled = false;
+        })
+        .catch(error => {
+            alert('❌ เกิดข้อผิดพลาด: ' + error);
+            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.disabled = false;
+        });
+    });
+
+    // ปรับโครงสร้างชุดคำสั่งจัดหน้ากระดาษและข้อความให้ตรงกับตัวอย่างสลิปจริงเครื่อง 58 มม. (จัดกึ่งกลางและเว้นช่องไฟให้พอดีตัวเครื่อง)
+    document.getElementById('btn-print').addEventListener('click', function() {
+        const grandTotal = document.getElementById('grand-total').innerText;
+        const cashInput = document.getElementById('cash-input').value || "0.00";
+        const changeDue = document.getElementById('change-due').innerText;
+        const items = document.querySelectorAll('.bill-item');
+        
+        if (items.length === 0) {
+            alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
+            return;
+        }
+
+        let slipText = "         ThepBotBill\n";
+        slipText += "--------------------------------\n";
+        
+        items.forEach(item => {
+            const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
+            const price = item.querySelector('.price-val').value;
+            const qty = item.querySelector('.qty-val').value;
+            const total = item.querySelector('.row-total').innerText;
+            slipText += `${name}\n   ${price} x ${qty} = ${total}\n`;
+        });
+        
+        slipText += "--------------------------------\n";
+        slipText += `ยอดรวมทั้งสิ้น:     ${grandTotal} บาท\n`;
+        slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
+        slipText += `เงินทอน:          ${changeDue} บาท\n`;
+        slipText += "--------------------------------\n";
+        slipText += "💬 Line: By ThepBot Agent\n";
+        slipText += "📞 โทร: 098-7707456, 0949975679\n";
+        slipText += "--------------------------------\n\n\n";
+
+        const encodedText = encodeURIComponent(slipText);
+        const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        
+        window.location.href = intentUrl;
+    });
+</script>
+</body>
+</html>
