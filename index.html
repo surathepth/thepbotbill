@@ -599,91 +599,64 @@
         });
     });
 
-    // --- ส่วนที่อัปเกรดใหม่: ฟังก์ชันพิมพ์สลิปส่งข้อมูลรูปแบบ HTML ให้ RawBT ---
+    // --- ส่วนที่อัปเกรดใหม่: ฟังก์ชันพิมพ์สลิปส่งภาพตรงให้ RawBT แบบไม่กระโดดข้ามแอป ---
     document.getElementById('btn-print').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value || "0.00";
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
-        const billNum = document.getElementById('slip-bill-number').innerText; 
-        
-        if (items.length === 0 || grandTotal === "0.00") {
-            alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
+
+        if(items.length === 0 || grandTotal === "0.00") {
+            alert("⚠️ กรุณากรอกรายการสินค้าก่อนพิมพ์สลิปค่ะ");
             return;
         }
 
-        // สร้างโครงสร้างหน้าตาสลิปเป็น HTML จัดรูปแบบให้ตรงกับต้นแบบภาพที่ 1
-        let htmlSlip = `
-        <div style="font-family: 'Tahoma', 'Segoe UI', sans-serif; color: #000; width: 100%; text-align: left; font-size: 20px;">
-            <div style="text-align: center; font-weight: bold; font-size: 26px; margin-bottom: 5px;">
-                ชื่อร้าน ขายดีร่ำรวย มั่นคง รุ่งเรือง
-            </div>
-            <div style="text-align: center; font-size: 18px; margin-bottom: 5px;">
-                69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า รหัส 99999<br>โทร 999-999-9999
-            </div>
-            <div style="text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px dashed #000; padding-bottom: 5px;">
-                ใบเสร็จรับเงิน
-            </div>
-            
-            <div style="font-size: 18px; margin-bottom: 5px;">
-                เลขที่บิล: <span style="float: right;">${billNum}</span><br>
-                วันที่ทำรายการ: <span style="float: right;">${new Date().toLocaleString('th-TH')}</span>
-            </div>
-            
-            <div style="border-bottom: 2px dashed #000; margin-bottom: 5px;"></div>
-            <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">รายการสินค้า</div>
-            
-            <table style="width: 100%; font-size: 18px; border-collapse: collapse; margin-bottom: 5px;">
-        `;
-        
+        // 1. เตรียมข้อมูลลงในสลิปต้นแบบ (ทำเหมือนระบบปุ่มแชร์ภาพ)
+        document.getElementById('slip-date').innerText = new Date().toLocaleString('th-TH');
+        document.getElementById('slip-total').innerText = grandTotal + " บาท";
+        document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
+        document.getElementById('slip-change').innerText = changeDue + " บาท";
+        document.getElementById('slip-bill-number').innerText = generateBillNumber();
+
+        let itemsListHtml = "";
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
-            const price = parseFloat(item.querySelector('.price-val').value || 0).toFixed(2);
-            const qty = parseFloat(item.querySelector('.qty-val').value || 1);
+            const price = item.querySelector('.price-val').value;
+            const qty = item.querySelector('.qty-val').value;
             const total = item.querySelector('.row-total').innerText;
-            
-            // เรียงบรรทัด ชื่อสินค้า (จำนวน x ราคา) และยอดรวม
-            htmlSlip += `
-                <tr>
-                    <td style="padding-bottom: 5px; text-align: left;">${name} (${qty}x${price})</td>
-                    <td style="padding-bottom: 5px; text-align: right; font-weight: bold;">${total}</td>
-                </tr>
-            `;
+            itemsListHtml += `<div class="slip-detail-row"><span>${name} (${price}x${qty})</span><strong>${total}</strong></div>`;
         });
-        
-        htmlSlip += `
-            </table>
-            
-            <div style="border-top: 2px dashed #000; margin-top: 5px; padding-top: 5px;"></div>
-            <table style="width: 100%; font-size: 18px;">
-                <tr>
-                    <td style="text-align: left; font-weight: bold; font-size: 20px;">ยอดรวมทั้งสิ้น:</td>
-                    <td style="text-align: right; font-weight: bold; font-size: 20px;">${grandTotal} บาท</td>
-                </tr>
-                <tr>
-                    <td style="text-align: left;">รับเงินมา:</td>
-                    <td style="text-align: right;">${parseFloat(cashInput).toFixed(2)} บาท</td>
-                </tr>
-                <tr>
-                    <td style="text-align: left;">เงินทอน:</td>
-                    <td style="text-align: right;">${changeDue} บาท</td>
-                </tr>
-            </table>
-            <div style="border-bottom: 2px dashed #000; margin-bottom: 10px; margin-top: 5px;"></div>
-            
-            <div style="text-align: center; font-size: 16px; margin-bottom: 20px;">
-                --- ขอบคุณที่ใช้บริการ ---<br><br>
-                <b>By ThepAgentBill</b><br>
-                Tel 0987707456, 0949975679
-            </div>
-        </div>
-        `;
+        document.getElementById('slip-items-list').innerHTML = itemsListHtml;
 
-        // แปลง HTML เป็นรูปแบบข้อมูลและส่งออกไปยัง RawBT ทันที
-        const encodedHtml = encodeURIComponent(htmlSlip);
-        const intentUrl = "intent:data:text/html;charset=utf-8," + encodedHtml + "#Intent;scheme=rawbt;type=text/html;package=ru.a402d.rawbtprinter;end;";
-        
-        window.location.href = intentUrl;
+        const template = document.getElementById('bank-slip-template');
+        template.style.display = "block"; // เปิดแสดงสลิปชั่วคราวเพื่อถ่ายภาพ
+
+        const btnPrint = document.getElementById('btn-print');
+        const originalText = btnPrint.innerText;
+        btnPrint.innerText = "⏳ กำลังสั่งพิมพ์สลิป...";
+        btnPrint.disabled = true;
+
+        // 2. ใช้ html2canvas ถ่ายภาพสลิปสีเขียว
+        html2canvas(template, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+            template.style.display = "none"; // ซ่อนสลิปกลับไปเหมือนเดิม
+            
+            // 3. ดึงข้อมูลภาพ Base64 ออกมา
+            const imageBlob = canvas.toDataURL("image/png");
+            // ตัดส่วนหัว "data:image/png;base64," ออก เพื่อให้ RawBT อ่านได้
+            const base64Data = imageBlob.split(',')[1]; 
+            
+            // 4. ส่งภาพตรงเข้า RawBT ด้วย scheme base64 
+            const intentUrl = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+            window.location.href = intentUrl;
+
+            btnPrint.innerText = originalText;
+            btnPrint.disabled = false;
+        }).catch(error => {
+            alert('❌ เกิดข้อผิดพลาดในการสร้างสลิป: ' + error);
+            template.style.display = "none"; 
+            btnPrint.innerText = originalText;
+            btnPrint.disabled = false;
+        });
     });
 </script>
 </body>
