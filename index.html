@@ -6,10 +6,10 @@
     
     <meta name="theme-color" content="#3498db">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="ThepBotBill">
-    <meta name="apple-mobile-web-app-title" content="ThepBotBill">
+    <meta name="application-name" content="ThepAgentBill">
+    <meta name="apple-mobile-web-app-title" content="ThepAgentBill">
     
-    <title>ThepBotBill</title>
+    <title>ThepAgentBill</title>
     
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -69,8 +69,9 @@
         .summary-row span:last-child { text-align: right; flex-grow: 1; display: block; }
         .input-money { width: 100px; padding: 8px; font-size: 18px; text-align: right; border: 1px solid #ccc; border-radius: 5px; }
         
-        /* ตกแต่งส่วนท้ายบิลหน้าจอให้เข้ากับขนาดบิลจริงและเน้นสีเขียวตามสไตล์ Line ของภาพตัวอย่าง */
         .footer-info { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center; font-size: 11px; color: #555; background-color: #fcfcfc; border-radius: 5px; }
+        
+        /* ปรับสีเขียวและเบอร์โทรศัพท์ท้ายบิลหน้าจอให้เล็กเท่ากับขนาดชื่อตัวอักษรตามภาพสั่ง */
         .footer-info .contact-line { font-weight: bold; color: #00b900; margin-bottom: 4px; font-size: 11px; }
         .footer-info .contact-phone { font-weight: bold; color: #00b900; font-size: 11px; }
 
@@ -150,7 +151,7 @@
     <div id="bank-slip-template">
         <div class="slip-card">
             <div class="slip-title">ใบเสร็จรับเงินอิเล็กทรอนิกส์</div>
-            <div class="slip-detail-row"><span>ชื่อระบบ:</span><strong>ThepBotBill</strong></div>
+            <div class="slip-detail-row"><span>ชื่อระบบ:</span><strong>ThepAgentBill</strong></div>
             <div class="slip-detail-row"><span>วันที่ทำรายการ:</span><span id="slip-date"></span></div>
             <div id="slip-items-list"></div>
             <div class="slip-detail-row" style="border-top: 2px solid #ccc; padding-top: 5px; font-size: 16px;"><span>ยอดรวมทั้งสิ้น:</span><strong id="slip-total" style="color:#e74c3c">0.00 บาท</strong></div>
@@ -161,7 +162,7 @@
     </div>
 
     <div class="footer-info">
-        <div class="contact-line">💬 Line: By ThepBot Agent</div>
+        <div class="contact-line">💬 Line: By ThepAgent Bill</div>
         <div class="contact-phone">📞 โทร: 098-7707456 , 0949975679</div>
     </div>
 </div>
@@ -177,6 +178,7 @@
     const btnAddItem = document.getElementById('btn-add-item');
     const btnStartVoice = document.getElementById('btn-start-voice');
 
+    // ระบบสั่งงานด้วยเสียงอัจฉริยะแยกคำ [ชื่อสินค้า] [จำนวน] [ราคา] ถอดรหัสคำพูด Auto คัดกรองแม่นยำ
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -199,17 +201,21 @@
                 return;
             }
 
-            let price = speechToText.match(/\d+/g);
-            let productName = speechToText.replace(/\d+/g, '').replace('บาท', '').replace('ชิ้น', '').replace('อัน', '').trim();
-
+            // ระบบใช้ Regular Expression สกัดแยกตัวเลขทั้งหมดออกจากคำพูดเสียง
+            let numbers = speechToText.match(/\d+/g);
             let finalQty = 1;
             let finalPrice = 0;
+            let productName = speechToText.replace(/\d+/g, '').replace(/บาท/g, '').replace(/ชิ้น/g, '').replace(/อัน/g, '').trim();
 
-            if (price && price.length === 1) {
-                finalPrice = parseFloat(price[0]);
-            } else if (price && price.length >= 2) {
-                finalQty = parseFloat(price[0]);
-                finalPrice = parseFloat(price[1]);
+            if (numbers) {
+                if (numbers.length === 1) {
+                    // พูดเช่น "สบู่ ยี่สิบบาท" -> แปลว่า จำนวน 1 ชิ้น ราคา 20 บาท
+                    finalPrice = parseFloat(numbers[0]);
+                } else if (numbers.length >= 2) {
+                    // พูดเช่น "โค้ก สองชิ้น สามสิบบาท" -> แปลว่า จำนวน 2 ชิ้น ราคา 30 บาท
+                    finalQty = parseFloat(numbers[0]);
+                    finalPrice = parseFloat(numbers[1]);
+                }
             }
 
             const nameInputs = document.querySelectorAll('.name-val');
@@ -417,7 +423,7 @@
             const imageBlob = canvas.toDataURL("image/png");
             
             const link = document.createElement('a');
-            link.download = 'ThepBotBill_Slip.png';
+            link.download = 'ThepAgentBill_Slip.png';
             link.href = imageBlob;
             link.click();
             alert("🖼️ บันทึกภาพสลิปใบเสร็จลงในเครื่องสำเร็จแล้วค่ะ! ท่านสามารถกดแนบส่งให้ลูกค้าในแชท LINE ได้ทันทีค่ะ");
@@ -488,7 +494,6 @@
         });
     });
 
-    // ปรับโครงสร้างชุดคำสั่งจัดหน้ากระดาษและข้อความให้ตรงกับตัวอย่างสลิปจริงเครื่อง 58 มม. (จัดกึ่งกลางและเว้นช่องไฟให้พอดีตัวเครื่อง)
     document.getElementById('btn-print').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value || "0.00";
@@ -500,7 +505,7 @@
             return;
         }
 
-        let slipText = "         ThepBotBill\n";
+        let slipText = "        ThepAgentBill\n";
         slipText += "--------------------------------\n";
         
         items.forEach(item => {
@@ -516,7 +521,7 @@
         slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
         slipText += `เงินทอน:          ${changeDue} บาท\n`;
         slipText += "--------------------------------\n";
-        slipText += "💬 Line: By ThepBot Agent\n";
+        slipText += "💬 Line: By ThepAgent Bill\n";
         slipText += "📞 โทร: 098-7707456, 0949975679\n";
         slipText += "--------------------------------\n\n\n";
 
