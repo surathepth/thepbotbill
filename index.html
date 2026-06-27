@@ -71,13 +71,39 @@
         
         .footer-info { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center; font-size: 11px; background-color: #fcfcfc; border-radius: 5px; }
         
-        /* แก้ไขสีเขียวและขนาดอักษรเบอร์โทรศัพท์ท้ายบิลบนหน้าจอมือถือตามสั่ง */
-        .footer-info .contact-line { font-weight: bold; color: #00b900; margin-bottom: 4px; font-size: 11px; }
-        .footer-info .contact-phone { font-weight: bold; color: #00b900; font-size: 11px; }
+        .footer-info .contact-line, .footer-info .contact-phone { 
+            font-weight: bold; 
+            color: #00b900; 
+            font-size: 9px; /* ลดขนาดตัวอักษรลงตามที่สั่ง */
+            margin-bottom: 2px;
+        }
 
         #bank-slip-template { width: 350px; background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); padding: 20px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; display: none; margin: 10px auto; color: #2c3e50;}
-        .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .slip-title { font-size: 18px; font-weight: bold; text-align: center; color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 8px; margin-bottom: 12px; margin-top: 5px;}
+        .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        
+        /* สไตล์โครงสร้างหัวบิลสีเขียวแบบใหม่ */
+        .slip-header-green {
+            background-color: #00c853;
+            color: white;
+            text-align: center;
+            padding: 15px 10px;
+            margin: -20px -20px 15px -20px;
+            border-radius: 10px 10px 30px 30px;
+        }
+        .slip-header-green h3 { margin: 0; font-size: 17px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .slip-header-green p { margin: 5px 0 0 0; font-size: 10px; line-height: 1.3; font-weight: normal; }
+        .slip-title-badge {
+            background-color: #00a040;
+            color: white;
+            display: inline-block;
+            padding: 4px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
         .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
 
         @keyframes pulse {
@@ -90,7 +116,7 @@
 <body>
 
 <div class="container">
-    <h2>[ชื่อร้านลูกค้า]<br><span class="shop-phone">โทร: [เบอร์โทรร้านลูกค้า]</span></h2>
+    <h2>ThepAgentBill<br><span class="shop-phone">ระบบจัดการร้านค้าอัจฉริยะ</span></h2>
 
     <div class="camera-box">
         <span id="camera-status">กำลังรอกล้อง...</span>
@@ -150,22 +176,34 @@
 
     <div id="bank-slip-template">
         <div class="slip-card">
-            <div class="slip-title">ใบเสร็จรับเงินอิเล็กทรอนิกส์</div>
-            <div class="slip-detail-row"><span>ชื่อร้าน:</span><strong>ThepAgentBill</strong></div>
+            <div class="slip-header-green">
+                <h3>ชื่อร้าน ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
+                <p>69/96 ม.9 ต. ลาดยางดี อ.เก้าเก้า จ. เก้าเก้า รหัส 99999<br>โทร 999-999-9999</p>
+                <div class="slip-title-badge">ใบเสร็จรับเงิน</div>
+            </div>
+            
             <div class="slip-detail-row"><span>เลขที่บิล:</span><strong id="slip-bill-number">XXXXXX-XXXX</strong></div>
             <div class="slip-detail-row"><span>วันที่ทำรายการ:</span><span id="slip-date"></span></div>
-            <div id="slip-items-list"></div>
+            
+            <div style="margin-top: 10px; margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #7f8c8d; border-bottom: 2px solid #ccc;">รายการสินค้า</div>
+            <div id="slip-items-list" style="margin-bottom: 10px;"></div>
+            
             <div class="slip-detail-row" style="border-top: 2px solid #ccc; padding-top: 5px; font-size: 16px;"><span>ยอดรวมทั้งสิ้น:</span><strong id="slip-total" style="color:#e74c3c">0.00 บาท</strong></div>
             <div class="slip-detail-row"><span>รับเงินมา:</span><span id="slip-cash">0.00 บาท</span></div>
             <div class="slip-detail-row" style="color:#27ae60"><span>เงินทอน:</span><span id="slip-change">0.00 บาท</span></div>
-            <div style="text-align:center; margin-top:15px; font-size:12px; color:#333; font-weight:bold; border-top: 1px dashed #ccc; padding-top: 8px;">--- ขอบคุณที่ใช้บริการ ---</div>
-            <div style="text-align:center; margin-top:5px; font-size:11px; color:#00b900; font-weight:bold;">เบอร์ร้านค้า โทร 098-7707456</div>
+            
+            <div style="text-align:center; margin-top:20px; font-size:12px; color:#333; font-weight:bold; border-top: 1px dashed #ccc; padding-top: 10px;">--- ขอบคุณที่ใช้บริการ ---</div>
+            
+            <div style="text-align:right; margin-top:15px;">
+                <div style="font-size: 8px; font-weight: bold; color: #000;">By ThepAgentBill</div>
+                <div style="font-size: 8px; font-weight: bold; color: #000;">Tel 0987707456, 0949975679</div>
+            </div>
         </div>
     </div>
 
     <div class="footer-info">
-        <div class="contact-line">💬 Line: By ThepAgent Bill</div>
-        <div class="contact-phone">📞 โทร: 098-7707456 , 0949975679</div>
+        <div class="contact-line">By ThepAgentBill</div>
+        <div class="contact-phone">โทร 098-7707456 , 0949975679</div>
     </div>
 </div>
 
@@ -180,11 +218,9 @@
     const btnAddItem = document.getElementById('btn-add-item');
     const btnStartVoice = document.getElementById('btn-start-voice');
 
-    // ตัวแปรเก็บเลขบิลรัน Auto ภายในวันทำงาน
     let currentBillSeq = 1;
     let lastBillDateStr = "";
 
-    // ฟังก์ชันรันเลขที่บิลอัตโนมัติรายวันโครงสร้าง DDMMYY-NNNN
     function generateBillNumber() {
         const now = new Date();
         const dd = String(now.getDate()).padStart(2, '0');
@@ -194,24 +230,22 @@
 
         if (lastBillDateStr !== todayStr) {
             lastBillDateStr = todayStr;
-            currentBillSeq = 1; // เริ่มนับ 1 ใหม่เมื่อเปลี่ยนวันใหม่
+            currentBillSeq = 1; 
         }
 
         const seqStr = String(currentBillSeq).padStart(4, '0');
         return `${todayStr}-${seqStr}`;
     }
 
-    // อัปเดตแสดงเลขที่บิลตัวแรกขึ้นบนหน้าจอรอไว้ก่อน
     document.getElementById('slip-bill-number').innerText = generateBillNumber();
 
-    // พัฒนาระบบสั่งด้วยเสียงแบบประมวลผลล็อกคำสั่งรัดกุม ป้องกันเสียงแทรกเบิ้ลหลายแถวเสถียรที่สุด
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.lang = 'th-TH';
         recognition.interimResults = false;
         
-        let isProcessingVoice = false; // ตัวควบคุมป้องกันบอททำงานซ้ำซ้อนเบิ้ลหลายรายการ
+        let isProcessingVoice = false; 
 
         btnStartVoice.addEventListener('click', function() {
             if(isProcessingVoice) return;
@@ -224,64 +258,65 @@
             if (isProcessingVoice) return;
             isProcessingVoice = true;
 
-            const speechToText = e.results[0][0].transcript.trim();
+            let speechToText = e.results[0][0].transcript.trim();
             btnStartVoice.innerText = "🎤 กดแล้วพูดสั่งรายการสินค้า";
             btnStartVoice.classList.remove('listening');
             
             if(speechToText.includes('จบบิล') || speechToText.includes('จบรายการ')) {
                 document.getElementById('btn-pay').click();
-                isProcessingVoice = false;
+                setTimeout(() => { isProcessingVoice = false; }, 500);
                 return;
             }
 
-            // ตัวแปรคัดกรองข้อมูล
-            let foundProduct = false;
-            let foundQty = false;
-            let foundPrice = false;
+            // ระบบล็อกคำสั่งรัดกุม: ต้องมีคำสำคัญทั้งหมดในประโยคถึงจะยอมทำงาน ป้องกันเสียงแทรก
+            if (!speechToText.includes("สินค้าชื่อ") || !speechToText.includes("จำนวน") || !speechToText.includes("ราคา")) {
+                setTimeout(() => { isProcessingVoice = false; }, 400);
+                return;
+            }
 
-            let productName = "";
+            // แปลงคำภาษาไทยให้รองรับการจับตัวเลขจุดทศนิยม
+            speechToText = speechToText.replace(/จุด/g, '.');
+
+            let finalName = "";
             let finalQty = 1;
             let finalPrice = 0;
 
-            // 1. ตรวจสอบและสกัดล็อกคำว่า "สินค้าชื่อ"
-            if (speechToText.includes("สินค้าชื่อ")) {
-                foundProduct = true;
-                // ตัดคำว่า สินค้าชื่อ ออก เอาเฉพาะชื่อที่ตามหลัง
-                let postProductText = speechToText.split("สินค้าชื่อ")[1] || "";
-                // ตัดคำอื่นๆ ที่อาจติดมาด้านหลังออก
-                productName = postProductText.split("จำนวน")[0].split("ราคาต่อหน่วย")[0].trim();
-            }
+            // สกัดข้อมูลรวดเดียวด้วย Regex (แยกช่วงคำสั่ง)
+            let nameMatch = speechToText.match(/สินค้าชื่อ\s*(.*?)(?=\s*จำนวน|\s*ราคา|$)/);
+            let qtyMatch = speechToText.match(/จำนวน\s*(.*?)(?=\s*ราคา|$)/);
+            let priceMatch = speechToText.match(/ราคา\s*(.*)$/);
 
-            // 2. ตรวจสอบและสกัดล็อกคำว่า "จำนวน"
-            if (speechToText.includes("จำนวน")) {
-                foundQty = true;
-                let postQtyText = speechToText.split("จำนวน")[1] || "";
-                let qtyMatch = postQtyText.match(/\d+(?:\.\d+)?/);
-                if (qtyMatch) {
-                    finalQty = parseFloat(qtyMatch[0]);
+            if (nameMatch) {
+                finalName = nameMatch[1].trim();
+            }
+            
+            if (qtyMatch) {
+                let qNum = qtyMatch[1].match(/\d+(?:\.\d+)?/);
+                if (qNum) finalQty = parseFloat(qNum[0]);
+            }
+            
+            if (priceMatch) {
+                let pStr = priceMatch[1];
+                // ดักจับรูปแบบ "บาท" และ "สตางค์" (เช่น 90 บาท 50 สตางค์)
+                let bahtSatangMatch = pStr.match(/(\d+)\s*บาท\s*(\d+)\s*สตางค์/);
+                if (bahtSatangMatch) {
+                    finalPrice = parseFloat(bahtSatangMatch[1] + "." + bahtSatangMatch[2]);
+                } else {
+                    // ดักจับตัวเลขทศนิยมปกติ (เช่น 90.50)
+                    let pNum = pStr.match(/\d+(?:\.\d+)?/);
+                    if (pNum) finalPrice = parseFloat(pNum[0]);
                 }
             }
 
-            // 3. ตรวจสอบและสกัดล็อกคำว่า "ราคาต่อหน่วย"
-            if (speechToText.includes("ราคาต่อหน่วย")) {
-                foundPrice = true;
-                let postPriceText = speechToText.split("ราคาต่อหน่วย")[1] || "";
-                let priceMatch = postPriceText.match(/\d+(?:\.\d+)?/);
-                if (priceMatch) {
-                    finalPrice = parseFloat(priceMatch[0]);
-                }
-            }
-
-            // ถ้ารายการใดรายการหนึ่งไม่เข้าเงื่อนไขคำล็อกนำหน้า ห้ามทำการเพิ่มข้อมูลเด็ดขาด ป้องกันเสียงแทรก
-            if (!foundProduct && !foundQty && !foundPrice) {
-                isProcessingVoice = false;
+            // ถ้าระบบสกัดราคาหรือชื่อไม่ได้ ให้บล็อกการทำงาน
+            if (finalName === "" || finalPrice === 0) {
+                setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
             }
 
             const nameInputs = document.querySelectorAll('.name-val');
             let currentRowIdx = nameInputs.length - 1;
 
-            // ถ้าแถวล่าสุดมีการใช้งานแล้ว ให้ขึ้นแถวใหม่
             if (nameInputs[currentRowIdx].value !== "") {
                 btnAddItem.click();
                 const updatedNames = document.querySelectorAll('.name-val');
@@ -292,36 +327,28 @@
             const currentPrices = document.querySelectorAll('.price-val');
             const currentQtys = document.querySelectorAll('.qty-val');
 
-            // บันทึกเฉพาะข้อมูลที่มีคำนำหน้าสั่งเข้ามาจริง ถ้าไม่มีคำห้ามกรอกเด็ดขาด
-            if (foundProduct) {
-                currentNames[currentRowIdx].value = productName;
-            }
-            if (foundPrice) {
-                currentPrices[currentRowIdx].value = finalPrice;
-            }
-            if (foundQty) {
-                currentQtys[currentRowIdx].value = finalQty;
-            }
+            currentNames[currentRowIdx].value = finalName;
+            currentPrices[currentRowIdx].value = finalPrice;
+            currentQtys[currentRowIdx].value = finalQty;
 
             calculateTotals();
             
-            // เพิ่มดีเลย์เล็กน้อยก่อนเปิดรับคำสั่งเสียงรอบถัดไป เพื่อล้างสถานะการทำงานซ้อน
             setTimeout(() => {
                 isProcessingVoice = false;
-            }, 400);
+            }, 500);
         });
 
         recognition.addEventListener('speechend', function() {
             recognition.stop();
             btnStartVoice.innerText = "🎤 กดแล้วพูดสั่งรายการสินค้า";
             btnStartVoice.classList.remove('listening');
-            isProcessingVoice = false;
+            setTimeout(() => { isProcessingVoice = false; }, 400);
         });
         
         recognition.addEventListener('error', function() {
             btnStartVoice.innerText = "🎤 กดแล้วพูดสั่งรายการสินค้า";
             btnStartVoice.classList.remove('listening');
-            isProcessingVoice = false;
+            setTimeout(() => { isProcessingVoice = false; }, 400);
         });
     } else {
         btnStartVoice.innerText = "⚠️ มือถือเครื่องนี้ไม่รองรับระบบสั่งด้วยเสียง";
@@ -383,7 +410,7 @@
                 alert("อ่านป้ายไม่ชัดเจน รบกวนถ่ายใหม่อีกครั้งค่ะ");
             }
         } catch (error) {
-            alert("❌ เกิดข้อผิดพลาดในระบบนักอ่าน: " + error);
+            alert("❌ เกิดข้อผิดพลาด: " + error);
         }
 
         btnSnapRead.innerText = originalText;
@@ -466,7 +493,6 @@
                 <div class="total-wrap"><span class="row-total">0.00</span></div>
             </div>`; 
         document.getElementById('cash-input').value = ''; 
-        // อัปเดตรันเลขบิลใหม่สำหรับลูกค้ารายถัดไป
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
     }
@@ -568,7 +594,7 @@
         })
         .then(response => {
             alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
-            currentBillSeq++; // เพิ่มลำดับเลขบิลขึ้นทีละ 1 เมื่อบันทึกสำเร็จ
+            currentBillSeq++; 
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
             btnPay.disabled = false;
@@ -592,10 +618,14 @@
             return;
         }
 
-        let slipText = "    ใบเสร็จรับเงินอิเล็กทรอนิกส์\n";
-        slipText += `ชื่อร้าน:       ThepAgentBill\n`;
-        slipText += `เลขที่บิล:      ${billNum}\n`;
-        slipText += `วันที่:         ${new Date().toLocaleString('th-TH')}\n`;
+        // ปรับแต่งความกว้างข้อความให้พอดีกระดาษ 58 มม. (ประมาณ 32 ตัวอักษรต่อบรรทัด)
+        let slipText = "--------------------------------\n";
+        slipText += " ร้านขายดีร่ำรวย มั่นคง รุ่งเรือง\n";
+        slipText += "  69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า\n";
+        slipText += "  จ.เก้าเก้า 99999 โทร 999-9999\n";
+        slipText += "--------------------------------\n";
+        slipText += `เลขที่บิล: ${billNum}\n`;
+        slipText += `วันที่: ${new Date().toLocaleString('th-TH')}\n`;
         slipText += "--------------------------------\n";
         
         items.forEach(item => {
@@ -611,8 +641,9 @@
         slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
         slipText += `เงินทอน:          ${changeDue} บาท\n`;
         slipText += "--------------------------------\n";
-        slipText += "--- ขอบคุณที่ใช้บริการ ---\n";
-        slipText += "เบอร์ร้านค้า โทร 098-7707456\n";
+        slipText += "     --- ขอบคุณที่ใช้บริการ ---\n";
+        slipText += "          By ThepAgentBill\n";
+        slipText += "     โทร 0987707456, 0949975679\n";
         slipText += "--------------------------------\n\n\n";
 
         const encodedText = encodeURIComponent(slipText);
