@@ -74,14 +74,13 @@
         .footer-info .contact-line, .footer-info .contact-phone { 
             font-weight: bold; 
             color: #00b900; 
-            font-size: 9px; /* ลดขนาดตัวอักษรลงตามที่สั่ง */
+            font-size: 9px;
             margin-bottom: 2px;
         }
 
         #bank-slip-template { width: 350px; background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); padding: 20px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; display: none; margin: 10px auto; color: #2c3e50;}
         .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
         
-        /* สไตล์โครงสร้างหัวบิลสีเขียวแบบใหม่ */
         .slip-header-green {
             background-color: #00c853;
             color: white;
@@ -268,20 +267,17 @@
                 return;
             }
 
-            // ระบบล็อกคำสั่งรัดกุม: ต้องมีคำสำคัญทั้งหมดในประโยคถึงจะยอมทำงาน ป้องกันเสียงแทรก
             if (!speechToText.includes("สินค้าชื่อ") || !speechToText.includes("จำนวน") || !speechToText.includes("ราคา")) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
             }
 
-            // แปลงคำภาษาไทยให้รองรับการจับตัวเลขจุดทศนิยม
             speechToText = speechToText.replace(/จุด/g, '.');
 
             let finalName = "";
             let finalQty = 1;
             let finalPrice = 0;
 
-            // สกัดข้อมูลรวดเดียวด้วย Regex (แยกช่วงคำสั่ง)
             let nameMatch = speechToText.match(/สินค้าชื่อ\s*(.*?)(?=\s*จำนวน|\s*ราคา|$)/);
             let qtyMatch = speechToText.match(/จำนวน\s*(.*?)(?=\s*ราคา|$)/);
             let priceMatch = speechToText.match(/ราคา\s*(.*)$/);
@@ -297,18 +293,15 @@
             
             if (priceMatch) {
                 let pStr = priceMatch[1];
-                // ดักจับรูปแบบ "บาท" และ "สตางค์" (เช่น 90 บาท 50 สตางค์)
                 let bahtSatangMatch = pStr.match(/(\d+)\s*บาท\s*(\d+)\s*สตางค์/);
                 if (bahtSatangMatch) {
                     finalPrice = parseFloat(bahtSatangMatch[1] + "." + bahtSatangMatch[2]);
                 } else {
-                    // ดักจับตัวเลขทศนิยมปกติ (เช่น 90.50)
                     let pNum = pStr.match(/\d+(?:\.\d+)?/);
                     if (pNum) finalPrice = parseFloat(pNum[0]);
                 }
             }
 
-            // ถ้าระบบสกัดราคาหรือชื่อไม่ได้ ให้บล็อกการทำงาน
             if (finalName === "" || finalPrice === 0) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
@@ -606,48 +599,89 @@
         });
     });
 
+    // --- ส่วนที่อัปเกรดใหม่: ฟังก์ชันพิมพ์สลิปส่งข้อมูลรูปแบบ HTML ให้ RawBT ---
     document.getElementById('btn-print').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value || "0.00";
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
-        const billNum = generateBillNumber();
+        const billNum = document.getElementById('slip-bill-number').innerText; 
         
-        if (items.length === 0) {
+        if (items.length === 0 || grandTotal === "0.00") {
             alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
             return;
         }
 
-        // ปรับแต่งความกว้างข้อความให้พอดีกระดาษ 58 มม. (ประมาณ 32 ตัวอักษรต่อบรรทัด)
-        let slipText = "--------------------------------\n";
-        slipText += " ร้านขายดีร่ำรวย มั่นคง รุ่งเรือง\n";
-        slipText += "  69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า\n";
-        slipText += "  จ.เก้าเก้า 99999 โทร 999-9999\n";
-        slipText += "--------------------------------\n";
-        slipText += `เลขที่บิล: ${billNum}\n`;
-        slipText += `วันที่: ${new Date().toLocaleString('th-TH')}\n`;
-        slipText += "--------------------------------\n";
+        // สร้างโครงสร้างหน้าตาสลิปเป็น HTML จัดรูปแบบให้ตรงกับต้นแบบภาพที่ 1
+        let htmlSlip = `
+        <div style="font-family: 'Tahoma', 'Segoe UI', sans-serif; color: #000; width: 100%; text-align: left; font-size: 20px;">
+            <div style="text-align: center; font-weight: bold; font-size: 26px; margin-bottom: 5px;">
+                ชื่อร้าน ขายดีร่ำรวย มั่นคง รุ่งเรือง
+            </div>
+            <div style="text-align: center; font-size: 18px; margin-bottom: 5px;">
+                69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า รหัส 99999<br>โทร 999-999-9999
+            </div>
+            <div style="text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px dashed #000; padding-bottom: 5px;">
+                ใบเสร็จรับเงิน
+            </div>
+            
+            <div style="font-size: 18px; margin-bottom: 5px;">
+                เลขที่บิล: <span style="float: right;">${billNum}</span><br>
+                วันที่ทำรายการ: <span style="float: right;">${new Date().toLocaleString('th-TH')}</span>
+            </div>
+            
+            <div style="border-bottom: 2px dashed #000; margin-bottom: 5px;"></div>
+            <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">รายการสินค้า</div>
+            
+            <table style="width: 100%; font-size: 18px; border-collapse: collapse; margin-bottom: 5px;">
+        `;
         
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
-            const price = item.querySelector('.price-val').value;
-            const qty = item.querySelector('.qty-val').value;
+            const price = parseFloat(item.querySelector('.price-val').value || 0).toFixed(2);
+            const qty = parseFloat(item.querySelector('.qty-val').value || 1);
             const total = item.querySelector('.row-total').innerText;
-            slipText += `${name}\n   ${price} x ${qty} = ${total}\n`;
+            
+            // เรียงบรรทัด ชื่อสินค้า (จำนวน x ราคา) และยอดรวม
+            htmlSlip += `
+                <tr>
+                    <td style="padding-bottom: 5px; text-align: left;">${name} (${qty}x${price})</td>
+                    <td style="padding-bottom: 5px; text-align: right; font-weight: bold;">${total}</td>
+                </tr>
+            `;
         });
         
-        slipText += "--------------------------------\n";
-        slipText += `ยอดรวมทั้งสิ้น:     ${grandTotal} บาท\n`;
-        slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
-        slipText += `เงินทอน:          ${changeDue} บาท\n`;
-        slipText += "--------------------------------\n";
-        slipText += "     --- ขอบคุณที่ใช้บริการ ---\n";
-        slipText += "          By ThepAgentBill\n";
-        slipText += "     โทร 0987707456, 0949975679\n";
-        slipText += "--------------------------------\n\n\n";
+        htmlSlip += `
+            </table>
+            
+            <div style="border-top: 2px dashed #000; margin-top: 5px; padding-top: 5px;"></div>
+            <table style="width: 100%; font-size: 18px;">
+                <tr>
+                    <td style="text-align: left; font-weight: bold; font-size: 20px;">ยอดรวมทั้งสิ้น:</td>
+                    <td style="text-align: right; font-weight: bold; font-size: 20px;">${grandTotal} บาท</td>
+                </tr>
+                <tr>
+                    <td style="text-align: left;">รับเงินมา:</td>
+                    <td style="text-align: right;">${parseFloat(cashInput).toFixed(2)} บาท</td>
+                </tr>
+                <tr>
+                    <td style="text-align: left;">เงินทอน:</td>
+                    <td style="text-align: right;">${changeDue} บาท</td>
+                </tr>
+            </table>
+            <div style="border-bottom: 2px dashed #000; margin-bottom: 10px; margin-top: 5px;"></div>
+            
+            <div style="text-align: center; font-size: 16px; margin-bottom: 20px;">
+                --- ขอบคุณที่ใช้บริการ ---<br><br>
+                <b>By ThepAgentBill</b><br>
+                Tel 0987707456, 0949975679
+            </div>
+        </div>
+        `;
 
-        const encodedText = encodeURIComponent(slipText);
-        const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        // แปลง HTML เป็นรูปแบบข้อมูลและส่งออกไปยัง RawBT ทันที
+        const encodedHtml = encodeURIComponent(htmlSlip);
+        const intentUrl = "intent:data:text/html;charset=utf-8," + encodedHtml + "#Intent;scheme=rawbt;type=text/html;package=ru.a402d.rawbtprinter;end;";
         
         window.location.href = intentUrl;
     });
