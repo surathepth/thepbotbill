@@ -74,13 +74,14 @@
         .footer-info .contact-line, .footer-info .contact-phone { 
             font-weight: bold; 
             color: #00b900; 
-            font-size: 9px;
+            font-size: 9px; /* ลดขนาดตัวอักษรลงตามที่สั่ง */
             margin-bottom: 2px;
         }
 
         #bank-slip-template { width: 350px; background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); padding: 20px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; display: none; margin: 10px auto; color: #2c3e50;}
         .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
         
+        /* สไตล์โครงสร้างหัวบิลสีเขียวแบบใหม่ */
         .slip-header-green {
             background-color: #00c853;
             color: white;
@@ -267,17 +268,20 @@
                 return;
             }
 
+            // ระบบล็อกคำสั่งรัดกุม: ต้องมีคำสำคัญทั้งหมดในประโยคถึงจะยอมทำงาน ป้องกันเสียงแทรก
             if (!speechToText.includes("สินค้าชื่อ") || !speechToText.includes("จำนวน") || !speechToText.includes("ราคา")) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
             }
 
+            // แปลงคำภาษาไทยให้รองรับการจับตัวเลขจุดทศนิยม
             speechToText = speechToText.replace(/จุด/g, '.');
 
             let finalName = "";
             let finalQty = 1;
             let finalPrice = 0;
 
+            // สกัดข้อมูลรวดเดียวด้วย Regex (แยกช่วงคำสั่ง)
             let nameMatch = speechToText.match(/สินค้าชื่อ\s*(.*?)(?=\s*จำนวน|\s*ราคา|$)/);
             let qtyMatch = speechToText.match(/จำนวน\s*(.*?)(?=\s*ราคา|$)/);
             let priceMatch = speechToText.match(/ราคา\s*(.*)$/);
@@ -293,15 +297,18 @@
             
             if (priceMatch) {
                 let pStr = priceMatch[1];
+                // ดักจับรูปแบบ "บาท" และ "สตางค์" (เช่น 90 บาท 50 สตางค์)
                 let bahtSatangMatch = pStr.match(/(\d+)\s*บาท\s*(\d+)\s*สตางค์/);
                 if (bahtSatangMatch) {
                     finalPrice = parseFloat(bahtSatangMatch[1] + "." + bahtSatangMatch[2]);
                 } else {
+                    // ดักจับตัวเลขทศนิยมปกติ (เช่น 90.50)
                     let pNum = pStr.match(/\d+(?:\.\d+)?/);
                     if (pNum) finalPrice = parseFloat(pNum[0]);
                 }
             }
 
+            // ถ้าระบบสกัดราคาหรือชื่อไม่ได้ ให้บล็อกการทำงาน
             if (finalName === "" || finalPrice === 0) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
@@ -599,64 +606,50 @@
         });
     });
 
-    // --- ส่วนที่อัปเกรดใหม่: ฟังก์ชันพิมพ์สลิปส่งภาพตรงให้ RawBT แบบไม่กระโดดข้ามแอป ---
     document.getElementById('btn-print').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value || "0.00";
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
-
-        if(items.length === 0 || grandTotal === "0.00") {
-            alert("⚠️ กรุณากรอกรายการสินค้าก่อนพิมพ์สลิปค่ะ");
+        const billNum = generateBillNumber();
+        
+        if (items.length === 0) {
+            alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
             return;
         }
 
-        // 1. เตรียมข้อมูลลงในสลิปต้นแบบ (ทำเหมือนระบบปุ่มแชร์ภาพ)
-        document.getElementById('slip-date').innerText = new Date().toLocaleString('th-TH');
-        document.getElementById('slip-total').innerText = grandTotal + " บาท";
-        document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
-        document.getElementById('slip-change').innerText = changeDue + " บาท";
-        document.getElementById('slip-bill-number').innerText = generateBillNumber();
-
-        let itemsListHtml = "";
+        // ปรับแต่งความกว้างข้อความให้พอดีกระดาษ 58 มม. (ประมาณ 32 ตัวอักษรต่อบรรทัด)
+        let slipText = "--------------------------------\n";
+        slipText += " ร้านขายดีร่ำรวย มั่นคง รุ่งเรือง\n";
+        slipText += "  69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า\n";
+        slipText += "  จ.เก้าเก้า 99999 โทร 999-9999\n";
+        slipText += "--------------------------------\n";
+        slipText += `เลขที่บิล: ${billNum}\n`;
+        slipText += `วันที่: ${new Date().toLocaleString('th-TH')}\n`;
+        slipText += "--------------------------------\n";
+        
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
             const price = item.querySelector('.price-val').value;
             const qty = item.querySelector('.qty-val').value;
             const total = item.querySelector('.row-total').innerText;
-            itemsListHtml += `<div class="slip-detail-row"><span>${name} (${price}x${qty})</span><strong>${total}</strong></div>`;
+            slipText += `${name}\n   ${price} x ${qty} = ${total}\n`;
         });
-        document.getElementById('slip-items-list').innerHTML = itemsListHtml;
+        
+        slipText += "--------------------------------\n";
+        slipText += `ยอดรวมทั้งสิ้น:     ${grandTotal} บาท\n`;
+        slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
+        slipText += `เงินทอน:          ${changeDue} บาท\n`;
+        slipText += "--------------------------------\n";
+        slipText += "     --- ขอบคุณที่ใช้บริการ ---\n";
+        slipText += "          By ThepAgentBill\n";
+        slipText += "     โทร 0987707456, 0949975679\n";
+        slipText += "--------------------------------\n\n\n";
 
-        const template = document.getElementById('bank-slip-template');
-        template.style.display = "block"; // เปิดแสดงสลิปชั่วคราวเพื่อถ่ายภาพ
-
-        const btnPrint = document.getElementById('btn-print');
-        const originalText = btnPrint.innerText;
-        btnPrint.innerText = "⏳ กำลังสั่งพิมพ์สลิป...";
-        btnPrint.disabled = true;
-
-        // 2. ใช้ html2canvas ถ่ายภาพสลิปสีเขียว
-        html2canvas(template, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-            template.style.display = "none"; // ซ่อนสลิปกลับไปเหมือนเดิม
-            
-            // 3. ดึงข้อมูลภาพ Base64 ออกมา
-            const imageBlob = canvas.toDataURL("image/png");
-            // ตัดส่วนหัว "data:image/png;base64," ออก เพื่อให้ RawBT อ่านได้
-            const base64Data = imageBlob.split(',')[1]; 
-            
-            // 4. ส่งภาพตรงเข้า RawBT ด้วย scheme base64 
-            const intentUrl = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-            window.location.href = intentUrl;
-
-            btnPrint.innerText = originalText;
-            btnPrint.disabled = false;
-        }).catch(error => {
-            alert('❌ เกิดข้อผิดพลาดในการสร้างสลิป: ' + error);
-            template.style.display = "none"; 
-            btnPrint.innerText = originalText;
-            btnPrint.disabled = false;
-        });
+        const encodedText = encodeURIComponent(slipText);
+        const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        
+        window.location.href = intentUrl;
     });
 </script>
 </body>
