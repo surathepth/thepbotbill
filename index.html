@@ -81,7 +81,6 @@
         #bank-slip-template { width: 350px; background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); padding: 20px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; display: none; margin: 10px auto; color: #2c3e50;}
         .slip-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
         
-        /* สไตล์โครงสร้างหัวบิลสีเขียวแก้ไขความคมชัด */
         .slip-header-green {
             background-color: #00c853;
             color: white;
@@ -106,7 +105,6 @@
 
         .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
         
-        /* สไตล์พิเศษสำหรับบรรทัดเงินทอนสีแดงตัวหนา */
         .slip-change-row { color: #e74c3c !important; font-weight: bold !important; font-size: 14px !important; border-bottom: 2px solid #e74c3c !important; }
 
         @keyframes pulse {
@@ -114,6 +112,16 @@
             50% { transform: scale(1.02); }
             100% { transform: scale(1); }
         }
+
+        #print-slip-template { width: 384px; background: white; padding: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; display: none; color: black; position: absolute; top: -9999px; left: -9999px; }
+        .print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .print-header h3 { margin: 0; font-size: 22px; }
+        .print-header p { margin: 5px 0 0 0; font-size: 14px; }
+        .print-detail-row { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 5px; }
+        .print-items-title { font-weight: bold; font-size: 16px; border-bottom: 1px solid #000; margin-top: 10px; margin-bottom: 5px; padding-bottom: 3px; }
+        .print-item { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 3px; }
+        .print-total-section { border-top: 2px dashed #000; padding-top: 5px; margin-top: 10px; }
+        .print-footer { text-align: center; margin-top: 15px; font-size: 14px; font-weight: bold; border-top: 1px solid #000; padding-top: 10px; }
     </style>
 </head>
 <body>
@@ -204,6 +212,30 @@
         </div>
     </div>
 
+    <div id="print-slip-template">
+        <div class="print-header">
+            <h3>ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
+            <p>69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
+        </div>
+        <div class="print-detail-row"><span>เลขที่บิล:</span><strong id="p-slip-bill-number"></strong></div>
+        <div class="print-detail-row"><span>วันที่:</span><span id="p-slip-date"></span></div>
+        
+        <div class="print-items-title">รายการสินค้า</div>
+        <div id="p-slip-items-list"></div>
+        
+        <div class="print-total-section">
+            <div class="print-detail-row" style="font-weight: bold; font-size: 18px;"><span>ยอดรวมทั้งสิ้น:</span><span id="p-slip-total"></span></div>
+            <div class="print-detail-row"><span>รับเงินมา:</span><span id="p-slip-cash"></span></div>
+            <div class="print-detail-row" style="font-weight: bold;"><span>เงินทอน:</span><span id="p-slip-change"></span></div>
+        </div>
+        
+        <div class="print-footer">
+            --- ขอบคุณที่ใช้บริการ ---<br>
+            By ThepAgentBill<br>
+            โทร 0987707456, 0949975679
+        </div>
+    </div>
+
     <div class="footer-info">
         <div class="contact-line">By ThepAgentBill</div>
         <div class="contact-phone">โทร 098-7707456 , 094-9975679</div>
@@ -271,32 +303,26 @@
                 return;
             }
 
-            // ระบบ Smart Extraction: แยกตัวเลข ทศนิยม และข้อความอิสระ (พูดสลับลำดับได้)
             let text = speechToText.replace(/จุด/g, '.');
             let finalName = "";
             let finalQty = 1;
             let finalPrice = 0;
 
-            // 1. ดักจับรูปแบบ บาท/สตางค์ ก่อน
             let bahtSatang = text.match(/(\d+)\s*บาท\s*(\d+)\s*สตางค์/);
             if(bahtSatang) {
                 finalPrice = parseFloat(bahtSatang[1] + "." + bahtSatang[2]);
                 text = text.replace(bahtSatang[0], ' '); 
             }
 
-            // 2. กวาดหาตัวเลขทั้งหมดในประโยค
             let numbers = text.match(/\d+(\.\d+)?/g);
             if (numbers) {
-                // ลบตัวเลขออกจากข้อความหลักเพื่อสกัดชื่อสินค้า
                 numbers.forEach(n => { text = text.replace(n, ' '); });
                 
                 numbers.forEach(numStr => {
                     let num = parseFloat(numStr);
-                    // วิเคราะห์: ถ้ามีทศนิยม หรือมากกว่า 20 มักจะเป็น "ราคา"
                     if (finalPrice === 0 && (numStr.includes('.') || num >= 20)) {
                         finalPrice = num;
                     } 
-                    // วิเคราะห์: ถ้าน้อยกว่า 100 ไม่มีทศนิยม มักจะเป็น "จำนวน"
                     else if (finalQty === 1 && num < 100 && !numStr.includes('.')) {
                         finalQty = num;
                     } 
@@ -306,7 +332,7 @@
                 });
             }
 
-            // 3. ทำความสะอาดข้อความที่เหลือให้เป็น "ชื่อสินค้า"
+            // เพิ่มคลังคำศัพท์ของพี่เทพอภัยลงใน Text Filter เพื่อความสะอาดหมดจด 100%
             finalName = text.replace(/สินค้าชื่อ/g, '')
                             .replace(/จำนวน/g, '')
                             .replace(/ราคา/g, '')
@@ -322,10 +348,34 @@
                             .replace(/แพ็ค/g, '')
                             .replace(/ลัง/g, '')
                             .replace(/ละ/g, '')
+                            // --- เพิ่มคำศัพท์ใหม่ ---
+                            .replace(/จาน/g, '')
+                            .replace(/แบน/g, '')
+                            .replace(/กลม/g, '')
+                            .replace(/หม้อ/g, '')
+                            .replace(/ถ้วย/g, '')
+                            .replace(/ชาม/g, '')
+                            .replace(/ที่/g, '')
+                            .replace(/โต๊ะ/g, '')
+                            .replace(/ใบ/g, '')
+                            .replace(/ตัว/g, '')
+                            .replace(/กิโล/g, '')
+                            .replace(/กรัม/g, '')
+                            .replace(/ขีด/g, '')
+                            .replace(/ครึ่งหนึ่ง/g, '')
+                            .replace(/ซีก/g, '')
+                            .replace(/ขา/g, '')
+                            .replace(/ห่อ/g, '')
+                            .replace(/คน/g, '')
+                            .replace(/คัน/g, '')
+                            .replace(/สาย/g, '')
+                            .replace(/ดี๊ง/g, '')
+                            .replace(/ถุง/g, '')
+                            .replace(/หลุม/g, '')
+                            // ----------------------
                             .replace(/\s+/g, ' ')
                             .trim();
 
-            // ป้องกันความผิดพลาด: ถ้าไม่มีตัวเลขหรือชื่อที่นำไปใช้ได้เลย ให้บล็อกทิ้ง (กันเสียงคุยแทรก)
             if (finalName === "" && finalPrice === 0) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
                 return;
@@ -337,7 +387,6 @@
             let currentRowIdx = nameInputs.length - 1;
 
             if (nameInputs[currentRowIdx].value !== "") {
-                // สร้างฟังก์ชันชั่วคราวเพื่อไม่ให้ trigger ไมค์ซ้ำซ้อนตอนบอทกรอกข้อมูลเอง
                 addEmptyRow();
                 const updatedNames = document.querySelectorAll('.name-val');
                 currentRowIdx = updatedNames.length - 1;
@@ -375,7 +424,6 @@
         btnStartVoice.disabled = true;
     }
 
-    // ฟังก์ชันเพิ่มบรรทัดเปล่า
     function addEmptyRow() {
         const billItemsContainer = document.getElementById('bill-items');
         const newRow = document.createElement('div');
@@ -391,7 +439,6 @@
         calculateTotals();
     }
 
-    // กดปุ่มเพิ่มรายการ -> เพิ่มบรรทัดใหม่ และ "เปิดไมค์รอรับคำสั่งทันที" (ทำตามข้อ 6)
     btnAddItem.addEventListener('click', function() {
         addEmptyRow();
         if (SpeechRecognition && !isProcessingVoice) {
@@ -647,37 +694,39 @@
             return;
         }
 
-        let slipText = "--------------------------------\n";
-        slipText += " ร้านขายดีร่ำรวย มั่นคง รุ่งเรือง\n";
-        slipText += "  69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า\n";
-        slipText += "  จ.เก้าเก้า 99999 โทร 099-9999\n";
-        slipText += "--------------------------------\n";
-        slipText += `เลขที่บิล: ${billNum}\n`;
-        slipText += `วันที่: ${new Date().toLocaleString('th-TH')}\n`;
-        slipText += "--------------------------------\n";
+        const printTemplate = document.getElementById('print-slip-template');
+        printTemplate.style.display = "block"; 
         
+        document.getElementById('p-slip-bill-number').innerText = billNum;
+        document.getElementById('p-slip-date').innerText = new Date().toLocaleString('th-TH');
+        
+        let printItemsHtml = "";
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
             const price = item.querySelector('.price-val').value;
             const qty = item.querySelector('.qty-val').value;
             const total = item.querySelector('.row-total').innerText;
-            slipText += `${name}\n   ${price} x ${qty} = ${total}\n`;
+            printItemsHtml += `
+                <div style="font-size: 16px; margin-top: 5px;">${name}</div>
+                <div class="print-item">
+                    <span>&nbsp;&nbsp;${price} x ${qty}</span>
+                    <span>${total}</span>
+                </div>
+            `;
         });
+        document.getElementById('p-slip-items-list').innerHTML = printItemsHtml;
         
-        slipText += "--------------------------------\n";
-        slipText += `ยอดรวมทั้งสิ้น:     ${grandTotal} บาท\n`;
-        slipText += `รับเงินมา:         ${parseFloat(cashInput).toFixed(2)} บาท\n`;
-        slipText += `เงินทอน:          ${changeDue} บาท\n`;
-        slipText += "--------------------------------\n";
-        slipText += "     --- ขอบคุณที่ใช้บริการ ---\n";
-        slipText += "          By ThepAgentBill\n";
-        slipText += "     โทร 0987707456, 0949975679\n";
-        slipText += "--------------------------------\n\n\n";
+        document.getElementById('p-slip-total').innerText = grandTotal + " บาท";
+        document.getElementById('p-slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
+        document.getElementById('p-slip-change').innerText = changeDue + " บาท";
 
-        const encodedText = encodeURIComponent(slipText);
-        const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-        
-        window.location.href = intentUrl;
+        html2canvas(printTemplate, { scale: 2 }).then(canvas => {
+            printTemplate.style.display = "none"; 
+            const base64Image = canvas.toDataURL("image/png");
+            
+            const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+            window.location.href = intentUrl;
+        });
     });
 </script>
 </body>
