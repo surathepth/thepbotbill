@@ -104,6 +104,7 @@
         }
 
         .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
+        
         .slip-change-row { color: #e74c3c !important; font-weight: bold !important; font-size: 14px !important; border-bottom: 2px solid #e74c3c !important; }
 
         @keyframes pulse {
@@ -112,35 +113,15 @@
             100% { transform: scale(1); }
         }
 
-        /* ----- อัปเกรดความใหญ่และระยะห่างของบิลพิมพ์ 58mm ----- */
-        #print-slip-template { 
-            width: 384px; 
-            background: white; 
-            padding: 10px 5px; 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            display: none; 
-            color: black; 
-            position: absolute; 
-            top: -9999px; 
-            left: -9999px; 
-        }
-        .print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
-        .print-header h3 { margin: 0; font-size: 32px; } /* ขยายใหญ่ขึ้น */
-        .print-header p { margin: 8px 0 0 0; font-size: 20px; } /* ขยายใหญ่ขึ้น */
-        .print-detail-row { display: flex; justify-content: space-between; font-size: 20px; margin-bottom: 8px; }
-        
-        .print-items-title { font-weight: bold; font-size: 22px; border-bottom: 2px solid #000; margin-top: 15px; margin-bottom: 10px; padding-bottom: 5px; }
-        
-        /* ขยายฟอนต์รายการสินค้าให้ใหญ่ขึ้นอย่างเห็นได้ชัด */
-        .print-item-name { font-size: 24px; margin-top: 10px; font-weight: bold; } 
-        .print-item-calc { display: flex; justify-content: space-between; font-size: 22px; margin-bottom: 8px; }
-        
-        .print-total-section { border-top: 2px dashed #000; padding-top: 10px; margin-top: 15px; }
-        .print-total-row { display: flex; justify-content: space-between; font-size: 28px; font-weight: bold; margin-bottom: 5px; } 
-        .print-money-row { display: flex; justify-content: space-between; font-size: 24px; margin-bottom: 5px; }
-        
-        /* ดันท้ายบิลลง 3 บรรทัด (90px) */
-        .print-footer { text-align: center; margin-top: 90px; font-size: 18px; font-weight: bold; border-top: 1px solid #000; padding-top: 15px; line-height: 1.5; }
+        #print-slip-template { width: 384px; background: white; padding: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; display: none; color: black; position: absolute; top: -9999px; left: -9999px; }
+        .print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .print-header h3 { margin: 0; font-size: 22px; }
+        .print-header p { margin: 5px 0 0 0; font-size: 14px; }
+        .print-detail-row { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 5px; }
+        .print-items-title { font-weight: bold; font-size: 16px; border-bottom: 1px solid #000; margin-top: 10px; margin-bottom: 5px; padding-bottom: 3px; }
+        .print-item { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 3px; }
+        .print-total-section { border-top: 2px dashed #000; padding-top: 5px; margin-top: 10px; }
+        .print-footer { text-align: center; margin-top: 15px; font-size: 14px; font-weight: bold; border-top: 1px solid #000; padding-top: 10px; }
     </style>
 </head>
 <body>
@@ -170,7 +151,7 @@
         <div id="bill-items">
             <div class="bill-item">
                 <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
-                <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
+                <div class="del-wrap"><button class="btn-delete">❌</button></div>
                 <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
                 <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
                 <div class="total-wrap"><span class="row-total">0.00</span></div>
@@ -243,9 +224,9 @@
         <div id="p-slip-items-list"></div>
         
         <div class="print-total-section">
-            <div class="print-total-row"><span>ยอดรวมทั้งสิ้น:</span><span id="p-slip-total"></span></div>
-            <div class="print-money-row"><span>รับเงินมา:</span><span id="p-slip-cash"></span></div>
-            <div class="print-money-row" style="font-weight: bold; color: #e74c3c;"><span>เงินทอน:</span><span id="p-slip-change"></span></div>
+            <div class="print-detail-row" style="font-weight: bold; font-size: 18px;"><span>ยอดรวมทั้งสิ้น:</span><span id="p-slip-total"></span></div>
+            <div class="print-detail-row"><span>รับเงินมา:</span><span id="p-slip-cash"></span></div>
+            <div class="print-detail-row" style="font-weight: bold;"><span>เงินทอน:</span><span id="p-slip-change"></span></div>
         </div>
         
         <div class="print-footer">
@@ -351,6 +332,7 @@
                 });
             }
 
+            // เพิ่มคลังคำศัพท์ของพี่เทพอภัยลงใน Text Filter เพื่อความสะอาดหมดจด 100%
             finalName = text.replace(/สินค้าชื่อ/g, '')
                             .replace(/จำนวน/g, '')
                             .replace(/ราคา/g, '')
@@ -366,6 +348,7 @@
                             .replace(/แพ็ค/g, '')
                             .replace(/ลัง/g, '')
                             .replace(/ละ/g, '')
+                            // --- เพิ่มคำศัพท์ใหม่ ---
                             .replace(/จาน/g, '')
                             .replace(/แบน/g, '')
                             .replace(/กลม/g, '')
@@ -389,6 +372,7 @@
                             .replace(/ดี๊ง/g, '')
                             .replace(/ถุง/g, '')
                             .replace(/หลุม/g, '')
+                            // ----------------------
                             .replace(/\s+/g, ' ')
                             .trim();
 
@@ -446,7 +430,7 @@
         newRow.className = 'bill-item';
         newRow.innerHTML = `
             <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
-            <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
+            <div class="del-wrap"><button class="btn-delete">❌</button></div>
             <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
             <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
             <div class="total-wrap"><span class="row-total">0.00</span></div>
@@ -524,19 +508,6 @@
         btnSnapRead.disabled = false;
     });
 
-    // แก้ไขระบบลบให้เสถียร ไม่ค้าง
-    window.deleteRow = function(btn) {
-        const itemBox = btn.closest('.bill-item');
-        if(itemBox) itemBox.remove();
-        
-        const items = document.querySelectorAll('.bill-item');
-        if (items.length === 0) {
-            addEmptyRow(); // ถ้าลบหมดเกลี้ยง ให้สร้างบรรทัดเปล่ารอไว้เลย 1 บรรทัด
-        } else {
-            calculateTotals();
-        }
-    };
-
     function calculateTotals() {
         let grandTotal = 0;
         const items = document.querySelectorAll('.bill-item');
@@ -556,7 +527,6 @@
         calculateChange(); 
     }
 
-    // แก้ไขระบบเงินทอนให้ตอบสนองทันที
     function calculateChange() {
         const grandTotal = parseFloat(document.getElementById('grand-total').innerText) || 0;
         const cashInputVal = document.getElementById('cash-input').value;
@@ -583,15 +553,25 @@
         }
     }
 
-    // ฝังเซ็นเซอร์จับการพิมพ์เงินทอน 3 ชั้น การันตีเด้งทันที
-    const cashEl = document.getElementById('cash-input');
-    ['input', 'keyup', 'change'].forEach(evt => cashEl.addEventListener(evt, calculateChange));
+    function deleteRow(btn) {
+        const itemBox = btn.closest('.bill-item');
+        itemBox.remove();
+        calculateTotals();
+    }
 
-    document.getElementById('bill-items').addEventListener('input', function(e) {
-        if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val')) calculateTotals();
-    });
-
-    calculateTotals();
+    function clearBill() {
+        document.getElementById('bill-items').innerHTML = `
+            <div class="bill-item">
+                <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
+                <div class="del-wrap"><button class="btn-delete">❌</button></div>
+                <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
+                <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
+                <div class="total-wrap"><span class="row-total">0.00</span></div>
+            </div>`; 
+        document.getElementById('cash-input').value = ''; 
+        document.getElementById('slip-bill-number').innerText = generateBillNumber();   
+        calculateTotals();                                     
+    }
 
     document.getElementById('btn-share-slip').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
@@ -634,6 +614,16 @@
             alert("🖼️ บันทึกภาพสลิปใบเสร็จลงในเครื่องสำเร็จแล้วค่ะ! ท่านสามารถกดแนบส่งให้ลูกค้าในแชท LINE ได้ทันทีค่ะ");
         });
     });
+
+    document.getElementById('bill-items').addEventListener('input', function(e) {
+        if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val')) calculateTotals();
+    });
+    document.getElementById('bill-items').addEventListener('click', function(e) {
+        if(e.target.classList.contains('btn-delete')) deleteRow(e.target);
+    });
+
+    document.getElementById('cash-input').addEventListener('input', calculateChange);
+    calculateTotals();
 
     document.getElementById('btn-pay').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
@@ -717,8 +707,8 @@
             const qty = item.querySelector('.qty-val').value;
             const total = item.querySelector('.row-total').innerText;
             printItemsHtml += `
-                <div class="print-item-name">${name}</div>
-                <div class="print-item-calc">
+                <div style="font-size: 16px; margin-top: 5px;">${name}</div>
+                <div class="print-item">
                     <span>&nbsp;&nbsp;${price} x ${qty}</span>
                     <span>${total}</span>
                 </div>
