@@ -104,7 +104,6 @@
         }
 
         .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
-        
         .slip-change-row { color: #e74c3c !important; font-weight: bold !important; font-size: 14px !important; border-bottom: 2px solid #e74c3c !important; }
 
         @keyframes pulse {
@@ -734,8 +733,8 @@
             printTemplate.style.display = "none"; 
             const base64Image = canvas.toDataURL("image/png");
             
-            // อัปเดต Intent เพื่อสั่งให้พิมพ์แบบทางลัด
-            const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;action=ru.a402d.rawbtprinter.action.PRINT_RAWBT;end;`;
+            // ลบคำสั่งแอคชันที่บังคับเข้า Play Store ออกแล้ว
+            const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
             window.location.href = intentUrl;
         });
     });
