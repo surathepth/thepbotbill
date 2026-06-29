@@ -104,6 +104,7 @@
         }
 
         .slip-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
+        
         .slip-change-row { color: #e74c3c !important; font-weight: bold !important; font-size: 14px !important; border-bottom: 2px solid #e74c3c !important; }
 
         @keyframes pulse {
@@ -112,7 +113,6 @@
             100% { transform: scale(1); }
         }
 
-        /* ----- โครงสร้างสลิปพิมพ์กระดาษ 58mm ปรับฟอนต์ใหญ่พิเศษตามสั่ง ----- */
         #print-slip-template { width: 384px; background: white; padding: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; display: none; color: black; position: absolute; top: -9999px; left: -9999px; }
         .print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
         .print-header h3 { margin: 0; font-size: 26px; } 
@@ -125,7 +125,6 @@
         
         .print-total-section { border-top: 2px dashed #000; padding-top: 8px; margin-top: 12px; }
         
-        /* B3: ดันระยะห่าง By ThepAgentBill ลงไปด้านล่างเพิ่ม 3 บรรทัด */
         .print-footer { text-align: center; margin-top: 80px; font-size: 16px; font-weight: bold; border-top: 1px solid #000; padding-top: 15px; line-height: 1.5; }
     </style>
 </head>
@@ -139,9 +138,9 @@
         <video id="camera-stream" autoplay playsinline allow="camera"></video>
     </div>
     
-    <button class="btn-scan" id="btn-start-camera">📷 เปิดกล้องเตรียมสแกน</button>
-    <button class="btn-snap-read" id="btn-snap-read">📸 ถ่ายสแกนชื่อและราคา</button>
-    <button class="btn-voice" id="btn-start-voice">🎤 กดแล้วพูดสั่งรายการสินค้า</button>
+    <button type="button" class="btn-scan" id="btn-start-camera">📷 เปิดกล้องเตรียมสแกน</button>
+    <button type="button" class="btn-snap-read" id="btn-snap-read">📸 ถ่ายสแกนชื่อและราคา</button>
+    <button type="button" class="btn-voice" id="btn-start-voice">🎤 กดแล้วพูดสั่งรายการสินค้า</button>
     
     <canvas id="snapshot-canvas" style="display:none;"></canvas>
 
@@ -164,7 +163,7 @@
         </div>
     </div>
 
-    <button class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
+    <button type="button" class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
 
     <div class="summary-box">
         <div class="summary-row total">
@@ -186,9 +185,9 @@
         </div>
     </div>
 
-    <button class="btn-pay" id="btn-pay">✅ จบบิล / ดูสลิปแจ้งยอด</button>
-    <button class="btn-share-slip" id="btn-share-slip">🖼️ บันทึกภาพสลิปส่งให้ลูกค้า</button>
-    <button class="btn-print" id="btn-print">🖨️ พิมพ์สลิป (VoZY P50 58mm)</button>
+    <button type="button" class="btn-pay" id="btn-pay">✅ จบบิล / ดูสลิปแจ้งยอด</button>
+    <button type="button" class="btn-share-slip" id="btn-share-slip">🖼️ บันทึกภาพสลิปส่งให้ลูกค้า</button>
+    <button type="button" class="btn-print" id="btn-print">🖨️ พิมพ์สลิป (VoZY P50 58mm)</button>
 
     <div id="bank-slip-template">
         <div class="slip-card">
@@ -510,7 +509,18 @@
         btnSnapRead.disabled = false;
     });
 
-    // ล็อกโครงสร้างฟังก์ชันล้างหน้าจอให้คงอยู่ถาวรในระดับ Global สยบบั๊กไม่เจอฟังก์ชัน
+    window.deleteRow = function(btn) {
+        const itemBox = btn.closest('.bill-item');
+        if(itemBox) itemBox.remove();
+        
+        const items = document.querySelectorAll('.bill-item');
+        if (items.length === 0) {
+            addEmptyRow(); 
+        } else {
+            calculateTotals();
+        }
+    };
+
     function clearBill() {
         document.getElementById('bill-items').innerHTML = `
             <div class="bill-item">
@@ -523,19 +533,6 @@
         document.getElementById('cash-input').value = ''; 
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
-    }
-
-    // ล็อกโครงสร้างระบบลบแถวรายการให้ทำงานเด็ดขาด รวดเร็ว ปลอดภัย 100%
-    function deleteRow(btn) {
-        const itemBox = btn.closest('.bill-item');
-        if(itemBox) itemBox.remove();
-        
-        const items = document.querySelectorAll('.bill-item');
-        if (items.length === 0) {
-            addEmptyRow(); 
-        } else {
-            calculateTotals();
-        }
     }
 
     function calculateTotals() {
@@ -583,7 +580,6 @@
         }
     }
 
-    // ติดตั้งเซ็นเซอร์ตรวจจับการป้อนเงินรับมา 4 ชั้น การันตีคำนวณเงินทอนเรียลไทม์ไม่มีค้าง
     const cashInputEl = document.getElementById('cash-input');
     if(cashInputEl) {
         ['input', 'keyup', 'change', 'blur'].forEach(evt => {
@@ -730,7 +726,6 @@
         });
         document.getElementById('p-slip-items-list').innerHTML = printItemsHtml;
         
-        // ล็อกคำสั่งดึงค่าเงินสดและเงินทอนแบบเรียลไทม์ลงแผ่นภาพพิมพ์สลิปกระดาษทันทีก่อน render
         document.getElementById('p-slip-total').innerText = grandTotal + " บาท";
         document.getElementById('p-slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
         document.getElementById('p-slip-change').innerText = changeDue + " บาท";
@@ -739,7 +734,8 @@
             printTemplate.style.display = "none"; 
             const base64Image = canvas.toDataURL("image/png");
             
-            const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+            // อัปเดต Intent เพื่อสั่งให้พิมพ์แบบทางลัด
+            const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;action=ru.a402d.rawbtprinter.action.PRINT_RAWBT;end;`;
             window.location.href = intentUrl;
         });
     });
