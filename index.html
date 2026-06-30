@@ -64,6 +64,7 @@
         .total-wrap { grid-column: 4; grid-row: 2; text-align: right; font-weight: bold; font-size: 14px; color: #d35400; padding-right: 2px; display: flex; align-items: center; justify-content: flex-end; }
 
         .summary-box { background-color: #fef9e7; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 18px; }
+        .summary-box { background-color: #fef9e7; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 18px; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
         .summary-row.total { font-size: 22px; font-weight: bold; color: #e74c3c; }
         .summary-row span:last-child { text-align: right; flex-grow: 1; display: block; }
@@ -125,6 +126,31 @@
         .print-total-section { border-top: 2px dashed #000; padding-top: 8px; margin-top: 12px; }
         
         .print-footer { text-align: center; margin-top: 80px; font-size: 16px; font-weight: bold; border-top: 1px solid #000; padding-top: 15px; line-height: 1.5; }
+
+        /* 🎨 สไตล์ดีไซน์ระบบ Dashboard สรุปยอดขายบนมือถือเพิ่มเติม มนุษย์สร้าง */
+        .dash-box { border-top: 3px dashed #3498db; margin-top: 25px; padding-top: 20px; }
+        .dash-title { text-align: center; color: #2c3e50; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+        .dash-cards { display: flex; gap: 8px; margin-bottom: 15px; }
+        .d-card { flex: 1; padding: 10px 5px; border-radius: 8px; text-align: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dc-day { background-color: #2ecc71; }
+        .dc-month { background-color: #f39c12; }
+        .dc-year { background-color: #2980b9; }
+        .dc-title { font-size: 11px; font-weight: bold; opacity: 0.9; margin-bottom: 4px; }
+        .dc-amount { font-size: 15px; font-weight: bold; }
+        .dash-filters { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 15px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+        .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
+        .filter-group select, .filter-group input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        .leaderboard-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+        .lb-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; border-bottom: 2px solid #2c3e50; padding-bottom: 3px; color: #2c3e50; }
+        .lb-row { margin-bottom: 8px; }
+        .lb-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 2px; }
+        .lb-bar-bg { background: #edf2f4; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
+        .lb-bar-fill { background: linear-gradient(90deg, #3498db, #9b59b6); height: 100%; border-radius: 6px; width: 0%; transition: width 0.5s ease; }
+        .ledger-box { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }
+        .ledger-row { display: grid; grid-template-columns: 80px 60px 50px 1fr; gap: 4px; font-size: 11px; padding: 6px 4px; border-bottom: 1px solid #eee; align-items: center; }
+        .ledger-row:nth-child(even) { background-color: #f9f9f9; }
+        .ledger-row.h { font-weight: bold; background-color: #f1f2f6; border-bottom: 2px solid #ccc; position: sticky; top: 0; z-index: 1; }
     </style>
 </head>
 <body>
@@ -263,6 +289,64 @@
         <div class="contact-line">By ThepAgentBill</div>
         <div class="contact-phone">โทร 098-7707456 , 094-9975679</div>
     </div>
+
+    <div class="dash-box">
+        <div class="dash-title">📊 แดชบอร์ดสรุปยอดขายร้านค้า</div>
+        
+        <div class="dash-cards">
+            <div class="d-card dc-day">
+                <div class="dc-title">ยอดขายวันนี้</div>
+                <div id="dash-day-total">0.00</div>
+            </div>
+            <div class="d-card dc-month">
+                <div class="dc-title">ยอดขายเดือนนี้</div>
+                <div id="dash-month-total">0.00</div>
+            </div>
+            <div class="d-card dc-year">
+                <div class="dc-title">ยอดขายปีนี้</div>
+                <div id="dash-year-total">0.00</div>
+            </div>
+        </div>
+
+        <div class="dash-filters">
+            <div style="font-weight: bold; font-size: 13px; color: #2c3e50; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px;">🔍 ตัวกรองระบุค้นหาข้อมูล</div>
+            <div class="filter-group">
+                <label>ระบุวันที่ค้นหา:</label>
+                <input type="date" id="filter-date">
+            </div>
+            <div class="filter-group">
+                <label>ระบุชื่อสินค้าค้นหา:</label>
+                <select id="filter-product">
+                    <option value="">-- สินค้าทั้งหมด --</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>ระบุเลือกช่อง NO. คิว/โต๊ะ:</label>
+                <select id="filter-no">
+                    <option value="">-- NO. ทั้งหมด --</option>
+                </select>
+            </div>
+            <button type="button" id="btn-clear-filter" style="background-color: #7f8c8d; padding: 8px; font-size: 13px; margin-top: 5px; margin-bottom: 0;">🔄 ล้างตัวกรองทั้งหมด</button>
+        </div>
+
+        <div class="leaderboard-box">
+            <div class="lb-title">🏆 อันดับสินค้าขายดีที่สุด 10 อันดับ</div>
+            <div id="leaderboard-list">
+                <span style="font-size: 12px; color: #7f8c8d;">ไม่พบข้อมูลอันดับสินค้า</span>
+            </div>
+        </div>
+
+        <div style="font-weight: bold; font-size: 13px; color: #2c3e50; margin-bottom: 5px;">📜 ตารางรายการประวัติบิลเงินสดหลังร้าน</div>
+        <div class="ledger-box">
+            <div class="ledger-row h">
+                <div>วันที่/เวลา</div>
+                <div>ยอดขาย</div>
+                <div>NO.</div>
+                <div>รายละเอียดรายการสินค้า</div>
+            </div>
+            <div id="ledger-data-rows"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -278,9 +362,9 @@
     const btnHoldBill = document.getElementById('btn-hold-bill');
     const btnRetrieveBill = document.getElementById('btn-retrieve-bill');
 
-    // ดึงค่า Sequence เลขที่บิลจากคลังความจำเครื่องเพื่อป้องกันเลขอภิสิทธิ์หลุดเมื่อแอปรีเฟรชตัวเอง
     let currentBillSeq = parseInt(localStorage.getItem('thep_bill_seq')) || 1;
     let lastBillDateStr = localStorage.getItem('thep_bill_date') || "";
+    let globalSheetsData = []; // คลังเก็บหน่วยความจำแผ่นงานหลังร้านแบบ Global
 
     function generateBillNumber() {
         const now = new Date();
@@ -387,7 +471,7 @@
             currentQtys[currentRowIdx].value = finalQty;
 
             calculateTotals();
-            saveActiveBillState(); // สั่งบันทึกข้อมูลแบบเรียลไทม์
+            saveActiveBillState();
             
             setTimeout(() => {
                 isProcessingVoice = false;
@@ -411,7 +495,6 @@
         btnStartVoice.disabled = true;
     }
 
-    // ฟังก์ชันสร้างแถวใหม่ที่รองรับการรับค่าตัวแปรเพื่อใช้ฟื้นฟูระบบค้างหน้าบิล
     function addEmptyRow(name = "", price = 0, qty = 1) {
         const billItemsContainer = document.getElementById('bill-items');
         const newRow = document.createElement('div');
@@ -520,10 +603,10 @@
                 <div class="total-wrap"><span class="row-total">0.00</span></div>
             </div>`; 
         document.getElementById('cash-input').value = ''; 
-        document.getElementById('queue-no').value = ''; // เคลียร์ช่อง NO. ว่างเปล่า
+        document.getElementById('queue-no').value = ''; 
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
-        localStorage.removeItem('thep_active_bill'); // ล้างความจำเสมือนของบิลปัจจุบันทิ้ง
+        localStorage.removeItem('thep_active_bill');
     }
 
     function calculateTotals() {
@@ -581,7 +664,6 @@
         });
     }
 
-    // ดักฟังการพิมพ์ข้อมูลในช่องตารางรายการทั้งหมด เพื่อประมวลผลเซฟลงความจำป้องกันแอปย่อแล้วหาย
     document.getElementById('bill-items').addEventListener('input', function(e) {
         if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val') || e.target.classList.contains('name-val')) {
             calculateTotals();
@@ -591,9 +673,6 @@
 
     document.getElementById('queue-no').addEventListener('input', saveActiveBillState);
 
-    // ==========================================
-    // 💾 ระบบความจำเสมือนเสถียรสูง (LOCALSTORAGE SYSTEM)
-    // ==========================================
     function saveActiveBillState() {
         const items = [];
         const rows = document.querySelectorAll('.bill-item');
@@ -635,9 +714,6 @@
         }
     }
 
-    // ==========================================
-    // ⏸️ ฟังก์ชันระบบพักบิลชั่วคราว & 📂 เรียกคืนบิล
-    // ==========================================
     function getHeldBills() {
         const held = localStorage.getItem('thep_held_bills');
         return held ? JSON.parse(held) : {};
@@ -749,10 +825,224 @@
         alert(`📂 เรียกคืนบิล "NO. ${key}" กลับคืนมาเรียบร้อยแล้วค่ะ`);
     }
 
-    // เรียกโหลดฟังก์ชันป้องกันหน้าจอดับ/ข้อมูลหายทันทีเมื่อเปิดใช้งานหน้าจอแอป
     loadActiveBillState();
 
-    // ==========================================
+    // =========================================================
+    // 🧠 ฟังก์ชันถอดรหัสวิเคราะห์ฐานข้อมูลคลังแดชบอร์ดหลังร้านอัจฉริยะ 🧠
+    // =========================================================
+    function parseSheetsAndBuildDashboard(dataArray) {
+        globalSheetsData = dataArray || [];
+        
+        let dayTotal = 0, monthTotal = 0, yearTotal = 0;
+        let productSalesMap = {}; // นับสะสมจำนวนแยกชื่อสินค้า
+        let productDropdownOptions = new Set();
+        let noDropdownOptions = new Set();
+
+        const now = new Date();
+        const currentDay = now.getDate();
+        const currentMonth = now.getMonth() + 1; // มกราคม = 1
+        const currentYear = now.getFullYear();
+
+        // สแกนเจาะข้อมูลทีละบรรทัดจากชีต
+        globalSheetsData.forEach(row => {
+            // โครงสร้างแถว: [วันที่และเวลา, ยอดรวมทั้งสิ้น, รับเงินมา, เงินทอน, รายละเอียดสินค้า]
+            if(!row[0] || !row[1]) return;
+
+            let rowDateStr = row[0].toString(); // เช่น "30/6/2026, 18:47:07"
+            let totalAmount = parseFloat(row[1]) || 0;
+            let details = row[4] ? row[4].toString() : "";
+
+            // แยกแกะองค์ประกอบ วัน/เดือน/ปี
+            let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
+            let parts = datePart.split('/');
+            let d = parseInt(parts[0]) || 0;
+            let m = parseInt(parts[1]) || 0;
+            let y = parseInt(parts[2]) || 0;
+
+            // ตรวจสอบความถูกต้องเพื่อสรุปผลข้อ 1 (วัน/เดือน/ปี)
+            if (d === currentDay && m === currentMonth && y === currentYear) dayTotal += totalAmount;
+            if (m === currentMonth && y === currentYear) monthTotal += totalAmount;
+            if (y === currentYear) yearTotal += totalAmount;
+
+            // เจาะลึกถอดรหัสข้อความ details เพื่อสกัดหาช่องเลข NO. คิว/โต๊ะ
+            let noMatch = details.match(/NO:\s*([^|]+)/);
+            let rowQueueNo = noMatch ? noMatch[1].trim() : "-";
+            if(rowQueueNo !== "-") noDropdownOptions.add(rowQueueNo);
+
+            // เจาะลึกสกัดหาจำนวนรายการชื่อสินค้าขายดี (ข้อ 4)
+            // รูปแบบ: ชื่อสินค้า (ราคาxจำนวน=รวม) |
+            let segments = details.split('|');
+            segments.forEach(seg => {
+                let segTrim = seg.trim();
+                if(!segTrim || segTrim.startsWith("NO:")) return;
+
+                let itemMatch = segTrim.match(/^(.*?)\s*\(/);
+                let qtyMatch = segTrim.match(/x\s*(\d+(\.\d+)?)\s*=/);
+
+                if(itemMatch && qtyMatch) {
+                    let pName = itemMatch[1].trim();
+                    let pQty = parseFloat(qtyMatch[1]) || 0;
+
+                    productDropdownOptions.add(pName);
+                    productSalesMap[pName] = (productSalesMap[pName] || 0) + pQty;
+                }
+            });
+        });
+
+        // ดันผลรวมขึ้นป้ายประกาศป้ายสีพาสเทลด้านบน
+        document.getElementById('dash-day-total').innerText = dayTotal.toFixed(2);
+        document.getElementById('dash-month-total').innerText = monthTotal.toFixed(2);
+        document.getElementById('dash-year-total').innerText = yearTotal.toFixed(2);
+
+        // อัปเดตรายชื่อในเมนูกล่องตัวกรอง Dropdown ข้อ 3 และ 5
+        updateFilterDropdowns(productDropdownOptions, noDropdownOptions);
+
+        // คำนวณจัดลำดับสินค้าแชมป์ยอดขายท็อป 10 (ข้อ 4)
+        renderTopProductsLeaderboard(productSalesMap);
+
+        // เรนเดอร์ตารางประวัติหลังร้านด้านล่าง
+        filterAndRenderLedgerTable();
+    }
+
+    function updateFilterDropdowns(products, nos) {
+        const pSelect = document.getElementById('filter-product');
+        const noSelect = document.getElementById('filter-no');
+
+        // รักษาสถานะตัวเลือกเดิมเอาไว้
+        let currentP = pSelect.value;
+        let currentNo = noSelect.value;
+
+        pSelect.innerHTML = '<option value="">-- สินค้าทั้งหมด --</option>';
+        noSelect.innerHTML = '<option value="">-- NO. ทั้งหมด --</option>';
+
+        Array.from(products).sort().forEach(p => {
+            pSelect.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+        Array.from(nos).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(no => {
+            noSelect.innerHTML += `<option value="${no}">NO. ${no}</option>`;
+        });
+
+        pSelect.value = currentP;
+        noSelect.value = currentNo;
+    }
+
+    function renderTopProductsLeaderboard(salesMap) {
+        let sorted = [];
+        for (let p in salesMap) {
+            sorted.push({ name: p, qty: salesMap[p] });
+        }
+        sorted.sort((a, b) => b.qty - a.qty);
+
+        // ตัดเกณฑ์ขั้นต่ำโควตาแสดงผล 10 อันดับตามสั่ง (ข้อ 4)
+        let top10 = sorted.slice(0, 10);
+        const lbList = document.getElementById('leaderboard-list');
+        
+        if(top10.length === 0) {
+            lbList.innerHTML = '<span style="font-size: 12px; color: #7f8c8d;">ไม่พบข้อมูลอันดับสินค้า</span>';
+            return;
+        }
+
+        let maxQty = top10[0].qty || 1;
+        let html = "";
+        
+        top10.forEach((item, index) => {
+            let percent = (item.qty / maxQty) * 100;
+            html += `
+                <div class="lb-row">
+                    <div class="lb-labels">
+                        <span>🏆 อันดับ ${index + 1}: ${item.name}</span>
+                        <span>${item.qty} ชิ้น</span>
+                    </div>
+                    <div class="lb-bar-bg">
+                        <div class="lb-bar-fill" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            `;
+        });
+        lbList.innerHTML = html;
+    }
+
+    function filterAndRenderLedgerTable() {
+        const filterDate = document.getElementById('filter-date').value; // YYYY-MM-DD
+        const filterProduct = document.getElementById('filter-product').value;
+        const filterNo = document.getElementById('filter-no').value;
+        const rowsContainer = document.getElementById('ledger-data-rows');
+        rowsContainer.innerHTML = '';
+
+        let filteredCount = 0;
+
+        globalSheetsData.forEach(row => {
+            if(!row[0] || !row[1]) return;
+
+            let rowDateStr = row[0].toString();
+            let totalAmount = parseFloat(row[1]) || 0;
+            let details = row[4] ? row[4].toString() : "";
+
+            // สกัดหาเลข NO. คิว/โต๊ะ
+            let noMatch = details.match(/NO:\s*([^|]+)/);
+            let rowQueueNo = noMatch ? noMatch[1].trim() : "-";
+
+            // แยกเปรียบเทียบตัวกรองวันที่ (ข้อ 2)
+            if (filterDate) {
+                let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
+                let parts = datePart.split('/');
+                let rowFormattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                if (rowFormattedDate !== filterDate) return;
+            }
+
+            // แยกเปรียบเทียบตัวกรองชื่อสินค้า (ข้อ 3)
+            if (filterProduct && !details.includes(filterProduct)) return;
+
+            // แยกเปรียบเทียบตัวกรองเลขช่อง NO. (ข้อ 5)
+            if (filterNo && rowQueueNo !== filterNo) return;
+
+            // ประกอบสร้างบรรทัดตารางแบบมนุษย์อ่านง่าย สลับบรรทัดสะอาดตา
+            filteredCount++;
+            let displayDetails = details.replace(/NO:\s*[^|]+\|\s*/, ''); // ตัดหัว NO ออกให้อ่านเรียบร้อยสบายตา
+            
+            let htmlRow = `
+                <div class="ledger-row">
+                    <div>${rowDateStr.split(',')[0]}</div>
+                    <div style="font-weight:bold; color:#e67e22;">${totalAmount.toFixed(2)}</div>
+                    <div style="font-weight:bold; color:#2980b9;">${rowQueueNo}</div>
+                    <div style="color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayDetails}</div>
+                </div>
+            `;
+            rowsContainer.innerHTML += htmlRow;
+        });
+
+        if(filteredCount === 0) {
+            rowsContainer.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:#95a5a6;">❌ ไม่พบรายการประวัติบิลที่ตรงตามเงื่อนไขค่ะ</div>';
+        }
+    }
+
+    // เปิดจุดเชื่อมโยงตัวกรอง ค้นหาแปรผันอัจฉริยะอัตโนมัติเรียลไทม์เมื่อมีการจิ้มเลือกเมนูบนจอ
+    document.getElementById('filter-date').addEventListener('change', filterAndRenderLedgerTable);
+    document.getElementById('filter-product').addEventListener('change', filterAndRenderLedgerTable);
+    document.getElementById('filter-no').addEventListener('change', filterAndRenderLedgerTable);
+    document.getElementById('btn-clear-filter').addEventListener('click', function() {
+        document.getElementById('filter-date').value = '';
+        document.getElementById('filter-product').value = '';
+        document.getElementById('filter-no').value = '';
+        filterAndRenderLedgerTable();
+    });
+
+    // ฟังก์ชันสั่งโหลดดึงข้อมูลหลังร้านอัตโนมัติเมื่อเปิดหน้าจอแอปขึ้นมาทำงาน
+    function fetchLiveSheetData() {
+        fetch(WEB_APP_URL + "?action=readSales")
+        .then(response => response.json())
+        .then(data => {
+            if(data && Array.isArray(data)) {
+                parseSheetsAndBuildDashboard(data);
+            }
+        })
+        .catch(error => console.error("Error loading sales history data", error));
+    }
+
+    // ตั้งเวลาให้ระบบเรียกฟังก์ชันดาวน์โหลดข้อมูลจากแผ่นงานทุกๆครั้งที่หน้าเว็บเปิดทำงานสำเร็จ
+    setTimeout(fetchLiveSheetData, 1000);
+
+    // =========================================================
 
     document.getElementById('btn-share-slip').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
@@ -771,7 +1061,7 @@
         document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
         document.getElementById('slip-change').innerText = changeDue + " บาท";
         document.getElementById('slip-bill-number').innerText = generateBillNumber();
-        document.getElementById('slip-queue-number').innerText = queueNo; // ดันค่า NO. ลงภาพสลิป
+        document.getElementById('slip-queue-number').innerText = queueNo;
 
         let itemsListHtml = "";
         items.forEach(item => {
@@ -845,10 +1135,11 @@
         .then(response => {
             alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
             currentBillSeq++; 
-            localStorage.setItem('thep_bill_seq', currentBillSeq); // เซฟจำลำดับบิลล่าสุด
+            localStorage.setItem('thep_bill_seq', currentBillSeq);
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
             btnPay.disabled = false;
+            fetchLiveSheetData(); // โหลดอัปเดตข้อมูลบนกระดานแดชบอร์ดทันทีหลังจบบิล
         })
         .catch(error => {
             alert('❌ เกิดข้อผิดพลาด: ' + error);
@@ -874,7 +1165,7 @@
         printTemplate.style.display = "block"; 
         
         document.getElementById('p-slip-bill-number').innerText = billNum;
-        document.getElementById('p-slip-queue-number').innerText = queueNo; // ดันค่า NO. ลงเครื่องพิมพ์
+        document.getElementById('p-slip-queue-number').innerText = queueNo;
         document.getElementById('p-slip-date').innerText = new Date().toLocaleString('th-TH');
         
         let printItemsHtml = "";
