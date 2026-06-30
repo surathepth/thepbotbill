@@ -41,7 +41,7 @@
         .btn-voice { background-color: #9b59b6; margin-bottom: 10px; }
         .btn-voice.listening { background-color: #e74c3c; animation: pulse 1.5s infinite; }
         
-        .btn-add-item { background-color: #34495e; margin-top: 5px; margin-bottom: 15px; padding: 12px; font-size: 16px; }
+        .btn-add-item { background-color: #34495e; margin-top: 5px; margin-bottom: 10px; padding: 12px; font-size: 16px; }
         .btn-pay { background-color: #2ecc71; }
         
         .btn-share-slip { background-color: #1abc9c; }
@@ -143,6 +143,14 @@
     
     <canvas id="snapshot-canvas" style="display:none;"></canvas>
 
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: bold; font-size: 15px; color: #2c3e50;">📋 รายการสินค้า</span>
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <label style="font-weight: bold; color: #e74c3c; font-size: 15px;">NO.</label>
+            <input type="text" id="queue-no" placeholder="คิว/โต๊ะ..." style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; text-align: center; font-weight: bold;">
+        </div>
+    </div>
+
     <div class="items-container">
         <div class="bill-header">
             <div class="h-name">รายการ</div>
@@ -163,6 +171,16 @@
     </div>
 
     <button type="button" class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button type="button" id="btn-hold-bill" style="flex: 1; background-color: #e67e22; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">⏸️ พักบิลชั่วคราว</button>
+        <button type="button" id="btn-retrieve-bill" style="flex: 1; background-color: #34495e; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">📂 เรียกคืนบิลที่พักไว้</button>
+    </div>
+
+    <div id="held-bills-container" style="display: none; background: #ebf5fb; border: 1px solid #3498db; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+        <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #2c3e50;">📌 เลือกคิวบิลที่ต้องการดึงกลับมาทำต่อ:</div>
+        <div id="held-bills-list" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+    </div>
 
     <div class="summary-box">
         <div class="summary-row total">
@@ -197,6 +215,7 @@
             </div>
             
             <div class="slip-detail-row"><span>เลขที่บิล:</span><strong id="slip-bill-number">XXXXXX-XXXX</strong></div>
+            <div class="slip-detail-row"><span>NO. คิว/โต๊ะ:</span><strong id="slip-queue-number">-</strong></div>
             <div class="slip-detail-row"><span>วันที่ทำรายการ:</span><span id="slip-date"></span></div>
             
             <div style="margin-top: 15px; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px;">รายการสินค้า</div>
@@ -221,6 +240,7 @@
             <p>69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
         </div>
         <div class="print-detail-row"><span>เลขที่บิล:</span><strong id="p-slip-bill-number"></strong></div>
+        <div class="print-detail-row"><span>NO. คิว/โต๊ะ:</span><strong id="p-slip-queue-number"></strong></div>
         <div class="print-detail-row"><span>วันที่:</span><span id="p-slip-date"></span></div>
         
         <div class="print-items-title">รายการสินค้า</div>
@@ -255,9 +275,12 @@
     const canvasElement = document.getElementById('snapshot-canvas');
     const btnAddItem = document.getElementById('btn-add-item');
     const btnStartVoice = document.getElementById('btn-start-voice');
+    const btnHoldBill = document.getElementById('btn-hold-bill');
+    const btnRetrieveBill = document.getElementById('btn-retrieve-bill');
 
-    let currentBillSeq = 1;
-    let lastBillDateStr = "";
+    // ดึงค่า Sequence เลขที่บิลจากคลังความจำเครื่องเพื่อป้องกันเลขอภิสิทธิ์หลุดเมื่อแอปรีเฟรชตัวเอง
+    let currentBillSeq = parseInt(localStorage.getItem('thep_bill_seq')) || 1;
+    let lastBillDateStr = localStorage.getItem('thep_bill_date') || "";
 
     function generateBillNumber() {
         const now = new Date();
@@ -269,6 +292,8 @@
         if (lastBillDateStr !== todayStr) {
             lastBillDateStr = todayStr;
             currentBillSeq = 1; 
+            localStorage.setItem('thep_bill_date', lastBillDateStr);
+            localStorage.setItem('thep_bill_seq', currentBillSeq);
         }
 
         const seqStr = String(currentBillSeq).padStart(4, '0');
@@ -335,46 +360,7 @@
                 });
             }
 
-            finalName = text.replace(/สินค้าชื่อ/g, '')
-                            .replace(/จำนวน/g, '')
-                            .replace(/ราคา/g, '')
-                            .replace(/บาท/g, '')
-                            .replace(/สตางค์/g, '')
-                            .replace(/ขวดละ/g, '')
-                            .replace(/ชิ้นละ/g, '')
-                            .replace(/อันละ/g, '')
-                            .replace(/แพ็คละ/g, '')
-                            .replace(/ขวด/g, '')
-                            .replace(/ชิ้น/g, '')
-                            .replace(/อัน/g, '')
-                            .replace(/แพ็ค/g, '')
-                            .replace(/ลัง/g, '')
-                            .replace(/ละ/g, '')
-                            .replace(/จาน/g, '')
-                            .replace(/แบน/g, '')
-                            .replace(/กลม/g, '')
-                            .replace(/หม้อ/g, '')
-                            .replace(/ถ้วย/g, '')
-                            .replace(/ชาม/g, '')
-                            .replace(/ที่/g, '')
-                            .replace(/โต๊ะ/g, '')
-                            .replace(/ใบ/g, '')
-                            .replace(/ตัว/g, '')
-                            .replace(/กิโล/g, '')
-                            .replace(/กรัม/g, '')
-                            .replace(/ขีด/g, '')
-                            .replace(/ครึ่งหนึ่ง/g, '')
-                            .replace(/ซีก/g, '')
-                            .replace(/ขา/g, '')
-                            .replace(/ห่อ/g, '')
-                            .replace(/คน/g, '')
-                            .replace(/คัน/g, '')
-                            .replace(/สาย/g, '')
-                            .replace(/ดี๊ง/g, '')
-                            .replace(/ถุง/g, '')
-                            .replace(/หลุม/g, '')
-                            .replace(/\s+/g, ' ')
-                            .trim();
+            finalName = text.replace(/สินค้าชื่อ/g, '').replace(/จำนวน/g, '').replace(/ราคา/g, '').replace(/บาท/g, '').replace(/สตางค์/g, '').replace(/ขวดละ/g, '').replace(/ชิ้นละ/g, '').replace(/อันละ/g, '').replace(/แพ็คละ/g, '').replace(/ขวด/g, '').replace(/ชิ้น/g, '').replace(/อัน/g, '').replace(/แพ็ค/g, '').replace(/ลัง/g, '').replace(/ละ/g, '').replace(/จาน/g, '').replace(/แบน/g, '').replace(/กลม/g, '').replace(/หม้อ/g, '').replace(/ถ้วย/g, '').replace(/ชาม/g, '').replace(/ที่/g, '').replace(/โต๊ะ/g, '').replace(/ใบ/g, '').replace(/ตัว/g, '').replace(/กิโล/g, '').replace(/กรัม/g, '').replace(/ขีด/g, '').replace(/ครึ่งหนึ่ง/g, '').replace(/ซีก/g, '').replace(/ขา/g, '').replace(/ห่อ/g, '').replace(/คน/g, '').replace(/คัน/g, '').replace(/สาย/g, '').replace(/ดี๊ง/g, '').replace(/ถุง/g, '').replace(/หลุม/g, '').replace(/\s+/g, ' ').trim();
 
             if (finalName === "" && finalPrice === 0) {
                 setTimeout(() => { isProcessingVoice = false; }, 400);
@@ -401,6 +387,7 @@
             currentQtys[currentRowIdx].value = finalQty;
 
             calculateTotals();
+            saveActiveBillState(); // สั่งบันทึกข้อมูลแบบเรียลไทม์
             
             setTimeout(() => {
                 isProcessingVoice = false;
@@ -424,15 +411,16 @@
         btnStartVoice.disabled = true;
     }
 
-    function addEmptyRow() {
+    // ฟังก์ชันสร้างแถวใหม่ที่รองรับการรับค่าตัวแปรเพื่อใช้ฟื้นฟูระบบค้างหน้าบิล
+    function addEmptyRow(name = "", price = 0, qty = 1) {
         const billItemsContainer = document.getElementById('bill-items');
         const newRow = document.createElement('div');
         newRow.className = 'bill-item';
         newRow.innerHTML = `
-            <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
+            <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..." value="${name}"></div>
             <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
-            <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
-            <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
+            <div class="price-wrap"><input type="number" class="price-val" value="${price}"></div>
+            <div class="qty-wrap"><input type="number" class="qty-val" value="${qty}"></div>
             <div class="total-wrap"><span class="row-total">0.00</span></div>
         `;
         billItemsContainer.appendChild(newRow);
@@ -497,6 +485,7 @@
                 }
                 
                 calculateTotals(); 
+                saveActiveBillState();
             } else {
                 alert("อ่านป้ายไม่ชัดเจน รบกวนถ่ายใหม่อีกครั้งค่ะ");
             }
@@ -518,6 +507,7 @@
         } else {
             calculateTotals();
         }
+        saveActiveBillState();
     };
 
     function clearBill() {
@@ -530,8 +520,10 @@
                 <div class="total-wrap"><span class="row-total">0.00</span></div>
             </div>`; 
         document.getElementById('cash-input').value = ''; 
+        document.getElementById('queue-no').value = ''; // เคลียร์ช่อง NO. ว่างเปล่า
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
+        localStorage.removeItem('thep_active_bill'); // ล้างความจำเสมือนของบิลปัจจุบันทิ้ง
     }
 
     function calculateTotals() {
@@ -582,21 +574,192 @@
     const cashInputEl = document.getElementById('cash-input');
     if(cashInputEl) {
         ['input', 'keyup', 'change', 'blur'].forEach(evt => {
-            cashInputEl.addEventListener(evt, calculateChange);
+            cashInputEl.addEventListener(evt, () => {
+                calculateChange();
+                saveActiveBillState();
+            });
         });
     }
 
+    // ดักฟังการพิมพ์ข้อมูลในช่องตารางรายการทั้งหมด เพื่อประมวลผลเซฟลงความจำป้องกันแอปย่อแล้วหาย
     document.getElementById('bill-items').addEventListener('input', function(e) {
-        if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val')) calculateTotals();
+        if(e.target.classList.contains('price-val') || e.target.classList.contains('qty-val') || e.target.classList.contains('name-val')) {
+            calculateTotals();
+            saveActiveBillState();
+        }
     });
 
-    calculateTotals();
+    document.getElementById('queue-no').addEventListener('input', saveActiveBillState);
+
+    // ==========================================
+    // 💾 ระบบความจำเสมือนเสถียรสูง (LOCALSTORAGE SYSTEM)
+    // ==========================================
+    function saveActiveBillState() {
+        const items = [];
+        const rows = document.querySelectorAll('.bill-item');
+        rows.forEach(row => {
+            items.push({
+                name: row.querySelector('.name-val').value,
+                price: row.querySelector('.price-val').value,
+                qty: row.querySelector('.qty-val').value
+            });
+        });
+        const state = {
+            queueNo: document.getElementById('queue-no').value,
+            cashInput: document.getElementById('cash-input').value,
+            billNumber: document.getElementById('slip-bill-number').innerText,
+            items: items
+        };
+        localStorage.setItem('thep_active_bill', JSON.stringify(state));
+    }
+
+    function loadActiveBillState() {
+        const saved = localStorage.getItem('thep_active_bill');
+        if (!saved) return;
+        try {
+            const state = JSON.parse(saved);
+            if (state.items && state.items.length > 0) {
+                document.getElementById('bill-items').innerHTML = '';
+                state.items.forEach(item => {
+                    addEmptyRow(item.name, item.price, item.qty);
+                });
+            }
+            document.getElementById('queue-no').value = state.queueNo || '';
+            document.getElementById('cash-input').value = state.cashInput || '';
+            if (state.billNumber) {
+                document.getElementById('slip-bill-number').innerText = state.billNumber;
+            }
+            calculateTotals();
+        } catch (e) {
+            console.error("Error loading active bill state", e);
+        }
+    }
+
+    // ==========================================
+    // ⏸️ ฟังก์ชันระบบพักบิลชั่วคราว & 📂 เรียกคืนบิล
+    // ==========================================
+    function getHeldBills() {
+        const held = localStorage.getItem('thep_held_bills');
+        return held ? JSON.parse(held) : {};
+    }
+
+    function saveHeldBills(heldObject) {
+        localStorage.setItem('thep_held_bills', JSON.stringify(heldObject));
+    }
+
+    btnHoldBill.addEventListener('click', function() {
+        const queueNo = document.getElementById('queue-no').value.trim();
+        if (!queueNo) {
+            alert("⚠️ กรุณากรอกเลขคิวหรือชื่อลงในช่อง NO. ก่อนทำการพักบิลค่ะ!");
+            return;
+        }
+
+        const items = [];
+        const rows = document.querySelectorAll('.bill-item');
+        rows.forEach(row => {
+            const name = row.querySelector('.name-val').value;
+            const price = row.querySelector('.price-val').value;
+            const qty = row.querySelector('.qty-val').value;
+            if(name || parseFloat(price) > 0) {
+                items.push({ name, price, qty });
+            }
+        });
+
+        if (items.length === 0) {
+            alert("⚠️ ไม่พบรายการสินค้าในบิลปัจจุบัน ไม่สามารถพักบิลเปล่าได้ค่ะ");
+            return;
+        }
+
+        const heldBills = getHeldBills();
+        heldBills[queueNo] = {
+            queueNo: queueNo,
+            billNumber: document.getElementById('slip-bill-number').innerText,
+            cashInput: document.getElementById('cash-input').value,
+            items: items,
+            time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+        };
+
+        saveHeldBills(heldBills);
+        localStorage.removeItem('thep_active_bill');
+        clearBill();
+        renderHeldBills();
+        alert(`⏸️ พักบิลคิว "NO. ${queueNo}" สำเร็จเรียบร้อยค่ะ! หน้าจอถูกเคลียร์ว่างสำหรับลูกค้าคิวถัดไปแล้วค่ะ`);
+    });
+
+    btnRetrieveBill.addEventListener('click', function() {
+        const container = document.getElementById('held-bills-container');
+        if (container.style.display === 'none') {
+            renderHeldBills();
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    });
+
+    function renderHeldBills() {
+        const heldBills = getHeldBills();
+        const listContainer = document.getElementById('held-bills-list');
+        listContainer.innerHTML = '';
+        
+        const keys = Object.keys(heldBills);
+        if (keys.length === 0) {
+            listContainer.innerHTML = '<span style="font-size: 13px; color: #7f8c8d; padding: 5px;">ไม่มีบิลที่พักไว้ในระบบค่ะ</span>';
+            return;
+        }
+
+        keys.forEach(key => {
+            const bill = heldBills[key];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.width = 'auto';
+            btn.style.padding = '8px 12px';
+            btn.style.fontSize = '14px';
+            btn.style.margin = '0';
+            btn.style.backgroundColor = '#3498db';
+            btn.style.display = 'inline-block';
+            btn.innerText = `📎 NO. ${bill.queueNo} (${bill.time})`;
+            btn.addEventListener('click', function() {
+                restoreHeldBill(key);
+            });
+            listContainer.appendChild(btn);
+        });
+    }
+
+    function restoreHeldBill(key) {
+        const heldBills = getHeldBills();
+        const bill = heldBills[key];
+        if (!bill) return;
+
+        document.getElementById('bill-items').innerHTML = '';
+        bill.items.forEach(item => {
+            addEmptyRow(item.name, item.price, item.qty);
+        });
+
+        document.getElementById('queue-no').value = bill.queueNo;
+        document.getElementById('cash-input').value = bill.cashInput || '';
+        document.getElementById('slip-bill-number').innerText = bill.billNumber;
+
+        delete heldBills[key];
+        saveHeldBills(heldBills);
+
+        renderHeldBills();
+        document.getElementById('held-bills-container').style.display = 'none';
+        calculateTotals();
+        saveActiveBillState();
+        alert(`📂 เรียกคืนบิล "NO. ${key}" กลับคืนมาเรียบร้อยแล้วค่ะ`);
+    }
+
+    // เรียกโหลดฟังก์ชันป้องกันหน้าจอดับ/ข้อมูลหายทันทีเมื่อเปิดใช้งานหน้าจอแอป
+    loadActiveBillState();
+
+    // ==========================================
 
     document.getElementById('btn-share-slip').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value || "0.00";
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
+        const queueNo = document.getElementById('queue-no').value || "-";
 
         if(items.length === 0 || grandTotal === "0.00") {
             alert("⚠️ กรุณากรอกรายการสินค้าก่อนสร้างสลิปค่ะ");
@@ -608,6 +771,7 @@
         document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
         document.getElementById('slip-change').innerText = changeDue + " บาท";
         document.getElementById('slip-bill-number').innerText = generateBillNumber();
+        document.getElementById('slip-queue-number').innerText = queueNo; // ดันค่า NO. ลงภาพสลิป
 
         let itemsListHtml = "";
         items.forEach(item => {
@@ -640,6 +804,7 @@
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
+        const queueNo = document.getElementById('queue-no').value || "-";
         
         if (items.length === 0) {
             alert('⚠️ ไม่มีรายการสินค้าในบิลค่ะ');
@@ -651,7 +816,7 @@
             return;
         }
 
-        let billDetails = "";
+        let billDetails = `NO: ${queueNo} | `;
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
             const price = item.querySelector('.price-val').value;
@@ -680,6 +845,7 @@
         .then(response => {
             alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
             currentBillSeq++; 
+            localStorage.setItem('thep_bill_seq', currentBillSeq); // เซฟจำลำดับบิลล่าสุด
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
             btnPay.disabled = false;
@@ -697,6 +863,7 @@
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
+        const queueNo = document.getElementById('queue-no').value || "-";
         
         if (items.length === 0) {
             alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
@@ -707,6 +874,7 @@
         printTemplate.style.display = "block"; 
         
         document.getElementById('p-slip-bill-number').innerText = billNum;
+        document.getElementById('p-slip-queue-number').innerText = queueNo; // ดันค่า NO. ลงเครื่องพิมพ์
         document.getElementById('p-slip-date').innerText = new Date().toLocaleString('th-TH');
         
         let printItemsHtml = "";
@@ -733,7 +901,6 @@
             printTemplate.style.display = "none"; 
             const base64Image = canvas.toDataURL("image/png");
             
-            // ลบคำสั่งแอคชันที่บังคับเข้า Play Store ออกแล้ว
             const intentUrl = `intent:${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
             window.location.href = intentUrl;
         });
