@@ -293,6 +293,10 @@
     <div class="dash-box">
         <div class="dash-title">📊 แดชบอร์ดสรุปยอดขายร้านค้า</div>
         
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button type="button" id="btn-clear-sales" style="background-color: #e74c3c; width: auto; padding: 8px 15px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🗑️ ล้างข้อมูลยอดขายทั้งหมด</button>
+        </div>
+        
         <div class="dash-cards">
             <div class="d-card dc-day">
                 <div class="dc-title">ยอดขายวันนี้</div>
@@ -878,6 +882,11 @@
                     }
                 }
             }
+            
+            // แปลง พ.ศ. เป็น ค.ศ. (ถ้าระบบใน Google Sheets บันทึกเป็นปี พ.ศ. เช่น 2569)
+            if (y > 2500) {
+                y -= 543;
+            }
 
             // ตรวจสอบความถูกต้องเพื่อสรุปผลข้อ 1 (วัน/เดือน/ปี)
             if (d === currentDay && m === currentMonth && y === currentYear) dayTotal += totalAmount;
@@ -897,14 +906,15 @@
                 if(!segTrim || segTrim.startsWith("NO:")) return;
 
                 let itemMatch = segTrim.match(/^(.*?)\s*\(/);
-                let qtyMatch = segTrim.match(/x\s*(\d+(\.\d+)?)\s*=/);
+                // ดึงค่ายอดรวมเป็นบาท (ตัวเลขที่อยู่หลังเครื่องหมาย = ก่อนวงเล็บปิด)
+                let totalMatch = segTrim.match(/=\s*(\d+(\.\d+)?)\s*\)/);
 
-                if(itemMatch && qtyMatch) {
+                if(itemMatch && totalMatch) {
                     let pName = itemMatch[1].trim();
-                    let pQty = parseFloat(qtyMatch[1]) || 0;
+                    let pTotalBaht = parseFloat(totalMatch[1]) || 0;
 
                     productDropdownOptions.add(pName);
-                    productSalesMap[pName] = (productSalesMap[pName] || 0) + pQty;
+                    productSalesMap[pName] = (productSalesMap[pName] || 0) + pTotalBaht;
                 }
             });
         });
@@ -971,7 +981,7 @@
                 <div class="lb-row">
                     <div class="lb-labels">
                         <span>🏆 อันดับ ${index + 1}: ${item.name}</span>
-                        <span>${item.qty} ชิ้น</span>
+                        <span>${item.qty.toFixed(2)} บาท</span>
                     </div>
                     <div class="lb-bar-bg">
                         <div class="lb-bar-fill" style="width: ${percent}%"></div>
@@ -1078,6 +1088,40 @@
 
     // ตั้งเวลาให้ระบบเรียกฟังก์ชันดาวน์โหลดข้อมูลจากแผ่นงานทุกๆครั้งที่หน้าเว็บเปิดทำงานสำเร็จ
     setTimeout(fetchLiveSheetData, 1000);
+
+    // ระบบปุ่มล้างข้อมูลยอดขายทั้งหมด (ทำงานร่วมกับฝั่ง Google Apps Script)
+    document.getElementById('btn-clear-sales').addEventListener('click', function() {
+        const confirmClear = confirm("⚠️ คำเตือน!\nคุณต้องการล้างข้อมูล 'ยอดขายทั้งหมด' ในฐานข้อมูลใช่หรือไม่?\n(ข้อมูลจะถูกลบและรีเซ็ตยอดเป็น 0.00 ทันที ไม่สามารถกู้คืนได้)");
+        
+        if (confirmClear) {
+            const btn = document.getElementById('btn-clear-sales');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ กำลังล้างข้อมูล...";
+            btn.disabled = true;
+
+            const payload = { action: 'clearSales' };
+
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.text())
+            .then(result => {
+                if(result === "ClearSuccess") {
+                    alert("🗑️ ล้างข้อมูลยอดขายในฐานข้อมูลสำเร็จแล้ว! ยอดทั้งหมดถูกรีเซ็ตเป็น 0.00 ค่ะ");
+                    fetchLiveSheetData(); // โหลดข้อมูลใหม่ (ที่เป็นศูนย์) มาแสดงบนจอ
+                } else {
+                    alert("❌ เกิดข้อผิดพลาดในการล้างข้อมูล: " + result);
+                }
+            })
+            .catch(error => alert("❌ ติดต่อฐานข้อมูลไม่ได้: " + error))
+            .finally(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+    });
 
     // =========================================================
 
