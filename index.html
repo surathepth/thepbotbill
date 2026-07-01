@@ -848,16 +848,36 @@
             // โครงสร้างแถว: [วันที่และเวลา, ยอดรวมทั้งสิ้น, รับเงินมา, เงินทอน, รายละเอียดสินค้า]
             if(!row[0] || !row[1]) return;
 
-            let rowDateStr = row[0].toString(); // เช่น "30/6/2026, 18:47:07"
+            let rowDateStr = row[0].toString(); // รองรับรูปแบบที่หลากหลายจาก Google Sheets
             let totalAmount = parseFloat(row[1]) || 0;
             let details = row[4] ? row[4].toString() : "";
 
-            // แยกแกะองค์ประกอบ วัน/เดือน/ปี
-            let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
-            let parts = datePart.split('/');
-            let d = parseInt(parts[0]) || 0;
-            let m = parseInt(parts[1]) || 0;
-            let y = parseInt(parts[2]) || 0;
+            // 🛠️ แก้ไข A1: ลอจิกแปลงวันที่ให้แม่นยำขึ้น รองรับหลายฟอร์แมต (ISO, ไทย DD/MM/YYYY)
+            let d = 0, m = 0, y = 0;
+            let parsedDate = new Date(rowDateStr);
+
+            // หาก JS เข้าใจว่าเป็น Date มาตรฐาน และไม่ใช่รูปแบบ Date แบบไทยแปลกๆ
+            if (!isNaN(parsedDate.getTime()) && rowDateStr.includes('-')) {
+                d = parsedDate.getDate();
+                m = parsedDate.getMonth() + 1;
+                y = parsedDate.getFullYear();
+            } else {
+                // รองรับการแยก Text แบบ DD/MM/YYYY หรือ YYYY-MM-DD
+                let datePart = rowDateStr.split(/[ ,T]/)[0].trim(); 
+                let parts = datePart.split(/[\/\-]/);
+                if (parts.length >= 3) {
+                    if (parts[0].length === 4) { // ปีขึ้นก่อน YYYY-MM-DD
+                        y = parseInt(parts[0]) || 0;
+                        m = parseInt(parts[1]) || 0;
+                        d = parseInt(parts[2]) || 0;
+                    } else { // วันขึ้นก่อน DD/MM/YYYY
+                        d = parseInt(parts[0]) || 0;
+                        m = parseInt(parts[1]) || 0;
+                        y = parseInt(parts[2]) || 0;
+                        if (y < 2000) y += 2000;
+                    }
+                }
+            }
 
             // ตรวจสอบความถูกต้องเพื่อสรุปผลข้อ 1 (วัน/เดือน/ปี)
             if (d === currentDay && m === currentMonth && y === currentYear) dayTotal += totalAmount;
@@ -982,11 +1002,28 @@
             let noMatch = details.match(/NO:\s*([^|]+)/);
             let rowQueueNo = noMatch ? noMatch[1].trim() : "-";
 
-            // แยกเปรียบเทียบตัวกรองวันที่ (ข้อ 2)
+            // แยกเปรียบเทียบตัวกรองวันที่ (ข้อ 2) อัปเดตให้รองรับลอจิกวันที่แบบใหม่
             if (filterDate) {
-                let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
-                let parts = datePart.split('/');
-                let rowFormattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                let rD = 0, rM = 0, rY = 0;
+                let parsed = new Date(rowDateStr);
+                if (!isNaN(parsed.getTime()) && rowDateStr.includes('-')) {
+                    rD = parsed.getDate();
+                    rM = parsed.getMonth() + 1;
+                    rY = parsed.getFullYear();
+                } else {
+                    let datePart = rowDateStr.split(/[ ,T]/)[0].trim(); 
+                    let parts = datePart.split(/[\/\-]/);
+                    if (parts.length >= 3) {
+                        if (parts[0].length === 4) {
+                            rY = parseInt(parts[0]) || 0; rM = parseInt(parts[1]) || 0; rD = parseInt(parts[2]) || 0;
+                        } else {
+                            rD = parseInt(parts[0]) || 0; rM = parseInt(parts[1]) || 0; rY = parseInt(parts[2]) || 0;
+                            if (rY < 2000) rY += 2000;
+                        }
+                    }
+                }
+                
+                let rowFormattedDate = `${rY}-${String(rM).padStart(2,'0')}-${String(rD).padStart(2,'0')}`;
                 if (rowFormattedDate !== filterDate) return;
             }
 
