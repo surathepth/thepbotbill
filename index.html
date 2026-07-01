@@ -350,7 +350,7 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwwQI1aQF1SX3pYfq3PI2u-C_TpQnYJY56AL2i726HxfmOHbtjxO0Hi2zv_k7TqdGM1gg/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzK_6VDjuN7940lmbVpCje15-ixXZnGtWcYF1DZvNNUYGG_LIw5L8zjLFAvLjhx6-zmw/exec";
 
     const videoElement = document.getElementById('camera-stream');
     const cameraStatus = document.getElementById('camera-status');
@@ -834,43 +834,36 @@
         globalSheetsData = dataArray || [];
         
         let dayTotal = 0, monthTotal = 0, yearTotal = 0;
-        let productSalesMap = {}; // นับสะสมจำนวนแยกชื่อสินค้า
+        let productSalesMap = {}; 
         let productDropdownOptions = new Set();
         let noDropdownOptions = new Set();
 
         const now = new Date();
         const currentDay = now.getDate();
-        const currentMonth = now.getMonth() + 1; // มกราคม = 1
+        const currentMonth = now.getMonth() + 1; 
         const currentYear = now.getFullYear();
 
-        // สแกนเจาะข้อมูลทีละบรรทัดจากชีต
         globalSheetsData.forEach(row => {
-            // โครงสร้างแถว: [วันที่และเวลา, ยอดรวมทั้งสิ้น, รับเงินมา, เงินทอน, รายละเอียดสินค้า]
             if(!row[0] || !row[1]) return;
 
-            let rowDateStr = row[0].toString(); // เช่น "30/6/2026, 18:47:07"
+            let rowDateStr = row[0].toString(); 
             let totalAmount = parseFloat(row[1]) || 0;
             let details = row[4] ? row[4].toString() : "";
 
-            // แยกแกะองค์ประกอบ วัน/เดือน/ปี
-            let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
+            let datePart = rowDateStr.split(',')[0].trim(); 
             let parts = datePart.split('/');
             let d = parseInt(parts[0]) || 0;
             let m = parseInt(parts[1]) || 0;
             let y = parseInt(parts[2]) || 0;
 
-            // ตรวจสอบความถูกต้องเพื่อสรุปผลข้อ 1 (วัน/เดือน/ปี)
             if (d === currentDay && m === currentMonth && y === currentYear) dayTotal += totalAmount;
             if (m === currentMonth && y === currentYear) monthTotal += totalAmount;
             if (y === currentYear) yearTotal += totalAmount;
 
-            // เจาะลึกถอดรหัสข้อความ details เพื่อสกัดหาช่องเลข NO. คิว/โต๊ะ
             let noMatch = details.match(/NO:\s*([^|]+)/);
             let rowQueueNo = noMatch ? noMatch[1].trim() : "-";
             if(rowQueueNo !== "-") noDropdownOptions.add(rowQueueNo);
 
-            // เจาะลึกสกัดหาจำนวนรายการชื่อสินค้าขายดี (ข้อ 4)
-            // รูปแบบ: ชื่อสินค้า (ราคาxจำนวน=รวม) |
             let segments = details.split('|');
             segments.forEach(seg => {
                 let segTrim = seg.trim();
@@ -889,18 +882,12 @@
             });
         });
 
-        // ดันผลรวมขึ้นป้ายประกาศป้ายสีพาสเทลด้านบน
         document.getElementById('dash-day-total').innerText = dayTotal.toFixed(2);
         document.getElementById('dash-month-total').innerText = monthTotal.toFixed(2);
         document.getElementById('dash-year-total').innerText = yearTotal.toFixed(2);
 
-        // อัปเดตรายชื่อในเมนูกล่องตัวกรอง Dropdown ข้อ 3 และ 5
         updateFilterDropdowns(productDropdownOptions, noDropdownOptions);
-
-        // คำนวณจัดลำดับสินค้าแชมป์ยอดขายท็อป 10 (ข้อ 4)
         renderTopProductsLeaderboard(productSalesMap);
-
-        // เรนเดอร์ตารางประวัติหลังร้านด้านล่าง
         filterAndRenderLedgerTable();
     }
 
@@ -908,7 +895,6 @@
         const pSelect = document.getElementById('filter-product');
         const noSelect = document.getElementById('filter-no');
 
-        // รักษาสถานะตัวเลือกเดิมเอาไว้
         let currentP = pSelect.value;
         let currentNo = noSelect.value;
 
@@ -933,7 +919,6 @@
         }
         sorted.sort((a, b) => b.qty - a.qty);
 
-        // ตัดเกณฑ์ขั้นต่ำโควตาแสดงผล 10 อันดับตามสั่ง (ข้อ 4)
         let top10 = sorted.slice(0, 10);
         const lbList = document.getElementById('leaderboard-list');
         
@@ -963,7 +948,7 @@
     }
 
     function filterAndRenderLedgerTable() {
-        const filterDate = document.getElementById('filter-date').value; // YYYY-MM-DD
+        const filterDate = document.getElementById('filter-date').value; 
         const filterProduct = document.getElementById('filter-product').value;
         const filterNo = document.getElementById('filter-no').value;
         const rowsContainer = document.getElementById('ledger-data-rows');
@@ -978,27 +963,22 @@
             let totalAmount = parseFloat(row[1]) || 0;
             let details = row[4] ? row[4].toString() : "";
 
-            // สกัดหาเลข NO. คิว/โต๊ะ
             let noMatch = details.match(/NO:\s*([^|]+)/);
             let rowQueueNo = noMatch ? noMatch[1].trim() : "-";
 
-            // แยกเปรียบเทียบตัวกรองวันที่ (ข้อ 2)
             if (filterDate) {
-                let datePart = rowDateStr.split(',')[0].trim(); // "30/6/2026"
+                let datePart = rowDateStr.split(',')[0].trim(); 
                 let parts = datePart.split('/');
                 let rowFormattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
                 if (rowFormattedDate !== filterDate) return;
             }
 
-            // แยกเปรียบเทียบตัวกรองชื่อสินค้า (ข้อ 3)
             if (filterProduct && !details.includes(filterProduct)) return;
 
-            // แยกเปรียบเทียบตัวกรองเลขช่อง NO. (ข้อ 5)
             if (filterNo && rowQueueNo !== filterNo) return;
 
-            // ประกอบสร้างบรรทัดตารางแบบมนุษย์อ่านง่าย สลับบรรทัดสะอาดตา
             filteredCount++;
-            let displayDetails = details.replace(/NO:\s*[^|]+\|\s*/, ''); // ตัดหัว NO ออกให้อ่านเรียบร้อยสบายตา
+            let displayDetails = details.replace(/NO:\s*[^|]+\|\s*/, ''); 
             
             let htmlRow = `
                 <div class="ledger-row">
@@ -1016,7 +996,6 @@
         }
     }
 
-    // เปิดจุดเชื่อมโยงตัวกรอง ค้นหาแปรผันอัจฉริยะอัตโนมัติเรียลไทม์เมื่อมีการจิ้มเลือกเมนูบนจอ
     document.getElementById('filter-date').addEventListener('change', filterAndRenderLedgerTable);
     document.getElementById('filter-product').addEventListener('change', filterAndRenderLedgerTable);
     document.getElementById('filter-no').addEventListener('change', filterAndRenderLedgerTable);
@@ -1027,7 +1006,6 @@
         filterAndRenderLedgerTable();
     });
 
-    // ฟังก์ชันสั่งโหลดดึงข้อมูลหลังร้านอัตโนมัติเมื่อเปิดหน้าจอแอปขึ้นมาทำงาน
     function fetchLiveSheetData() {
         fetch(WEB_APP_URL + "?action=readSales")
         .then(response => response.json())
@@ -1039,7 +1017,6 @@
         .catch(error => console.error("Error loading sales history data", error));
     }
 
-    // ตั้งเวลาให้ระบบเรียกฟังก์ชันดาวน์โหลดข้อมูลจากแผ่นงานทุกๆครั้งที่หน้าเว็บเปิดทำงานสำเร็จ
     setTimeout(fetchLiveSheetData, 1000);
 
     // =========================================================
@@ -1139,7 +1116,7 @@
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
             btnPay.disabled = false;
-            fetchLiveSheetData(); // โหลดอัปเดตข้อมูลบนกระดานแดชบอร์ดทันทีหลังจบบิล
+            fetchLiveSheetData(); 
         })
         .catch(error => {
             alert('❌ เกิดข้อผิดพลาด: ' + error);
