@@ -1094,6 +1094,12 @@
         const confirmClear = confirm("⚠️ คำเตือน!\nคุณต้องการล้างข้อมูล 'ยอดขายทั้งหมด' ในฐานข้อมูลใช่หรือไม่?\n(ข้อมูลจะถูกลบและรีเซ็ตยอดเป็น 0.00 ทันที ไม่สามารถกู้คืนได้)");
         
         if (confirmClear) {
+            const pass = prompt("🔐 กรุณาป้อนรหัสผ่านเพื่อยืนยันการล้างข้อมูล:\n(รหัสผ่านเริ่มต้นคือ 999999)");
+            if (pass !== "999999") {
+                alert("❌ รหัสผ่านไม่ถูกต้อง! ยกเลิกการล้างข้อมูลยอดขาย");
+                return;
+            }
+            
             const btn = document.getElementById('btn-clear-sales');
             const originalText = btn.innerText;
             btn.innerText = "⏳ กำลังล้างข้อมูล...";
