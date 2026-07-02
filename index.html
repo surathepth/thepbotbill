@@ -11,7 +11,7 @@
     
     <title>ThepAgentBill</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -151,6 +151,17 @@
         .ledger-row { display: grid; grid-template-columns: 80px 60px 50px 1fr; gap: 4px; font-size: 11px; padding: 6px 4px; border-bottom: 1px solid #eee; align-items: center; }
         .ledger-row:nth-child(even) { background-color: #f9f9f9; }
         .ledger-row.h { font-weight: bold; background-color: #f1f2f6; border-bottom: 2px solid #ccc; position: sticky; top: 0; z-index: 1; }
+
+        /* 🎨 สไตล์ Modal สำหรับเพิ่มสินค้าใหม่ */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; width: 90%; max-width: 350px; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center; }
+        .modal-title { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        .modal-input-group { text-align: left; margin-bottom: 12px; }
+        .modal-input-group label { font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+        .modal-input-group input { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        .modal-btn-save { background: #2ecc71; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        .modal-btn-cancel { background: #e74c3c; color: white; border: none; width: 100%; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+        #reader video { border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -158,16 +169,35 @@
 <div class="container">
     <h2>ThepAgentBill<br><span class="shop-phone">ระบบจัดการร้านค้าอัจฉริยะ</span></h2>
 
-    <div class="camera-box">
-        <span id="camera-status">กำลังรอกล้อง...</span>
-        <video id="camera-stream" autoplay playsinline allow="camera"></video>
+    <div class="camera-box" id="camera-container">
+        <span id="camera-status">กล้องพร้อมสแกนบาร์โค้ด</span>
+        <div id="reader" style="width: 100%; display: none;"></div>
     </div>
     
-    <button type="button" class="btn-scan" id="btn-start-camera">📷 เปิดกล้องเตรียมสแกน</button>
-    <button type="button" class="btn-snap-read" id="btn-snap-read">📸 ถ่ายสแกนชื่อและราคา</button>
+    <button type="button" class="btn-scan" id="btn-start-camera">📷 เปิดกล้องสแกนบาร์โค้ด</button>
+    <button type="button" class="btn-scan" id="btn-stop-camera" style="display:none; background-color: #e74c3c;">🛑 ปิดกล้อง</button>
     <button type="button" class="btn-voice" id="btn-start-voice">🎤 กดแล้วพูดสั่งรายการสินค้า</button>
     
-    <canvas id="snapshot-canvas" style="display:none;"></canvas>
+    <!-- Modal เพิ่มสินค้าใหม่ -->
+    <div id="new-item-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">📦 บันทึกสินค้าใหม่เข้าฐานข้อมูล</div>
+            <div class="modal-input-group">
+                <label>รหัสบาร์โค้ด:</label>
+                <input type="text" id="modal-barcode" readonly style="background: #eee; font-weight: bold; color: #2980b9;">
+            </div>
+            <div class="modal-input-group">
+                <label>ชื่อสินค้า:</label>
+                <input type="text" id="modal-name" placeholder="ระบุชื่อสินค้า...">
+            </div>
+            <div class="modal-input-group">
+                <label>ราคาขาย (บาท):</label>
+                <input type="number" id="modal-price" placeholder="0.00">
+            </div>
+            <button type="button" class="modal-btn-save" id="btn-save-new-item">💾 บันทึก & เพิ่มลงบิลทันที</button>
+            <button type="button" class="modal-btn-cancel" id="btn-cancel-modal">❌ ยกเลิก</button>
+        </div>
+    </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <span style="font-weight: bold; font-size: 15px; color: #2c3e50;">📋 รายการสินค้า</span>
@@ -356,11 +386,9 @@
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw4Mku23sD2i7jH06nFnDsPlVDpjDNs5gpePJNGUrKGkHJe3Djt5Spihn8uIg-XaQH-/exec";
 
-    const videoElement = document.getElementById('camera-stream');
-    const cameraStatus = document.getElementById('camera-status');
     const btnStartCamera = document.getElementById('btn-start-camera');
-    const btnSnapRead = document.getElementById('btn-snap-read');
-    const canvasElement = document.getElementById('snapshot-canvas');
+    const btnStopCamera = document.getElementById('btn-stop-camera');
+    const readerDiv = document.getElementById('reader');
     const btnAddItem = document.getElementById('btn-add-item');
     const btnStartVoice = document.getElementById('btn-start-voice');
     const btnHoldBill = document.getElementById('btn-hold-bill');
@@ -521,67 +549,128 @@
         }
     });
 
-    btnStartCamera.addEventListener('click', async function() {
-        try {
-            cameraStatus.innerText = "กำลังขออนุญาตเปิดกล้อง...";
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+    let productDB = JSON.parse(localStorage.getItem('thep_product_db')) || {};
+    let html5QrCode = null;
+    let isScanning = false;
+
+    function addProductToBill(name, price) {
+        const nameInputs = document.querySelectorAll('.name-val');
+        const priceInputs = document.querySelectorAll('.price-val');
+        const qtyInputs = document.querySelectorAll('.qty-val');
+        let currentRowIdx = nameInputs.length - 1;
+
+        if (nameInputs[currentRowIdx].value !== "") {
+            addEmptyRow(name, price, 1);
+        } else {
+            nameInputs[currentRowIdx].value = name;
+            priceInputs[currentRowIdx].value = price;
+            qtyInputs[currentRowIdx].value = 1;
+            calculateTotals();
+        }
+        saveActiveBillState();
+    }
+
+    btnStartCamera.addEventListener('click', function() {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        document.getElementById('camera-status').style.display = "none";
+        readerDiv.style.display = "block";
+        btnStartCamera.style.display = "none";
+        btnStopCamera.style.display = "block";
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 100 } },
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            isScanning = true;
+        }).catch((err) => {
+            alert("❌ เปิดกล้องไม่สำเร็จ: " + err);
+            btnStopCamera.click();
+        });
+    });
+
+    btnStopCamera.addEventListener('click', function() {
+        if (html5QrCode && isScanning) {
+            html5QrCode.stop().then(() => {
+                isScanning = false;
+                readerDiv.style.display = "none";
+                document.getElementById('camera-status').style.display = "block";
+                btnStartCamera.style.display = "block";
+                btnStopCamera.style.display = "none";
+            }).catch((err) => {
+                console.error("Failed to stop scanner", err);
             });
-            videoElement.srcObject = stream;
-            videoElement.style.display = "block";
-            cameraStatus.style.display = "none";
-            btnStartCamera.style.display = "none";
-            btnSnapRead.style.display = "block";
-        } catch (error) {
-            cameraStatus.innerText = "❌ ไม่สามารถเปิดกล้องได้";
         }
     });
 
-    btnSnapRead.addEventListener('click', async function() {
-        const context = canvasElement.getContext('2d');
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+    function onScanSuccess(decodedText, decodedResult) {
+        if (!isScanning) return;
         
-        const imageDataUrl = canvasElement.toDataURL('image/png');
-        const originalText = btnSnapRead.innerText;
-        btnSnapRead.innerText = "⏳ กำลังถอดรหัสข้อความและราคา...";
-        btnSnapRead.disabled = true;
+        if ('vibrate' in navigator) navigator.vibrate(100);
 
-        try {
-            const result = await Tesseract.recognize(imageDataUrl, 'tha+eng');
-            const recognizedText = result.data.text.trim();
-
-            if(recognizedText) {
-                let priceExtract = recognizedText.match(/\b\d+(?:\.\d+)?\b/g); 
-                let finalPrice = 0;
-                let finalName = recognizedText;
-
-                if (priceExtract && priceExtract.length > 0) {
-                    finalPrice = parseFloat(priceExtract[priceExtract.length - 1]);
-                    finalName = recognizedText.replace(priceExtract[priceExtract.length - 1], '').trim();
-                }
-
-                const nameInputs = document.querySelectorAll('.name-val');
-                const priceInputs = document.querySelectorAll('.price-val');
-                const currentRowIdx = nameInputs.length - 1;
-
-                nameInputs[currentRowIdx].value = (nameInputs[currentRowIdx].value + " " + finalName).trim();
-                if(finalPrice > 0) {
-                    priceInputs[currentRowIdx].value = finalPrice;
-                }
-                
-                calculateTotals(); 
-                saveActiveBillState();
-            } else {
-                alert("อ่านป้ายไม่ชัดเจน รบกวนถ่ายใหม่อีกครั้งค่ะ");
-            }
-        } catch (error) {
-            alert("❌ เกิดข้อผิดพลาด: " + error);
+        if (html5QrCode.pause) {
+            html5QrCode.pause();
+        } else {
+            isScanning = false; 
         }
 
-        btnSnapRead.innerText = originalText;
-        btnSnapRead.disabled = false;
+        if (productDB[decodedText]) {
+            const product = productDB[decodedText];
+            addProductToBill(product.name, product.price);
+            
+            setTimeout(() => {
+                isScanning = true;
+                if (html5QrCode.resume) html5QrCode.resume();
+            }, 1500);
+        } else {
+            openNewItemModal(decodedText);
+        }
+    }
+
+    function onScanFailure(error) {}
+
+    const modalOverlay = document.getElementById('new-item-modal');
+    const modalBarcode = document.getElementById('modal-barcode');
+    const modalName = document.getElementById('modal-name');
+    const modalPrice = document.getElementById('modal-price');
+    
+    function openNewItemModal(barcode) {
+        modalBarcode.value = barcode;
+        modalName.value = "";
+        modalPrice.value = "";
+        modalOverlay.style.display = "flex";
+        modalName.focus();
+    }
+
+    function closeNewItemModal() {
+        modalOverlay.style.display = "none";
+        isScanning = true;
+        if (html5QrCode && html5QrCode.resume) {
+            html5QrCode.resume();
+        }
+    }
+
+    document.getElementById('btn-cancel-modal').addEventListener('click', closeNewItemModal);
+
+    document.getElementById('btn-save-new-item').addEventListener('click', function() {
+        const name = modalName.value.trim();
+        const price = parseFloat(modalPrice.value);
+
+        if (name === "" || isNaN(price)) {
+            alert("⚠️ กรุณาระบุชื่อสินค้าและราคาให้ถูกต้องค่ะ");
+            return;
+        }
+
+        const barcode = modalBarcode.value;
+        productDB[barcode] = { name: name, price: price };
+        localStorage.setItem('thep_product_db', JSON.stringify(productDB));
+
+        addProductToBill(name, price);
+        closeNewItemModal();
     });
 
     window.deleteRow = function(btn) {
