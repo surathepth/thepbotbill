@@ -1247,7 +1247,13 @@
 
     // ฟังก์ชันสั่งโหลดดึงข้อมูลหลังร้านอัตโนมัติเมื่อเปิดหน้าจอแอปขึ้นมาทำงาน
     function fetchLiveSheetData() {
-        if (!WEB_APP_URL) return; // ถ้าไม่มีลิงก์ ให้ข้ามการดึงข้อมูลจาก Sheet (ทำงานแบบ Local)
+        if (!WEB_APP_URL) {
+            // โหมด Local Standalone: ดึงประวัติบิลจากหน่วยความจำมือถือ
+            let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+            parseSheetsAndBuildDashboard(localSales);
+            return;
+        }
+        
         fetch(WEB_APP_URL + "?action=readSales")
         .then(response => response.json())
         .then(data => {
@@ -1277,8 +1283,10 @@
             btn.innerText = "⏳ กำลังล้างข้อมูล...";
             btn.disabled = true;
 
-            if (!WEB_APP_URL) { // จำลองการลบสำเร็จหากไม่ได้ใช้ Google Sheet
+            if (!WEB_APP_URL) { // โหมด Local Standalone: ล้างประวัติจากหน่วยความจำมือถือ
+                localStorage.removeItem('thep_local_sales_history');
                 alert("🗑️ ล้างข้อมูลยอดขายในฐานข้อมูลสำเร็จแล้ว! ยอดทั้งหมดถูกรีเซ็ตเป็น 0.00 ค่ะ");
+                fetchLiveSheetData(); // โหลดใหม่ (ให้กลายเป็นศูนย์)
                 btn.innerText = originalText;
                 btn.disabled = false;
                 return;
@@ -1405,13 +1413,30 @@
         btnPay.innerText = "⏳ กำลังบันทึกข้อมูล...";
         btnPay.disabled = true;
 
-        if (!WEB_APP_URL) { // ทำงานแบบออฟไลน์ Local เครื่องใครเครื่องมัน
-            alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
+        if (!WEB_APP_URL) { // โหมด Local Standalone: บันทึกบิลลงหน่วยความจำมือถือ
+            // สร้างโครงสร้างแถวข้อมูลให้เหมือน Google Sheet: [วันที่, ยอดรวม, รับเงิน, เงินทอน, รายละเอียด]
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            
+            const newRow = [
+                dateStr, 
+                grandTotal, 
+                cashInput, 
+                changeDue, 
+                billDetails
+            ];
+            
+            let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+            localSales.push(newRow);
+            localStorage.setItem('thep_local_sales_history', JSON.stringify(localSales));
+
+            alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} ลงในประวัติการขายเรียบร้อยค่ะ`);
             currentBillSeq++; 
             localStorage.setItem('thep_bill_seq', currentBillSeq);
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
             btnPay.disabled = false;
+            fetchLiveSheetData(); // อัปเดตกระดานแดชบอร์ดทันที
             return;
         }
 
