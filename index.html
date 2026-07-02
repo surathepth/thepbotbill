@@ -90,8 +90,8 @@
             margin: -20px -20px 15px -20px;
             border-radius: 10px 10px 30px 30px;
         }
-        .slip-header-green h3 { margin: 0; font-size: 18px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        .slip-header-green p { margin: 8px 0 0 0; font-size: 11px; line-height: 1.4; font-weight: normal; }
+        .slip-header-green h3 { margin: 0; font-size: 22px; font-weight: 900; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); }
+        .slip-header-green p { margin: 8px 0 0 0; font-size: 14px; line-height: 1.5; font-weight: bold; }
         .slip-title-badge {
             background-color: #00a040;
             color: white;
@@ -115,8 +115,8 @@
 
         #print-slip-template { width: 384px; background: white; padding: 10px; font-family: 'Segoe UI', Tahoma, sans-serif; display: none; color: black; position: absolute; top: -9999px; left: -9999px; }
         .print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
-        .print-header h3 { margin: 0; font-size: 26px; } 
-        .print-header p { margin: 6px 0 0 0; font-size: 16px; }
+        .print-header h3 { margin: 0; font-size: 30px; font-weight: 900; } 
+        .print-header p { margin: 6px 0 0 0; font-size: 18px; font-weight: bold; }
         .print-detail-row { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 6px; }
         .print-items-title { font-weight: bold; font-size: 18px; border-bottom: 2px solid #000; margin-top: 15px; margin-bottom: 8px; padding-bottom: 4px; }
         
@@ -222,12 +222,8 @@
                 <input type="text" id="setup-shop-address" placeholder="ระบุที่อยู่...">
             </div>
             <div class="modal-input-group">
-                <label>เบอร์โทรศัพท์ 1:</label>
-                <input type="tel" id="setup-shop-phone1" placeholder="เบอร์โทร 1">
-            </div>
-            <div class="modal-input-group">
-                <label>เบอร์โทรศัพท์ 2 (ถ้ามี):</label>
-                <input type="tel" id="setup-shop-phone2" placeholder="เบอร์โทร 2">
+                <label>เบอร์โทรศัพท์ร้านค้า:</label>
+                <input type="text" id="setup-shop-phone1" placeholder="เช่น 098-xxx-xxxx 094-xxx-xxxx">
             </div>
             <button type="button" class="modal-btn-save" id="btn-save-shop-info">💾 บันทึกข้อมูลร้านค้า</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-shop-setup" style="display: none;">❌ ปิดหน้าต่าง</button>
@@ -849,6 +845,7 @@
     });
 
     document.getElementById('queue-no').addEventListener('input', saveActiveBillState);
+    document.getElementById('cash-input').addEventListener('input', saveActiveBillState);
 
     function saveActiveBillState() {
         const items = [];
@@ -1476,6 +1473,15 @@
         const infoStr = localStorage.getItem('thep_shop_info');
         if (!infoStr) {
             // บังคับให้ลงทะเบียน
+            const draftStr = localStorage.getItem('thep_shop_setup_draft');
+            if (draftStr) {
+                try {
+                    const draft = JSON.parse(draftStr);
+                    document.getElementById('setup-shop-name').value = draft.name || "";
+                    document.getElementById('setup-shop-address').value = draft.address || "";
+                    document.getElementById('setup-shop-phone1').value = draft.phone1 || "";
+                } catch(e) {}
+            }
             shopSetupModal.style.display = "flex";
             document.getElementById('btn-cancel-shop-setup').style.display = "none";
         } else {
@@ -1486,7 +1492,6 @@
 
     function applyShopInfoToUI(info) {
         let phoneText = "โทร " + info.phone1;
-        if (info.phone2) phoneText += ", " + info.phone2;
         
         // หน้าจอหลัก
         const mainShopName = document.getElementById('main-shop-name');
@@ -1511,15 +1516,15 @@
         const name = document.getElementById('setup-shop-name').value.trim();
         const address = document.getElementById('setup-shop-address').value.trim();
         const phone1 = document.getElementById('setup-shop-phone1').value.trim();
-        const phone2 = document.getElementById('setup-shop-phone2').value.trim();
 
         if (name === "" || phone1 === "") {
-            alert("⚠️ กรุณาระบุชื่อร้านและเบอร์โทรศัพท์ 1 ให้ครบถ้วนค่ะ");
+            alert("⚠️ กรุณาระบุชื่อร้านและเบอร์โทรศัพท์ให้ครบถ้วนค่ะ");
             return;
         }
 
-        const shopInfo = { name, address, phone1, phone2 };
+        const shopInfo = { name, address, phone1 };
         localStorage.setItem('thep_shop_info', JSON.stringify(shopInfo));
+        localStorage.removeItem('thep_shop_setup_draft'); // เคลียร์ draft ทิ้งเมื่อบันทึกจริง
         
         applyShopInfoToUI(shopInfo);
         shopSetupModal.style.display = "none";
@@ -1533,7 +1538,6 @@
             document.getElementById('setup-shop-name').value = info.name || "";
             document.getElementById('setup-shop-address').value = info.address || "";
             document.getElementById('setup-shop-phone1').value = info.phone1 || "";
-            document.getElementById('setup-shop-phone2').value = info.phone2 || "";
         }
         document.getElementById('btn-cancel-shop-setup').style.display = "block";
         shopSetupModal.style.display = "flex";
@@ -1542,6 +1546,20 @@
     document.getElementById('btn-cancel-shop-setup').addEventListener('click', function() {
         shopSetupModal.style.display = "none";
     });
+
+    // --- ระบบ Auto-Save Draft สำหรับฟอร์มตั้งค่าร้านค้า ---
+    function saveShopSetupDraft() {
+        const draft = {
+            name: document.getElementById('setup-shop-name').value,
+            address: document.getElementById('setup-shop-address').value,
+            phone1: document.getElementById('setup-shop-phone1').value
+        };
+        localStorage.setItem('thep_shop_setup_draft', JSON.stringify(draft));
+    }
+
+    document.getElementById('setup-shop-name').addEventListener('input', saveShopSetupDraft);
+    document.getElementById('setup-shop-address').addEventListener('input', saveShopSetupDraft);
+    document.getElementById('setup-shop-phone1').addEventListener('input', saveShopSetupDraft);
 
     // --- ระบบ VIP (Freemium Validation) ---
     document.getElementById('btn-cancel-vip-modal').addEventListener('click', function() {
@@ -1563,7 +1581,7 @@
             return;
         }
 
-        const last4Phone = info.phone1.slice(-4);
+        const last4Phone = info.phone1.replace(/\D/g, '').slice(-4);
         const secretKey = "666666" + last4Phone + "999999999";
 
         if (keyInput === secretKey) {
