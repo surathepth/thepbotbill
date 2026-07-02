@@ -167,7 +167,10 @@
 <body>
 
 <div class="container">
-    <h2>ThepAgentBill<br><span class="shop-phone">ระบบจัดการร้านค้าอัจฉริยะ</span></h2>
+    <div style="text-align: right; margin-bottom: -15px;">
+        <button type="button" id="btn-edit-shop" style="background: none; border: none; color: #7f8c8d; font-size: 13px; font-weight: bold; width: auto; padding: 0; cursor: pointer; text-decoration: underline;">⚙️ ตั้งค่าร้านค้า</button>
+    </div>
+    <h2 id="main-shop-name">ThepAgentBill<br><span class="shop-phone">ระบบจัดการร้านค้าอัจฉริยะ</span></h2>
 
     <div class="camera-box" id="camera-container">
         <span id="camera-status">กล้องพร้อมสแกนบาร์โค้ด</span>
@@ -200,6 +203,51 @@
             </div>
             <button type="button" class="modal-btn-save" id="btn-save-new-item">💾 บันทึก & เพิ่มลงบิลทันที</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-modal">❌ ยกเลิก</button>
+        </div>
+    </div>
+
+    <!-- Modal ตั้งค่าร้านค้าครั้งแรก -->
+    <div id="shop-setup-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">⚙️ ลงทะเบียนข้อมูลร้านค้า</div>
+            <div style="font-size: 12px; color: #e74c3c; margin-bottom: 10px; text-align: left; font-weight: bold;">
+                * กรุณากรอกข้อมูลร้านค้าของท่านเพื่อเริ่มใช้งานระบบ
+            </div>
+            <div class="modal-input-group">
+                <label>ชื่อร้านค้า:</label>
+                <input type="text" id="setup-shop-name" placeholder="ระบุชื่อร้าน...">
+            </div>
+            <div class="modal-input-group">
+                <label>ที่อยู่ร้านค้า (สั้นๆ):</label>
+                <input type="text" id="setup-shop-address" placeholder="ระบุที่อยู่...">
+            </div>
+            <div class="modal-input-group">
+                <label>เบอร์โทรศัพท์ 1:</label>
+                <input type="tel" id="setup-shop-phone1" placeholder="เบอร์โทร 1">
+            </div>
+            <div class="modal-input-group">
+                <label>เบอร์โทรศัพท์ 2 (ถ้ามี):</label>
+                <input type="tel" id="setup-shop-phone2" placeholder="เบอร์โทร 2">
+            </div>
+            <button type="button" class="modal-btn-save" id="btn-save-shop-info">💾 บันทึกข้อมูลร้านค้า</button>
+            <button type="button" class="modal-btn-cancel" id="btn-cancel-shop-setup" style="display: none;">❌ ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Modal ปลดล็อก VIP -->
+    <div id="vip-unlock-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" style="color: #e74c3c;">⚠️ เวอร์ชันทดลองใช้งานเต็มขีดจำกัดแล้ว!</div>
+            <div style="font-size: 13px; color: #34495e; margin-bottom: 15px; text-align: left; line-height: 1.5; font-weight: bold;">
+                สนใจปลดล็อกเวอร์ชันเต็ม (ไม่จำกัดบิลและสินค้า) พร้อมรับเครื่องพิมพ์ใบเสร็จบลูทูธ 58mm ครบชุดพร้อมใช้งานทันที ติดต่อและสมัครตัวแทนจำหน่าย ติดต่อเทพอภัย:<br>
+                <span style="color: #2980b9; font-size: 15px;">📞 โทร 098-7707456, 094-9975679</span>
+            </div>
+            <div class="modal-input-group">
+                <label>รหัสปลดล็อก VIP (Activation Key):</label>
+                <input type="password" id="vip-activation-key" placeholder="กรอกรหัสปลดล็อก...">
+            </div>
+            <button type="button" class="modal-btn-save" id="btn-unlock-vip" style="background-color: #f39c12; margin-top: 5px;">🔓 ยืนยันปลดล็อกถาวร</button>
+            <button type="button" class="modal-btn-cancel" id="btn-cancel-vip-modal">❌ ปิดหน้าต่าง</button>
         </div>
     </div>
 
@@ -269,8 +317,8 @@
     <div id="bank-slip-template">
         <div class="slip-card">
             <div class="slip-header-green">
-                <h3>ชื่อร้าน ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
-                <p>69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า จ.เก้าเก้า รหัส 99999<br>โทร 099-999-9999</p>
+                <h3 id="slip-shop-name">ชื่อร้าน ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
+                <p id="slip-shop-address">69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า จ.เก้าเก้า รหัส 99999<br>โทร 099-999-9999</p>
                 <div class="slip-title-badge">ใบเสร็จรับเงิน</div>
             </div>
             
@@ -296,8 +344,8 @@
 
     <div id="print-slip-template">
         <div class="print-header">
-            <h3>ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
-            <p>69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
+            <h3 id="p-slip-shop-name">ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
+            <p id="p-slip-shop-address">69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
         </div>
         <div class="print-detail-row"><span>เลขที่บิล:</span><strong id="p-slip-bill-number"></strong></div>
         <div class="print-detail-row"><span>NO. คิว/โต๊ะ:</span><strong id="p-slip-queue-number"></strong></div>
@@ -687,6 +735,18 @@
         if (name === "" || isNaN(price)) {
             alert("⚠️ กรุณาระบุชื่อสินค้าและราคาให้ถูกต้องค่ะ");
             return;
+        }
+
+        // --- ระบบ Freemium: จำกัดสินค้า 10 ชิ้น ---
+        const isVip = localStorage.getItem('thep_is_vip') === 'true';
+        if (!isVip) {
+            const productCount = Object.keys(productDB).length;
+            const barcode = modalBarcode.value;
+            // ถ้าเป็นสินค้าใหม่ (ไม่มีใน DB) และเกินโควต้า 10 ชิ้น
+            if (!productDB[barcode] && productCount >= 10) {
+                document.getElementById('vip-unlock-modal').style.display = "flex";
+                return;
+            }
         }
 
         const barcode = modalBarcode.value;
@@ -1301,6 +1361,18 @@
             return;
         }
 
+        // --- ระบบ Freemium: จำกัด 5 บิล/วัน ---
+        const isVip = localStorage.getItem('thep_is_vip') === 'true';
+        if (!isVip) {
+            const todayStr = new Date().toLocaleDateString('th-TH');
+            const savedDate = localStorage.getItem('thep_bill_date');
+            // เช็กว่าบิลคิวล่าสุดของวันนี้ เกินคิวที่ 5 หรือยัง
+            if (savedDate === todayStr && currentBillSeq > 5) {
+                document.getElementById('vip-unlock-modal').style.display = "flex";
+                return;
+            }
+        }
+
         if (!cashInput || parseFloat(cashInput) < parseFloat(grandTotal)) {
             alert('⚠️ กรุณาใส่จำนวน "รับเงินมา" ให้ครบถ้วนก่อนจบบิลค่ะ');
             return;
@@ -1396,6 +1468,116 @@
             window.location.href = intentUrl;
         });
     });
+
+    // --- ระบบร้านค้า (Shop Info) ---
+    const shopSetupModal = document.getElementById('shop-setup-modal');
+    
+    function loadShopInfo() {
+        const infoStr = localStorage.getItem('thep_shop_info');
+        if (!infoStr) {
+            // บังคับให้ลงทะเบียน
+            shopSetupModal.style.display = "flex";
+            document.getElementById('btn-cancel-shop-setup').style.display = "none";
+        } else {
+            const info = JSON.parse(infoStr);
+            applyShopInfoToUI(info);
+        }
+    }
+
+    function applyShopInfoToUI(info) {
+        let phoneText = "โทร " + info.phone1;
+        if (info.phone2) phoneText += ", " + info.phone2;
+        
+        // หน้าจอหลัก
+        const mainShopName = document.getElementById('main-shop-name');
+        if (mainShopName) {
+            mainShopName.innerHTML = `${info.name}<br><span class="shop-phone">${phoneText}</span>`;
+        }
+        
+        // สลิปแชร์
+        const slipShopName = document.getElementById('slip-shop-name');
+        const slipShopAddress = document.getElementById('slip-shop-address');
+        if (slipShopName) slipShopName.innerText = info.name;
+        if (slipShopAddress) slipShopAddress.innerHTML = `${info.address}<br>${phoneText}`;
+        
+        // สลิปพิมพ์
+        const pSlipShopName = document.getElementById('p-slip-shop-name');
+        const pSlipShopAddress = document.getElementById('p-slip-shop-address');
+        if (pSlipShopName) pSlipShopName.innerText = info.name;
+        if (pSlipShopAddress) pSlipShopAddress.innerHTML = `${info.address}<br>${phoneText}`;
+    }
+
+    document.getElementById('btn-save-shop-info').addEventListener('click', function() {
+        const name = document.getElementById('setup-shop-name').value.trim();
+        const address = document.getElementById('setup-shop-address').value.trim();
+        const phone1 = document.getElementById('setup-shop-phone1').value.trim();
+        const phone2 = document.getElementById('setup-shop-phone2').value.trim();
+
+        if (name === "" || phone1 === "") {
+            alert("⚠️ กรุณาระบุชื่อร้านและเบอร์โทรศัพท์ 1 ให้ครบถ้วนค่ะ");
+            return;
+        }
+
+        const shopInfo = { name, address, phone1, phone2 };
+        localStorage.setItem('thep_shop_info', JSON.stringify(shopInfo));
+        
+        applyShopInfoToUI(shopInfo);
+        shopSetupModal.style.display = "none";
+        alert("✅ บันทึกข้อมูลร้านค้าเรียบร้อยแล้ว!");
+    });
+
+    document.getElementById('btn-edit-shop').addEventListener('click', function() {
+        const infoStr = localStorage.getItem('thep_shop_info');
+        if (infoStr) {
+            const info = JSON.parse(infoStr);
+            document.getElementById('setup-shop-name').value = info.name || "";
+            document.getElementById('setup-shop-address').value = info.address || "";
+            document.getElementById('setup-shop-phone1').value = info.phone1 || "";
+            document.getElementById('setup-shop-phone2').value = info.phone2 || "";
+        }
+        document.getElementById('btn-cancel-shop-setup').style.display = "block";
+        shopSetupModal.style.display = "flex";
+    });
+
+    document.getElementById('btn-cancel-shop-setup').addEventListener('click', function() {
+        shopSetupModal.style.display = "none";
+    });
+
+    // --- ระบบ VIP (Freemium Validation) ---
+    document.getElementById('btn-cancel-vip-modal').addEventListener('click', function() {
+        document.getElementById('vip-unlock-modal').style.display = "none";
+    });
+
+    document.getElementById('btn-unlock-vip').addEventListener('click', function() {
+        const keyInput = document.getElementById('vip-activation-key').value.trim();
+        const infoStr = localStorage.getItem('thep_shop_info');
+        
+        if (!infoStr) {
+            alert("⚠️ กรุณาตั้งค่าร้านค้าก่อนเพื่อผูกระบบ VIP ค่ะ");
+            return;
+        }
+        
+        const info = JSON.parse(infoStr);
+        if (!info.phone1 || info.phone1.length < 4) {
+            alert("⚠️ เบอร์โทรศัพท์สั้นเกินไป กรุณาเข้าไปตั้งค่าเบอร์โทรร้านค้าใหม่ให้ถูกต้องค่ะ");
+            return;
+        }
+
+        const last4Phone = info.phone1.slice(-4);
+        const secretKey = "666666" + last4Phone + "999999999";
+
+        if (keyInput === secretKey) {
+            localStorage.setItem('thep_is_vip', 'true');
+            alert("🎉 ยินดีด้วย! ปลดล็อกเวอร์ชันเต็ม (VIP) สำเร็จแล้ว ท่านสามารถบันทึกสินค้าและขายบิลได้ไม่จำกัดค่ะ");
+            document.getElementById('vip-unlock-modal').style.display = "none";
+            document.getElementById('vip-activation-key').value = "";
+        } else {
+            alert("❌ รหัสปลดล็อกไม่ถูกต้อง กรุณาติดต่อเทพอภัยเพื่อรับรหัสที่ถูกต้องค่ะ");
+        }
+    });
+
+    // เรียกโหลดตอนเปิดแอป
+    loadShopInfo();
 </script>
 </body>
 </html>
