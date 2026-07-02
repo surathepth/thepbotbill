@@ -194,6 +194,10 @@
                 <label>ราคาขาย (บาท):</label>
                 <input type="number" id="modal-price" placeholder="0.00">
             </div>
+            <div class="modal-input-group">
+                <label>สต๊อกรับเข้า/คงเหลือ:</label>
+                <input type="number" id="modal-stock" placeholder="0">
+            </div>
             <button type="button" class="modal-btn-save" id="btn-save-new-item">💾 บันทึก & เพิ่มลงบิลทันที</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-modal">❌ ยกเลิก</button>
         </div>
@@ -557,15 +561,32 @@
         const nameInputs = document.querySelectorAll('.name-val');
         const priceInputs = document.querySelectorAll('.price-val');
         const qtyInputs = document.querySelectorAll('.qty-val');
-        let currentRowIdx = nameInputs.length - 1;
+        
+        // เช็กว่ามีชื่อสินค้านี้ในบิลหรือยัง
+        let foundIdx = -1;
+        for (let i = 0; i < nameInputs.length; i++) {
+            if (nameInputs[i].value === name) {
+                foundIdx = i;
+                break;
+            }
+        }
 
-        if (nameInputs[currentRowIdx].value !== "") {
-            addEmptyRow(name, price, 1);
-        } else {
-            nameInputs[currentRowIdx].value = name;
-            priceInputs[currentRowIdx].value = price;
-            qtyInputs[currentRowIdx].value = 1;
+        if (foundIdx !== -1) {
+            // ถ้ามีแล้ว ให้บวกจำนวนเพิ่ม
+            let currentQty = parseFloat(qtyInputs[foundIdx].value) || 0;
+            qtyInputs[foundIdx].value = currentQty + 1;
             calculateTotals();
+        } else {
+            // ถ้ายังไม่มี หาบรรทัดว่างหรือสร้างใหม่
+            let currentRowIdx = nameInputs.length - 1;
+            if (nameInputs[currentRowIdx].value !== "") {
+                addEmptyRow(name, price, 1);
+            } else {
+                nameInputs[currentRowIdx].value = name;
+                priceInputs[currentRowIdx].value = price;
+                qtyInputs[currentRowIdx].value = 1;
+                calculateTotals();
+            }
         }
         saveActiveBillState();
     }
@@ -637,11 +658,13 @@
     const modalBarcode = document.getElementById('modal-barcode');
     const modalName = document.getElementById('modal-name');
     const modalPrice = document.getElementById('modal-price');
+    const modalStock = document.getElementById('modal-stock');
     
     function openNewItemModal(barcode) {
         modalBarcode.value = barcode;
         modalName.value = "";
         modalPrice.value = "";
+        modalStock.value = "0";
         modalOverlay.style.display = "flex";
         modalName.focus();
     }
@@ -659,6 +682,7 @@
     document.getElementById('btn-save-new-item').addEventListener('click', function() {
         const name = modalName.value.trim();
         const price = parseFloat(modalPrice.value);
+        const stock = parseFloat(modalStock.value) || 0;
 
         if (name === "" || isNaN(price)) {
             alert("⚠️ กรุณาระบุชื่อสินค้าและราคาให้ถูกต้องค่ะ");
@@ -666,7 +690,7 @@
         }
 
         const barcode = modalBarcode.value;
-        productDB[barcode] = { name: name, price: price };
+        productDB[barcode] = { name: name, price: price, stock: stock };
         localStorage.setItem('thep_product_db', JSON.stringify(productDB));
 
         addProductToBill(name, price);
