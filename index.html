@@ -432,7 +432,8 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw4Mku23sD2i7jH06nFnDsPlVDpjDNs5gpePJNGUrKGkHJe3Djt5Spihn8uIg-XaQH-/exec";
+    // ลิงก์ Google Apps Script สำหรับเก็บประวัติบิล (ปิดไว้สำหรับแอปเวอร์ชันลูกค้า เพื่อไม่ให้ข้อมูลปนกัน)
+    const WEB_APP_URL = "";
 
     const btnStartCamera = document.getElementById('btn-start-camera');
     const btnStopCamera = document.getElementById('btn-stop-camera');
@@ -1246,6 +1247,7 @@
 
     // ฟังก์ชันสั่งโหลดดึงข้อมูลหลังร้านอัตโนมัติเมื่อเปิดหน้าจอแอปขึ้นมาทำงาน
     function fetchLiveSheetData() {
+        if (!WEB_APP_URL) return; // ถ้าไม่มีลิงก์ ให้ข้ามการดึงข้อมูลจาก Sheet (ทำงานแบบ Local)
         fetch(WEB_APP_URL + "?action=readSales")
         .then(response => response.json())
         .then(data => {
@@ -1274,6 +1276,13 @@
             const originalText = btn.innerText;
             btn.innerText = "⏳ กำลังล้างข้อมูล...";
             btn.disabled = true;
+
+            if (!WEB_APP_URL) { // จำลองการลบสำเร็จหากไม่ได้ใช้ Google Sheet
+                alert("🗑️ ล้างข้อมูลยอดขายในฐานข้อมูลสำเร็จแล้ว! ยอดทั้งหมดถูกรีเซ็ตเป็น 0.00 ค่ะ");
+                btn.innerText = originalText;
+                btn.disabled = false;
+                return;
+            }
 
             const payload = { action: 'clearSales' };
 
@@ -1395,6 +1404,16 @@
         const btnPay = document.getElementById('btn-pay');
         btnPay.innerText = "⏳ กำลังบันทึกข้อมูล...";
         btnPay.disabled = true;
+
+        if (!WEB_APP_URL) { // ทำงานแบบออฟไลน์ Local เครื่องใครเครื่องมัน
+            alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
+            currentBillSeq++; 
+            localStorage.setItem('thep_bill_seq', currentBillSeq);
+            clearBill(); 
+            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.disabled = false;
+            return;
+        }
 
         fetch(WEB_APP_URL, {
             method: 'POST',
