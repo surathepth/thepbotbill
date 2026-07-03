@@ -431,6 +431,8 @@
     </div>
 </div>
 
+<datalist id="product-list-options"></datalist>
+
 <script>
     // ลิงก์ Google Apps Script สำหรับเก็บประวัติบิล (ปิดไว้สำหรับแอปเวอร์ชันลูกค้า เพื่อไม่ให้ข้อมูลปนกัน)
     const WEB_APP_URL = "";
@@ -534,6 +536,15 @@
 
             if (finalName === "") finalName = "สินค้าทั่วไป";
 
+            // ตรวจสอบกับฐานข้อมูลสินค้าว่ามีชื่อที่พูดตรงกันหรือไม่
+            let foundPrice = finalPrice;
+            for (let code in productDB) {
+                if (productDB[code].name === finalName && foundPrice === 0) {
+                    foundPrice = productDB[code].price;
+                    break;
+                }
+            }
+
             const nameInputs = document.querySelectorAll('.name-val');
             let currentRowIdx = nameInputs.length - 1;
 
@@ -548,7 +559,7 @@
             const currentQtys = document.querySelectorAll('.qty-val');
 
             currentNames[currentRowIdx].value = finalName;
-            currentPrices[currentRowIdx].value = finalPrice;
+            currentPrices[currentRowIdx].value = foundPrice;
             currentQtys[currentRowIdx].value = finalQty;
 
             calculateTotals();
@@ -581,13 +592,67 @@
         const newRow = document.createElement('div');
         newRow.className = 'bill-item';
         newRow.innerHTML = `
-            <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..." value="${name}"></div>
+            <div class="item-name-col"><input type="text" class="name-val" list="product-list-options" placeholder="ชื่อสินค้าหรือบาร์โค้ด..." value="${name}"></div>
             <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
             <div class="price-wrap"><input type="number" class="price-val" value="${price}"></div>
             <div class="qty-wrap"><input type="number" class="qty-val" value="${qty}"></div>
             <div class="total-wrap"><span class="row-total">0.00</span></div>
         `;
         billItemsContainer.appendChild(newRow);
+        
+        const nameInput = newRow.querySelector('.name-val');
+        const priceInput = newRow.querySelector('.price-val');
+
+        // ตรวจจับการพิมพ์หรือสแกนบาร์โค้ด
+        nameInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            if(!val) return;
+            
+            // 1. ตรวจสอบว่าตรงกับบาร์โค้ดที่มีในระบบหรือไม่ (กรณีใช้ปืนยิงบาร์โค้ด)
+            if (productDB[val]) {
+                this.value = productDB[val].name;
+                priceInput.value = productDB[val].price;
+                calculateTotals();
+                saveActiveBillState();
+                return;
+            }
+            
+            // 2. ตรวจสอบว่าตรงกับชื่อสินค้าที่เลือกจาก Datalist หรือไม่
+            for (let code in productDB) {
+                if (productDB[code].name === val) {
+                    priceInput.value = productDB[code].price;
+                    calculateTotals();
+                    saveActiveBillState();
+                    return;
+                }
+            }
+        });
+
+        // ดักจับการกด Enter (กรณีปืนยิงบาร์โค้ดสแกนเสร็จจะส่ง Enter)
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = this.value.trim();
+                if (!val) return;
+                
+                // ถ้าสแกนรหัสบาร์โค้ดที่ไม่รู้จัก ให้เด้งหน้าต่างเพิ่มสินค้าใหม่
+                if (/^\\d{8,14}$/.test(val) && !productDB[val]) {
+                    openNewItemModal(val);
+                } else if (productDB[val]) {
+                    this.value = productDB[val].name;
+                    priceInput.value = productDB[val].price;
+                    calculateTotals();
+                    saveActiveBillState();
+                    // เพิ่มแถวใหม่และโฟกัสเพื่อเตรียมสแกนชิ้นต่อไป
+                    addEmptyRow();
+                    const inputs = document.querySelectorAll('.name-val');
+                    inputs[inputs.length - 1].focus();
+                } else {
+                    priceInput.focus();
+                }
+            }
+        });
+
         calculateTotals();
     }
 
@@ -599,6 +664,18 @@
     });
 
     let productDB = JSON.parse(localStorage.getItem('thep_product_db')) || {};
+
+    function updateProductDatalist() {
+        const datalist = document.getElementById('product-list-options');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+        for (let code in productDB) {
+            const opt = document.createElement('option');
+            opt.value = productDB[code].name;
+            datalist.appendChild(opt);
+        }
+    }
+    updateProductDatalist();
     let html5QrCode = null;
     let isScanning = false;
 
@@ -749,6 +826,7 @@
         const barcode = modalBarcode.value;
         productDB[barcode] = { name: name, price: price, stock: stock };
         localStorage.setItem('thep_product_db', JSON.stringify(productDB));
+        updateProductDatalist();
 
         addProductToBill(name, price);
         closeNewItemModal();
@@ -768,18 +846,13 @@
     };
 
     function clearBill() {
-        document.getElementById('bill-items').innerHTML = `
-            <div class="bill-item">
-                <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
-                <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
-                <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
-                <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
-                <div class="total-wrap"><span class="row-total">0.00</span></div>
-            </div>`; 
+        document.getElementById('bill-items').innerHTML = '';
+        addEmptyRow();
         document.getElementById('cash-input').value = ''; 
         document.getElementById('queue-no').value = ''; 
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
+        localStorage.removeItem('thep_active_bill');
         localStorage.removeItem('thep_active_bill');
     }
 
