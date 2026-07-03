@@ -250,8 +250,10 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <span style="font-weight: bold; font-size: 15px; color: #2c3e50;">📋 รายการสินค้า</span>
         <div style="display: flex; align-items: center; gap: 5px;">
-            <label style="font-weight: bold; color: #e74c3c; font-size: 15px;">NO.</label>
-            <input type="text" id="queue-no" placeholder="คิว/โต๊ะ..." style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; text-align: center; font-weight: bold;">
+            <label style="font-weight: bold; color: #3498db; font-size: 15px;">พนักงาน</label>
+            <input type="text" id="staff-name" placeholder="ชื่อพนักงาน..." style="width: 90px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; text-align: center; font-weight: bold;" onblur="localStorage.setItem('thep_current_staff', this.value)">
+            <label style="font-weight: bold; color: #e74c3c; font-size: 15px; margin-left: 5px;">NO.</label>
+            <input type="text" id="queue-no" placeholder="คิว/โต๊ะ..." style="width: 60px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; text-align: center; font-weight: bold;">
         </div>
     </div>
 
@@ -319,6 +321,7 @@
             </div>
             
             <div class="slip-detail-row"><span>เลขที่บิล:</span><strong id="slip-bill-number">XXXXXX-XXXX</strong></div>
+            <div class="slip-detail-row"><span>พนักงานขาย:</span><strong id="slip-staff-name">-</strong></div>
             <div class="slip-detail-row"><span>NO. คิว/โต๊ะ:</span><strong id="slip-queue-number">-</strong></div>
             <div class="slip-detail-row"><span>วันที่ทำรายการ:</span><span id="slip-date"></span></div>
             
@@ -344,6 +347,7 @@
             <p id="p-slip-shop-address">69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
         </div>
         <div class="print-detail-row"><span>เลขที่บิล:</span><strong id="p-slip-bill-number"></strong></div>
+        <div class="print-detail-row"><span>พนักงาน:</span><strong id="p-slip-staff-name"></strong></div>
         <div class="print-detail-row"><span>NO. คิว/โต๊ะ:</span><strong id="p-slip-queue-number"></strong></div>
         <div class="print-detail-row"><span>วันที่:</span><span id="p-slip-date"></span></div>
         
@@ -371,8 +375,9 @@
     <div class="dash-box">
         <div class="dash-title">📊 แดชบอร์ดสรุปยอดขายร้านค้า</div>
         
-        <div style="text-align: right; margin-bottom: 10px;">
-            <button type="button" id="btn-clear-sales" style="background-color: #e74c3c; width: auto; padding: 8px 15px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🗑️ ล้างข้อมูลยอดขายทั้งหมด</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 5px;">
+            <button type="button" id="btn-show-staff-report" style="background-color: #9b59b6; width: auto; padding: 8px 10px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1;">📊 สรุปยอดขายแยกตามพนักงาน</button>
+            <button type="button" id="btn-clear-sales" style="background-color: #e74c3c; width: auto; padding: 8px 10px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1;">🗑️ ล้างข้อมูลยอดขายทั้งหมด</button>
         </div>
         
         <div class="dash-cards">
@@ -428,6 +433,48 @@
             </div>
             <div id="ledger-data-rows"></div>
         </div>
+    </div>
+</div>
+
+<!-- Staff Report Modal -->
+<div id="staff-report-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: flex-start; overflow-y: auto; padding-top: 20px; padding-bottom: 20px;">
+    <div style="background: white; width: 95%; max-width: 500px; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: #2c3e50; text-align: center; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;">📊 รายงานยอดขายพนักงาน</h3>
+        
+        <div class="filter-group">
+            <label>ระบุวันที่ค้นหา:</label>
+            <input type="date" id="sr-filter-date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div class="filter-group">
+            <label>ระบุพนักงาน:</label>
+            <select id="sr-filter-staff" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="">-- พนักงานทุกคน --</option>
+            </select>
+        </div>
+        
+        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <div style="font-size: 14px; color: #7f8c8d;">ยอดขายรวม (ตามตัวกรอง)</div>
+                <div id="sr-total-sales" style="font-size: 28px; font-weight: bold; color: #27ae60;">0.00 บาท</div>
+            </div>
+            
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #2980b9;">🏆 Top 5 สินค้าขายดีสุดของพนักงาน</div>
+            <div id="sr-top5-products" style="font-size: 13px; margin-bottom: 15px; padding-left: 10px;">
+                <span style="color: #999;">(ไม่มีข้อมูล)</span>
+            </div>
+            
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #e67e22;">🍽️ ยอดขายแยกตามคิว/โต๊ะ</div>
+            <div id="sr-table-sales" style="font-size: 13px; margin-bottom: 15px; padding-left: 10px; max-height: 150px; overflow-y: auto;">
+                <span style="color: #999;">(ไม่มีข้อมูล)</span>
+            </div>
+            
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #8e44ad;">📦 รายการสินค้าทั้งหมดที่พนักงานขายได้</div>
+            <div id="sr-itemized-sales" style="font-size: 13px; padding-left: 10px; max-height: 150px; overflow-y: auto;">
+                <span style="color: #999;">(ไม่มีข้อมูล)</span>
+            </div>
+        </div>
+        
+        <button type="button" id="btn-close-staff-report" style="width: 100%; background-color: #95a5a6; padding: 12px; font-size: 16px; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">❌ ปิดหน้ารายงาน</button>
     </div>
 </div>
 
@@ -1551,6 +1598,7 @@
         printTemplate.style.display = "block"; 
         
         document.getElementById('p-slip-bill-number').innerText = billNum;
+        document.getElementById('p-slip-staff-name').innerText = document.getElementById('staff-name').value || "-";
         document.getElementById('p-slip-queue-number').innerText = queueNo;
         document.getElementById('p-slip-date').innerText = new Date().toLocaleString('th-TH');
         
@@ -1711,8 +1759,122 @@
         }
     });
 
+    // --- ระบบรายงานพนักงานขาย (Staff Report) ---
+    document.getElementById('btn-show-staff-report').addEventListener('click', function() {
+        const modal = document.getElementById('staff-report-modal');
+        modal.style.display = 'flex';
+        
+        // เติมรายชื่อพนักงานที่มีในประวัติลงใน Dropdown
+        const localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+        const staffSet = new Set();
+        localSales.forEach(row => {
+            const staffName = row[5] || (row[4].match(/พนักงาน:\s(.*?)\s\|/)?.[1]) || "ไม่ระบุ";
+            staffSet.add(staffName);
+        });
+        
+        const staffSelect = document.getElementById('sr-filter-staff');
+        staffSelect.innerHTML = '<option value="">-- พนักงานทุกคน --</option>';
+        staffSet.forEach(staff => {
+            if (staff !== "ไม่ระบุ") {
+                staffSelect.innerHTML += `<option value="${staff}">${staff}</option>`;
+            }
+        });
+        
+        // Default วันนี้
+        document.getElementById('sr-filter-date').value = new Date().toISOString().split('T')[0];
+        
+        calculateStaffReport();
+    });
+
+    document.getElementById('btn-close-staff-report').addEventListener('click', function() {
+        document.getElementById('staff-report-modal').style.display = 'none';
+    });
+
+    document.getElementById('sr-filter-date').addEventListener('change', calculateStaffReport);
+    document.getElementById('sr-filter-staff').addEventListener('change', calculateStaffReport);
+
+    function calculateStaffReport() {
+        const localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+        const filterDate = document.getElementById('sr-filter-date').value;
+        const filterStaff = document.getElementById('sr-filter-staff').value;
+        
+        let totalSales = 0;
+        let itemizedMap = {};
+        let tableMap = {};
+        
+        localSales.forEach(row => {
+            // โครงสร้างใหม่ row = [dateStr, grandTotal, cashInput, changeDue, billDetails, staffName]
+            const rDate = row[0].split(' ')[0]; // YYYY-MM-DD
+            if (filterDate && rDate !== filterDate) return;
+            
+            const rStaff = row[5] || (row[4].match(/พนักงาน:\s(.*?)\s\|/)?.[1]) || "ไม่ระบุ";
+            if (filterStaff && rStaff !== filterStaff) return;
+            
+            totalSales += parseFloat(row[1]);
+            
+            const queueMatch = row[4].match(/NO:\s(.*?)\s\|/);
+            const rQueue = queueMatch ? queueMatch[1] : "-";
+            tableMap[rQueue] = (tableMap[rQueue] || 0) + parseFloat(row[1]);
+            
+            // Extract items: "Name (Price x Qty = Total) | "
+            const itemMatches = row[4].matchAll(/\|\s*(.*?)\s\((.*?)\s*x\s*(.*?)\s*=\s*(.*?)\)/g);
+            for (const match of itemMatches) {
+                const iName = match[1].trim();
+                const iQty = parseInt(match[3]);
+                const iTotal = parseFloat(match[4]);
+                
+                if (!itemizedMap[iName]) itemizedMap[iName] = { qty: 0, total: 0 };
+                itemizedMap[iName].qty += iQty;
+                itemizedMap[iName].total += iTotal;
+            }
+        });
+        
+        document.getElementById('sr-total-sales').innerText = totalSales.toFixed(2) + " บาท";
+        
+        // Render Top 5 Products
+        const sortedItems = Object.entries(itemizedMap).sort((a, b) => b[1].total - a[1].total);
+        let top5Html = "";
+        sortedItems.slice(0, 5).forEach((item, idx) => {
+            const width = (item[1].total / (sortedItems[0][1].total || 1)) * 100;
+            top5Html += `
+                <div style="margin-bottom: 5px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>${idx+1}. ${item[0]} (${item[1].qty} ชิ้น)</span>
+                        <strong>${item[1].total.toFixed(2)} บาท</strong>
+                    </div>
+                    <div style="background: #ecf0f1; border-radius: 4px; height: 6px; margin-top: 2px;">
+                        <div style="background: linear-gradient(90deg, #3498db, #9b59b6); width: ${width}%; height: 100%; border-radius: 4px;"></div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('sr-top5-products').innerHTML = top5Html || '<span style="color: #999;">(ไม่มีข้อมูล)</span>';
+        
+        // Render Table Sales
+        let tableHtml = "";
+        for (const [table, tTotal] of Object.entries(tableMap)) {
+            tableHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>คิว/โต๊ะ: ${table}</span><strong>${tTotal.toFixed(2)} บาท</strong></div>`;
+        }
+        document.getElementById('sr-table-sales').innerHTML = tableHtml || '<span style="color: #999;">(ไม่มีข้อมูล)</span>';
+        
+        // Render Itemized Sales
+        let itemizedHtml = "";
+        for (const [name, data] of Object.entries(itemizedMap)) {
+            itemizedHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>- ${name} (${data.qty} ชิ้น)</span><strong>${data.total.toFixed(2)} บาท</strong></div>`;
+        }
+        document.getElementById('sr-itemized-sales').innerHTML = itemizedHtml || '<span style="color: #999;">(ไม่มีข้อมูล)</span>';
+    }
+
     // เรียกโหลดตอนเปิดแอป
     loadShopInfo();
+    
+    // โหลดชื่อพนักงานล่าสุดที่เคยพิมพ์ไว้ (ระบบจำชื่อ)
+    const savedStaff = localStorage.getItem('thep_current_staff');
+    if (savedStaff) {
+        const staffNameInput = document.getElementById('staff-name');
+        if (staffNameInput) {
+            staffNameInput.value = savedStaff;
+        }
+    }
 </script>
 </body>
 </html>
