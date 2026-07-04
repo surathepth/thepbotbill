@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ThepAgentBill - Premium Poster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800&family=Kanit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 1080px;
+            height: 1440px;
+            font-family: 'Prompt', sans-serif;
+            background: radial-gradient(circle at center, #1b2a38 0%, #0d1620 100%);
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .glow-top-left {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 255, 135, 0.25) 0%, rgba(0,0,0,0) 60%);
+            top: -200px;
+            left: -200px;
+            z-index: 0;
+        }
+        .glow-bottom-right {
+            position: absolute;
+            width: 900px;
+            height: 900px;
+            background: radial-gradient(circle, rgba(0, 195, 255, 0.2) 0%, rgba(0,0,0,0) 60%);
+            bottom: -200px;
+            right: -200px;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            padding: 50px 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Header Section */
+        .header {
+            text-align: center;
+        }
+        .app-name {
+            font-family: 'Kanit', sans-serif;
+            font-size: 130px;
+            font-weight: 700;
+            background: linear-gradient(to right, #00ff87, #60efff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 40px rgba(0, 255, 135, 0.5);
+            margin-bottom: 5px;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+        .tagline {
+            font-size: 46px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .sub-tagline {
+            font-size: 34px;
+            color: #00ff87;
+            font-weight: 600;
+            background: rgba(0, 255, 135, 0.15);
+            padding: 12px 40px;
+            border-radius: 60px;
+            display: inline-block;
+            border: 2px solid rgba(0, 255, 135, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 255, 135, 0.2);
+        }
+
+        /* Main Content 2 Columns */
+        .main-content {
+            display: flex;
+            gap: 25px;
+            width: 100%;
+            flex: 1;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 35px;
+            padding: 40px 30px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+        }
+
+        /* Features (Left) */
+        .features-col {
+            flex: 1.2;
+        }
+        .section-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 35px;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        .section-title i {
+            margin-right: 20px;
+            font-size: 46px;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 30px;
+            font-weight: 600;
+            color: #f1f2f6;
+            line-height: 1.3;
+        }
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #00ff87, #00b8ff);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 34px;
+            color: #0d1620;
+            margin-right: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 12px 25px rgba(0, 255, 135, 0.4);
+        }
+
+        /* Pricing (Right) */
+        .pricing-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .price-card {
+            background: linear-gradient(145deg, rgba(20, 30, 40, 0.95), rgba(10, 15, 25, 0.95));
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 35px 25px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .price-card.premium {
+            border: 3px solid #ff3b30;
+            box-shadow: 0 20px 50px rgba(255, 59, 48, 0.3);
+            background: linear-gradient(145deg, rgba(40, 20, 20, 0.95), rgba(20, 10, 10, 0.95));
+        }
+        
+        .plan-name {
+            font-size: 34px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+        }
+        .plan-name i {
+            margin-right: 15px;
+            font-size: 38px;
+        }
+        .premium .plan-name {
+            color: #ff4757;
+        }
+        .plan-desc {
+            font-size: 26px;
+            color: #ced6e0;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        .price {
+            font-size: 75px;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 700;
+            color: #00ff87;
+            display: flex;
+            align-items: baseline;
+            line-height: 1;
+        }
+        .premium .price {
+            color: #ff4757;
+        }
+        .currency {
+            font-size: 32px;
+            margin-left: 10px;
+            color: #ced6e0;
+            font-weight: 400;
+        }
+
+        /* Footer Section */
+        .footer-wrapper {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .contact-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            padding-right: 20px;
+        }
+        .contact-line {
+            display: flex;
+            align-items: flex-start;
+            font-size: 26px;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.3;
+        }
+        .contact-line i {
+            width: 45px;
+            color: #00ff87;
+            font-size: 34px;
+            margin-top: 2px;
+        }
+        .sub-text {
+            font-size: 22px;
+            color: #a4b0be;
+            font-weight: 400;
+        }
+
+        .qr-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 420px;
+        }
+        
+        .qr-top-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #ffd700;
+            margin-bottom: 10px;
+            text-align: center;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            width: 100%;
+        }
+
+        .qr-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: #ffffff;
+            padding: 15px 20px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(255,255,255,0.1);
+            width: 100%;
+        }
+        .qr-text {
+            color: #2f3542;
+            font-weight: 800;
+            font-size: 28px;
+            text-align: right;
+            line-height: 1.2;
+            padding-right: 15px;
+        }
+        .qr-text span {
+            color: #00c300;
+            font-size: 36px;
+            display: block;
+            margin-top: 5px;
+        }
+        .qr-code {
+            width: 140px;
+            height: 140px;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-top-left"></div>
+    <div class="glow-bottom-right"></div>
+
+    <div class="container">
+        
+        <!-- Header -->
+        <div class="header">
+            <h1 class="app-name">ThepAgentBill</h1>
+            <div class="tagline">"ราคาหลักร้อย ทำงานให้ในราคาหลักหมื่น"</div>
+            <div class="sub-tagline">เปลี่ยนมือถือเป็นเครื่องคิดเงินอัจฉริยะใน 1 นาที</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left: Features -->
+            <div class="glass-panel features-col">
+                <div class="section-title">
+                    <i class="fas fa-crown"></i> ฟีเจอร์เด่นระดับโปร
+                </div>
+                
+                <div class="feature-item">
+                    <div class="icon-box"><i class="fas fa-microphone-alt"></i></div>
+                    <div>รับออเดอร์ด้วยเสียง &<br>สแกนบาร์โค้ด &<br>คีย์ด้วยมือก็เร็วทันใจ</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon-box"><i class="fas fa-pause-circle"></i></div>
+                    <div>ระบบจัดการคิวอัจฉริยะ (พักบิล)</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon-box"><i class="fas fa-receipt"></i></div>
+                    <div>พิมพ์ใบเสร็จ &<br>แชร์สลิปดิจิทัล</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon-box"><i class="fas fa-chart-pie"></i></div>
+                    <div>แดชบอร์ดผู้บริหาร<br>Real-time</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon-box"><i class="fas fa-wifi"></i></div>
+                    <div>ทำงานได้แม้ไม่มีเน็ต<br>(Offline-First)</div>
+                </div>
+            </div>
+
+            <!-- Right: Pricing -->
+            <div class="pricing-col">
+                <div class="price-card">
+                    <div class="plan-name"><i class="fas fa-mobile-alt"></i> ชุดเริ่มต้น</div>
+                    <div class="plan-desc">ใช้งานระบบอัจฉริยะ<br>ครบทุกฟังก์ชั่น</div>
+                    <div class="price">900<span class="currency">บาท</span></div>
+                </div>
+                
+                <div class="price-card premium">
+                    <div class="plan-name"><i class="fas fa-print"></i> ชุดจัดเต็ม</div>
+                    <div class="plan-desc">รับฟรี! เครื่องพิมพ์<br>ใบเสร็จบลูทูธ 58 มม.</div>
+                    <div class="price">1,500<span class="currency">บาท</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-wrapper">
+            <div class="contact-info">
+                <div class="contact-line">
+                    <i class="fas fa-user-tie"></i> 
+                    <div>ThepAgent AIteam<br><span class="sub-text">(ผู้บริหาร/ตัวแทน)</span></div>
+                </div>
+                <div class="contact-line">
+                    <i class="fas fa-phone-alt"></i> 
+                    <div>โทร 098-7707456<br>094-9975679</div>
+                </div>
+                <div class="contact-line">
+                    <i class="fas fa-envelope"></i> 
+                    <div>Email :<br>Srisarakhams@Gmail.com</div>
+                </div>
+                <div class="contact-line">
+                    <i class="fab fa-facebook"></i> 
+                    <div>www.facebook.com/Phaprathan</div>
+                </div>
+            </div>
+            
+            <div class="qr-wrapper">
+                <div class="qr-top-text">ทีมงาน ThepAgent</div>
+                <div class="qr-section">
+                    <div class="qr-text">
+                        สแกนเพื่อรับ<br>
+                        <span>โปรโมชันพิเศษ!</span>
+                    </div>
+                    <img src="file:///C:/DATADAYLI/ThepAgentBill/ภาพแก้ไขปรับปรุง/QRCODE-Line-0949975679.jpg" class="qr-code" alt="QR Code">
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>

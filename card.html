@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThepAgentBill - นามบัตรดิจิทัล</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Open Graph SEO & Social Media Card -->
+    <meta property="og:title" content="ThepAgentBill - เครื่องคิดเงินอัจฉริยะบนมือถือ">
+    <meta property="og:description" content="เปลี่ยนมือถือเป็นเครื่องคิดเงินใน 1 นาที! พิมพ์ใบเสร็จ, สั่งงานด้วยเสียง, ออกบิล e-Slip ครบจบในแอปเดียว เหมาะสำหรับร้านค้ายุคใหม่">
+    <meta property="og:image" content="https://surathepth.github.io/thepbotbill/ภาพแก้ไขปรับปรุง/Poster-Card-Pro.png">
+    <meta property="og:url" content="https://surathepth.github.io/thepbotbill/card.html">
+    <meta property="og:type" content="website">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            /* Animated Gradient Background */
+            background: linear-gradient(-45deg, #00b09b, #96c93d, #00897b, #cddc39);
+            background-size: 400% 400%;
+            animation: gradientBG 10s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* So it scrolls nicely on mobile */
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Mobile Container Constraint */
+        .card-container {
+            width: 100%;
+            max-width: 480px; /* Perfect for mobile, and looks like a card on PC */
+            min-height: 100vh;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.1); /* Glassmorphism Base */
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        /* Profile Section */
+        .profile-img-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            padding: 5px;
+            background: linear-gradient(45deg, #ff5722, #ffe600);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .profile-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffffff;
+            background-color: #fff;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(255, 87, 34, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #ffe600;
+            text-align: center;
+            margin-bottom: 35px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            line-height: 1.5;
+        }
+
+        .brand-subtitle .highlight-text {
+            display: block;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 2px 2px 5px rgba(0,0,0,0.8);
+        }
+
+        /* Glass Buttons */
+        .links-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .glass-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 50px; /* Pill shape */
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-btn i {
+            position: absolute;
+            left: 25px;
+            font-size: 1.5rem;
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            color: #ffe600;
+        }
+
+        /* Highlight Buttons */
+        .btn-highlight {
+            background: linear-gradient(45deg, #ff5722, #ff9800);
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+        }
+        .btn-highlight:hover {
+            background: linear-gradient(45deg, #ff9800, #ff5722);
+            color: #fff;
+        }
+
+        /* Trial Button */
+        .btn-trial {
+            background: #ff5722;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.6);
+            font-size: 1.4rem;
+            padding: 18px 20px;
+            animation: pulse-btn 2s infinite;
+        }
+        .btn-trial:hover {
+            background: #e64a19;
+            color: #fff;
+        }
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 87, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+
+        .btn-line {
+            background: #00B900;
+            border: none;
+        }
+        .btn-line:hover {
+            background: #009900;
+            color: #fff;
+        }
+
+        .btn-fb {
+            background: rgba(24, 119, 242, 0.15);
+            border: 2px solid #1877F2;
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .btn-fb:hover {
+            background: #1877F2;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(24, 119, 242, 0.5);
+        }
+
+        /* Features List */
+        .features-list {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+        .features-list li {
+            font-size: 0.95rem;
+            color: #eee;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            padding-bottom: 8px;
+        }
+        .features-list li:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .text-highlight-premium {
+            color: #ffe600 !important; /* สีเหลืองทองสว่าง ตัดพื้นเขียวได้ดีที่สุด */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 0.5px;
+        }
+        .price-text {
+            color: #ffffff !important; /* สีขาวบริสุทธิ์สำหรับราคา */
+            text-shadow: 0 0 8px rgba(255, 230, 0, 0.6), 2px 2px 4px rgba(0,0,0,0.9);
+            font-size: 1.35rem !important;
+        }
+
+        /* Contact Info */
+        .contact-card {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            color: #eee;
+        }
+        
+        .contact-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-icon {
+            width: 30px;
+            font-size: 1.1rem;
+            color: #ffe600;
+            margin-top: 3px;
+        }
+
+        .footer-text {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card-container">
+        
+        <!-- Header / Logo -->
+        <div class="profile-img-container">
+            <img src="ภาพแก้ไขปรับปรุง/20002.jpg" alt="ThepAgentBill Logo" class="profile-img">
+        </div>
+        
+        <h1 class="brand-title">ThepAgentBill</h1>
+        <p class="brand-subtitle">
+            <span class="highlight-text">"ราคาหลักร้อย ทำงานให้ในราคาหลักหมื่น"</span>
+            เปลี่ยนมือถือเป็นเครื่องคิดเงินอัจฉริยะใน 1 นาที
+        </p>
+
+        <!-- Features Summary -->
+        <div class="features-list mb-4">
+            <h6 class="text-center text-highlight-premium fw-bold mb-3"><i class="fas fa-star"></i> ฟีเจอร์เด่นของระบบ</h6>
+            <ul class="list-unstyled mb-0 px-2">
+                <li class="mb-2"><i class="fas fa-microphone-alt text-warning me-2"></i> รับออเดอร์ด้วยเสียง & สแกนบาร์โค้ด</li>
+                <li class="mb-2"><i class="fas fa-pause-circle text-warning me-2"></i> ระบบจัดการคิวอัจฉริยะ (พักบิล)</li>
+                <li class="mb-2"><i class="fas fa-receipt text-warning me-2"></i> พิมพ์ใบเสร็จ & แชร์สลิปดิจิทัล (e-Slip)</li>
+                <li class="mb-2"><i class="fas fa-chart-pie text-warning me-2"></i> แดชบอร์ดผู้บริหาร สรุปยอดขาย Real-time</li>
+                <li><i class="fas fa-wifi text-warning me-2"></i> ทำงานได้แม้ไม่มีเน็ต (Offline-First)</li>
+            </ul>
+
+            <hr style="border-color: rgba(255,255,255,0.2); margin: 15px 0;">
+            
+            <h6 class="text-center text-highlight-premium fw-bold mb-3"><i class="fas fa-tags"></i> แพ็กเกจสุดคุ้ม จ่ายครั้งเดียวจบ!</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2 bg-dark bg-opacity-50 p-2 rounded border border-secondary">
+                <div><i class="fas fa-mobile-alt text-light me-2"></i> <strong>ชุดเริ่มต้น</strong> <span style="font-size: 0.8rem; color: #ddd;">(เฉพาะแอป)</span></div>
+                <div class="price-text fw-bold">900.-</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center bg-dark bg-opacity-50 p-2 rounded border border-warning mt-2" style="box-shadow: 0 0 15px rgba(255, 230, 0, 0.2);">
+                <div><i class="fas fa-print text-light me-2"></i> <strong>ชุดจัดเต็ม</strong> <span class="text-highlight-premium" style="font-size: 0.8rem;">(ฟรีเครื่องพิมพ์!)</span></div>
+                <div class="price-text fw-bold">1,500.-</div>
+            </div>
+        </div>
+
+        <!-- Interactive Links -->
+        <div class="links-section">
+            <!-- ลิงก์ทดลองใช้งานระบบจริง (อยู่บนสุดและเด่นสุด) -->
+            <a href="https://surathepth.github.io/thepbotbill/" class="glass-btn btn-trial" target="_blank">
+                <i class="fas fa-rocket"></i> ทดลองใช้งานระบบจริง ฟรี!
+            </a>
+
+            <!-- ลิงก์ไปหน้า Sale Page (ไฟล์ที่อยู่ในโฟลเดอร์เดียวกัน) -->
+            <a href="sale.html" class="glass-btn btn-highlight">
+                <i class="fas fa-bullhorn"></i> ดูรายละเอียด & โปรโมชัน
+            </a>
+
+            <!-- ลิงก์ LINE (เปลี่ยน ID หรือเบอร์มือถือหลัง ~ ได้เลย) -->
+            <a href="https://line.me/ti/p/~0949975679" class="glass-btn btn-line" target="_blank">
+                <i class="fab fa-line"></i> แอดไลน์ สั่งซื้อ/สอบถาม
+            </a>
+
+            <!-- ลิงก์โทรศัพท์ กดปุ๊บโทรออกปั๊บ (บนมือถือ) -->
+            <a href="tel:0987707456" class="glass-btn">
+                <i class="fas fa-phone-alt"></i> โทร: 098-7707456, 094-9975679
+            </a>
+
+            <!-- ลิงก์ Facebook -->
+            <a href="https://www.facebook.com/Phaprathan" class="glass-btn btn-fb" target="_blank">
+                <i class="fab fa-facebook-f"></i> ติดตามบน Facebook
+            </a>
+        </div>
+
+        <!-- Contact Information Area -->
+        <div class="contact-card">
+            <h5 class="text-center text-warning fw-bold mb-3 border-bottom border-secondary pb-2">
+                <i class="fas fa-address-card me-2"></i> ข้อมูลการติดต่อ
+            </h5>
+            
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-user-tie"></i></div>
+                <div><strong>ผู้บริหาร/ตัวแทน:</strong> สุรเทพ ศรีสารคาม</div>
+            </div>
+            
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div><strong>ที่ตั้ง:</strong> เลขที่ 1780/88 ถนนรอบหนองสนม<br>ตำบลธาตุเชิงชุม อำเภอเมือง<br>จังหวัดสกลนคร 47000</div>
+            </div>
+            
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                <div><strong>Email:</strong> srisarakhams@Gmail.com</div>
+            </div>
+            
+            <div class="text-center mt-4 pt-3 border-top border-secondary">
+                <p class="text-warning mb-2"><small>สแกน QR Code เพื่อแอดไลน์</small></p>
+                <img src="ภาพแก้ไขปรับปรุง/QRCODE-Line-0949975679.JPG" alt="Line QR Code" class="img-fluid rounded" style="max-width: 130px; border: 2px solid #00B900;">
+            </div>
+        </div>
+
+        <div class="footer-text">
+            &copy; 2026 ThepAgentBill. All rights reserved.
+        </div>
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
