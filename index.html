@@ -232,6 +232,15 @@
         
         #reader video { border-radius: var(--radius-main); }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-J2SMCM0YK3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-J2SMCM0YK3');
+    </script>
 </head>
 <body>
 
@@ -296,20 +305,33 @@
             </div>
             <button type="button" class="modal-btn-save" id="btn-save-shop-info">💾 บันทึกข้อมูลร้านค้า</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-shop-setup" style="display: none;">❌ ปิดหน้าต่าง</button>
+            
+            <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <div style="font-size: 13px; font-weight: bold; color: #34495e; margin-bottom: 8px;">🔄 จัดการข้อมูลระบบ (สำรอง/กู้คืน)</div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="exportDataBackup()" style="flex: 1; background: #2980b9; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">📤 ส่งออกข้อมูล</button>
+                    <button type="button" onclick="document.getElementById('import-file').click()" style="flex: 1; background: #8e44ad; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">📥 นำเข้าข้อมูล</button>
+                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importDataBackup(event)">
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Modal ปลดล็อก VIP -->
     <div id="vip-unlock-modal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-title" style="color: #e74c3c;">⚠️ เวอร์ชันทดลองใช้งานเต็มขีดจำกัดแล้ว!</div>
+            <div class="modal-title" style="color: #e74c3c;">⚠️ หมดโควต้าใช้งานฟรี 150 บิลแล้ว!</div>
             <div style="font-size: 13px; color: #34495e; margin-bottom: 15px; text-align: left; line-height: 1.5; font-weight: bold;">
-                สนใจปลดล็อกเวอร์ชันเต็ม (ไม่จำกัดบิลและสินค้า) พร้อมรับเครื่องพิมพ์ใบเสร็จบลูทูธ 58mm ครบชุดพร้อมใช้งานทันที ติดต่อและสมัครตัวแทนจำหน่าย ติดต่อเทพอภัย:<br>
+                สนใจปลดล็อกเวอร์ชันเต็ม (ใช้งานถาวร ไม่จำกัดบิล) พร้อมรับเครื่องพิมพ์ใบเสร็จบลูทูธ 58mm ครบชุดพร้อมใช้งานทันที ติดต่อบอสเทพอภัย:<br>
                 <span style="color: #2980b9; font-size: 15px;">📞 โทร 098-7707456, 094-9975679</span>
             </div>
+            
             <div class="modal-input-group">
-                <label>รหัสปลดล็อก VIP (Activation Key):</label>
-                <input type="password" id="vip-activation-key" placeholder="กรอกรหัสปลดล็อก...">
+                <input type="text" id="vip-request-data" readonly style="background:#f1f2f6; color:#7f8c8d; font-size:12px; margin-bottom:5px;">
+                <button type="button" onclick="const copyText = document.getElementById('vip-request-data'); copyText.select(); document.execCommand('copy'); alert('คัดลอกข้อมูลแล้ว! นำไปวางส่งในแชทให้บอสได้เลยค่ะ');" style="background-color: #27ae60; color: white; border: none; padding: 8px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 15px;">📋 คัดลอกข้อมูลร้านส่งให้บอสเพื่อขอรหัส VIP</button>
+                
+                <label>รหัสปลดล็อก VIP 6 หลัก (จากบอส):</label>
+                <input type="number" id="vip-activation-key" placeholder="กรอกรหัส 6 หลัก...">
             </div>
             <button type="button" class="modal-btn-save" id="btn-unlock-vip" style="background-color: #f39c12; margin-top: 5px;">🔓 ยืนยันปลดล็อกถาวร</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-vip-modal">❌ ปิดหน้าต่าง</button>
@@ -402,9 +424,13 @@
             
             <div style="text-align:center; margin-top:20px; font-size:12px; color:#333; font-weight:bold; border-top: 1px dashed #ccc; padding-top: 10px;">--- ขอบคุณที่ใช้บริการ ---</div>
             
-            <div style="text-align:right; margin-top:15px;">
+            <div id="slip-watermark" style="text-align:center; margin-top:15px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px;">
+                <div style="font-size: 11px; font-weight: bold; color: #7f8c8d;">🧾 สร้างบิลฟรีด้วย ThepAgentBill</div>
+                <div style="font-size: 11px; font-weight: bold; color: #e74c3c;">ติดต่อรับแอป 098-7707456</div>
+            </div>
+
+            <div style="text-align:right; margin-top:10px;">
                 <div style="font-size: 10px; font-weight: bold; color: #000;">By ThepAgentBill</div>
-                <div style="font-size: 10px; font-weight: bold; color: #e74c3c;">Tel 098-7707456, 094-9975679</div>
             </div>
         </div>
     </div>
@@ -926,17 +952,8 @@
             return;
         }
 
-        // --- ระบบ Freemium: จำกัดสินค้า 10 ชิ้น ---
+        // --- อัปเกรด: ฟรีเมียมให้เพิ่มสินค้าได้ไม่จำกัดแล้ว ---
         const isVip = localStorage.getItem('thep_is_vip') === 'true';
-        if (!isVip) {
-            const productCount = Object.keys(productDB).length;
-            const barcode = modalBarcode.value;
-            // ถ้าเป็นสินค้าใหม่ (ไม่มีใน DB) และเกินโควต้า 10 ชิ้น
-            if (!productDB[barcode] && productCount >= 10) {
-                document.getElementById('vip-unlock-modal').style.display = "flex";
-                return;
-            }
-        }
 
         const barcode = modalBarcode.value;
         productDB[barcode] = { name: name, price: price, stock: stock };
@@ -1537,6 +1554,12 @@
 
         const template = document.getElementById('bank-slip-template');
         template.style.display = "block"; 
+        
+        const isVip = localStorage.getItem('thep_is_vip') === 'true';
+        const watermark = document.getElementById('slip-watermark');
+        if (watermark) {
+            watermark.style.display = isVip ? "none" : "block";
+        }
 
         html2canvas(template).then(canvas => {
             template.style.display = "none"; 
@@ -1563,16 +1586,31 @@
             return;
         }
 
-        // --- ระบบ Freemium: จำกัด 5 บิล/วัน ---
+        // --- ระบบ Freemium: จำกัดรวมสูงสุด 150 บิล ---
         const isVip = localStorage.getItem('thep_is_vip') === 'true';
+        let totalFreeBills = parseInt(localStorage.getItem('thep_total_free_bills')) || 0;
+        
         if (!isVip) {
-            const todayStr = new Date().toLocaleDateString('th-TH');
-            const savedDate = localStorage.getItem('thep_bill_date');
-            // เช็กว่าบิลคิวล่าสุดของวันนี้ เกินคิวที่ 5 หรือยัง
-            if (savedDate === todayStr && currentBillSeq > 5) {
+            if (totalFreeBills >= 150) {
                 document.getElementById('vip-unlock-modal').style.display = "flex";
+                // ดึงข้อมูลสำหรับส่งให้เทพอภัย
+                const infoStr = localStorage.getItem('thep_shop_info');
+                if (infoStr) {
+                    const info = JSON.parse(infoStr);
+                    const startDate = localStorage.getItem('thep_first_use_date') || new Date().toLocaleDateString('th-TH');
+                    const reqText = `ขอรหัส VIP: ร้าน ${info.name || '-'} | เริ่มใช้: ${startDate} | โทร: ${info.phone1 || '-'}`;
+                    document.getElementById('vip-request-data').value = reqText;
+                }
                 return;
             }
+            // เพิ่มจำนวนบิลสะสม
+            totalFreeBills++;
+            localStorage.setItem('thep_total_free_bills', totalFreeBills);
+        }
+        
+        // บันทึกวันที่ใช้งานครั้งแรก (ถ้ายังไม่เคยบันทึก)
+        if (!localStorage.getItem('thep_first_use_date')) {
+            localStorage.setItem('thep_first_use_date', new Date().toLocaleDateString('th-TH'));
         }
 
         if (!cashInput || parseFloat(cashInput) < parseFloat(grandTotal)) {
@@ -1814,8 +1852,15 @@
             return;
         }
 
-        const last4Phone = info.phone1.replace(/\D/g, '').slice(-4);
-        const secretKey = "666666" + last4Phone + "999999999";
+        // สูตรใหม่: เบอร์โทร + ชื่อร้าน
+        let seed = info.phone1.replace(/\D/g, '') + (info.name || "");
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+            hash = hash & hash;
+        }
+        let pin = Math.abs(hash * 666999345) % 1000000;
+        const secretKey = pin.toString().padStart(6, '0');
 
         if (keyInput === secretKey) {
             localStorage.setItem('thep_is_vip', 'true');
@@ -1942,6 +1987,55 @@
         if (staffNameInput) {
             staffNameInput.value = savedStaff;
         }
+        }
+    }
+
+    // --- ระบบ Backup/Restore ---
+    function exportDataBackup() {
+        const backupData = {
+            thep_shop_info: localStorage.getItem('thep_shop_info'),
+            thep_product_db: localStorage.getItem('thep_product_db'),
+            thep_local_sales_history: localStorage.getItem('thep_local_sales_history'),
+            thep_is_vip: localStorage.getItem('thep_is_vip'),
+            thep_bill_seq: localStorage.getItem('thep_bill_seq'),
+            thep_total_free_bills: localStorage.getItem('thep_total_free_bills'),
+            thep_first_use_date: localStorage.getItem('thep_first_use_date'),
+            thep_bill_date: localStorage.getItem('thep_bill_date')
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", "ThepBill_Backup_" + new Date().toISOString().split('T')[0] + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        alert("📥 สร้างไฟล์สำรองข้อมูล (Backup) สำเร็จ! ไฟล์ถูกบันทึกในโฟลเดอร์ดาวน์โหลดของคุณ");
+    }
+
+    function importDataBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const contents = e.target.result;
+                const backupData = JSON.parse(contents);
+                
+                if (confirm("⚠️ คำเตือน! การกู้คืนข้อมูลจะนำข้อมูลจากไฟล์มาทับข้อมูลปัจจุบันในเครื่องนี้ทั้งหมด คุณต้องการดำเนินการต่อหรือไม่?")) {
+                    for (const key in backupData) {
+                        if (backupData.hasOwnProperty(key) && backupData[key] !== null) {
+                            localStorage.setItem(key, backupData[key]);
+                        }
+                    }
+                    alert("✅ กู้คืนข้อมูลสำเร็จ! ระบบจะทำการรีโหลดหน้าจอใหม่เพื่อนำข้อมูลมาใช้");
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert("❌ เกิดข้อผิดพลาด! ไฟล์ข้อมูลไม่ถูกต้อง หรือเสียหาย: " + error);
+            }
+        };
+        reader.readAsText(file);
     }
 </script>
 
