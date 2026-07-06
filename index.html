@@ -255,6 +255,7 @@
         <div id="reader" style="width: 100%; display: none;"></div>
     </div>
     
+    <button type="button" class="btn-scan" id="btn-add-inventory-manual" style="background-color: #27ae60; margin-bottom: 5px;">📦 เพิ่มสินค้าเข้าคลัง (คีย์ด้วยมือ)</button>
     <button type="button" class="btn-scan" id="btn-start-camera">📷 เปิดกล้องสแกนบาร์โค้ด</button>
     <button type="button" class="btn-scan" id="btn-stop-camera" style="display:none; background-color: #e74c3c;">🛑 ปิดกล้อง</button>
     <button type="button" class="btn-voice" id="btn-start-voice">🎤 กดแล้วพูดสั่งรายการสินค้า</button>
@@ -265,7 +266,7 @@
             <div class="modal-title">📦 บันทึกสินค้าใหม่เข้าฐานข้อมูล</div>
             <div class="modal-input-group">
                 <label>รหัสบาร์โค้ด:</label>
-                <input type="text" id="modal-barcode" readonly style="background: #eee; font-weight: bold; color: #2980b9;">
+                <input type="text" id="modal-barcode" placeholder="ระบุบาร์โค้ด หรือรหัสสินค้าสั้นๆ..." style="font-weight: bold; color: #2980b9;">
             </div>
             <div class="modal-input-group">
                 <label>ชื่อสินค้า:</label>
@@ -398,7 +399,7 @@
         </div>
     </div>
 
-    <button type="button" class="btn-pay" id="btn-pay">✅ จบบิล / ดูสลิปแจ้งยอด</button>
+    <button type="button" class="btn-pay" id="btn-pay">✅ จบบิล / บันทึกยอด</button>
     <button type="button" class="btn-share-slip" id="btn-share-slip">🖼️ บันทึกภาพสลิปส่งให้ลูกค้า</button>
     <button type="button" class="btn-print" id="btn-print">🖨️ พิมพ์สลิป (VoZY P50 58mm)</button>
 
@@ -1660,7 +1661,7 @@
             currentBillSeq++; 
             localStorage.setItem('thep_bill_seq', currentBillSeq);
             clearBill(); 
-            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.innerText = "✅ จบบิล / บันทึกยอด";
             btnPay.disabled = false;
             fetchLiveSheetData(); // อัปเดตกระดานแดชบอร์ดทันที
             return;
@@ -1676,13 +1677,13 @@
             currentBillSeq++; 
             localStorage.setItem('thep_bill_seq', currentBillSeq);
             clearBill(); 
-            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.innerText = "✅ จบบิล / บันทึกยอด";
             btnPay.disabled = false;
             fetchLiveSheetData(); // โหลดอัปเดตข้อมูลบนกระดานแดชบอร์ดทันทีหลังจบบิล
         })
         .catch(error => {
             alert('❌ เกิดข้อผิดพลาด: ' + error);
-            btnPay.innerText = "✅ จบบิล / ดูสลิปแจ้งยอด";
+            btnPay.innerText = "✅ จบบิล / บันทึกยอด";
             btnPay.disabled = false;
         });
     });
@@ -1816,6 +1817,11 @@
 
     document.getElementById('btn-cancel-shop-setup').addEventListener('click', function() {
         shopSetupModal.style.display = "none";
+    });
+
+    // ปุ่มเปิดหน้าต่างเพิ่มสินค้าเข้าคลัง (คีย์มือ)
+    document.getElementById('btn-add-inventory-manual').addEventListener('click', function() {
+        openNewItemModal('');
     });
 
     // --- ระบบ Auto-Save Draft สำหรับฟอร์มตั้งค่าร้านค้า ---
