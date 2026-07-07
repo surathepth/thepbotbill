@@ -2118,8 +2118,12 @@
         const cameraBox = document.getElementById('camera-container');
         if (cameraBox) {
             setTimeout(() => {
-                cameraBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 400); // หน่วงเวลาเล็กน้อยให้ UI โหลดเสร็จก่อนเลื่อน
+                // คำนวณตำแหน่งของกล้อง และหักลบ 80px เพื่อ "เลื่อนขึ้นอีก" ตามคำสั่ง
+                // ทำให้ปุ่ม "เพิ่มรายการสินค้า" ด้านล่างไม่ตกขอบจอ
+                const yOffset = -80; 
+                const y = cameraBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }, 400);
         }
     });
 </script>
