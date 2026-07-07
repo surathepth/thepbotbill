@@ -2112,18 +2112,17 @@
     </a>
 </div>
 
-<!-- [อัปเดต] เลื่อนหน้าจออัตโนมัติมาที่กล้องสแกนเมื่อเปิดแอปครั้งแรก -->
+<!-- [อัปเดต] เลื่อนหน้าจออัตโนมัติมาที่กลุ่มปุ่มสีฟ้าเมื่อเปิดแอปครั้งแรก -->
 <script>
     window.addEventListener('load', function() {
-        const cameraBox = document.getElementById('camera-container');
-        if (cameraBox) {
+        const btnCamera = document.getElementById('btn-start-camera');
+        if (btnCamera && btnCamera.parentElement) {
             setTimeout(() => {
-                // คำนวณตำแหน่งของกล้อง และหักลบ 80px เพื่อ "เลื่อนขึ้นอีก" ตามคำสั่ง
-                // ทำให้ปุ่ม "เพิ่มรายการสินค้า" ด้านล่างไม่ตกขอบจอ
-                const yOffset = -80; 
-                const y = cameraBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-            }, 400);
+                // เลื่อนหน้าจอให้ขอบบนของจอ ชนกับขอบบนของกลุ่มปุ่มสีฟ้าพอดีเป๊ะ
+                // (ดันกล่องดำๆ "กล้องพร้อมสแกน" ขยับขึ้นไปซ่อนไว้ด้านบน)
+                // เพื่อให้ปุ่มสีฟ้าอยู่บนสุด และด้านล่างโชว์ถึงส่วน "ยอดรวมทั้งสิ้น" พอดี
+                btnCamera.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400); 
         }
     });
 </script>
