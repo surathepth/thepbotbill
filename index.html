@@ -2112,5 +2112,17 @@
     </a>
 </div>
 
+<!-- [อัปเดต] เลื่อนหน้าจออัตโนมัติมาที่กล้องสแกนเมื่อเปิดแอปครั้งแรก -->
+<script>
+    window.addEventListener('load', function() {
+        const cameraBox = document.getElementById('camera-container');
+        if (cameraBox) {
+            setTimeout(() => {
+                cameraBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400); // หน่วงเวลาเล็กน้อยให้ UI โหลดเสร็จก่อนเลื่อน
+        }
+    });
+</script>
+
 </body>
 </html>
