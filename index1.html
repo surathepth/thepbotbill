@@ -2380,9 +2380,9 @@ function loadActiveBillState() {
     // =========================================================
 
     document.getElementById('btn-share-slip').addEventListener('click', function() {
-        const grandTotal = document.getElementById('grand-total').innerText;
-        const cashInput = document.getElementById('cash-input').value || "0.00";
-        const changeDue = document.getElementById('change-due').innerText;
+        const grandTotal = document.getElementById('grand-total').innerText.replace(/,/g, '');
+        const cashInput = (document.getElementById('cash-input').value || "0.00").replace(/,/g, '');
+        const changeDue = document.getElementById('change-due').innerText.replace(/,/g, '');
         const items = document.querySelectorAll('.bill-item');
         const queueNo = document.getElementById('queue-no').value || "-";
 
@@ -2611,9 +2611,9 @@ function loadActiveBillState() {
     });
 
     document.getElementById('btn-print').addEventListener('click', function() {
-        const grandTotal = document.getElementById('grand-total').innerText;
-        const cashInput = document.getElementById('cash-input').value || "0.00";
-        const changeDue = document.getElementById('change-due').innerText;
+        const grandTotal = document.getElementById('grand-total').innerText.replace(/,/g, '');
+        const cashInput = (document.getElementById('cash-input').value || "0.00").replace(/,/g, '');
+        const changeDue = document.getElementById('change-due').innerText.replace(/,/g, '');
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
         const queueNo = document.getElementById('queue-no').value || "-";
@@ -3514,7 +3514,7 @@ function printReceipt(billData) {
         ${crmHtml}
         <div style="text-align:center; margin-top:15px; margin-bottom:10px; border-top:1px dashed #000; padding-top:10px;">
             <div style="font-weight:bold; font-size:12px; margin-bottom:5px;">สแกนจ่ายด้วยพร้อมเพย์</div>
-            <img src="QRCODE-ธนาคาร/10001.jpg" style="width:150px; height:150px;">
+            <img src="10001.jpg" style="width:150px; height:150px;">
         </div>
         <div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">
             ขอบคุณที่ใช้บริการค่ะ
