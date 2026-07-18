@@ -232,6 +232,188 @@
         .modal-btn-cancel:active { transform: scale(0.98); background: #d5d5d5; }
         
         #reader video { border-radius: var(--radius-main); }
+
+        /* ERP Tab Navigation */
+        .erp-nav {
+            display: flex;
+            background: var(--text-main);
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .erp-nav button {
+            background: none;
+            border: none;
+            color: #bdc3c7;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-right: 5px;
+            font-family: 'Prompt', sans-serif;
+        }
+        .erp-nav button.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 15px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Database Forms */
+        .db-form-box {
+            background: white;
+            padding: 15px;
+            border-radius: var(--radius-main);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 20px;
+        }
+        .db-form-box label {
+            font-weight: bold;
+            font-size: 13px;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 10px;
+        }
+        .db-form-box input, .db-form-box select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Prompt', sans-serif;
+            box-sizing: border-box;
+        }
+        .db-table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border-radius: var(--radius-main);
+            box-shadow: var(--shadow-soft);
+        }
+        .db-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .db-table th, .db-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .db-table th {
+            background: #f8f9fa;
+            color: var(--text-main);
+        }
+
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: 'Prompt', sans-serif;
+        }
+        .login-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 300px;
+        }
+        .login-box h2 { margin-top: 0; color: #2c3e50; }
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        /* Top Bar User Info */
+        .user-info-bar {
+            background: #2c3e50;
+            color: white;
+            padding: 5px 15px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .user-info-bar button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+    
+        /* Fix for Action Buttons in DB Tables */
+        .db-table th:last-child, .db-table td:last-child {
+            text-align: right;
+            width: 1%;
+            white-space: nowrap;
+        }
+        .db-table td:last-child button {
+            width: auto;
+            display: inline-block;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        /* --- Receipt Printing --- */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt-print-area, #receipt-print-area * {
+                visibility: visible;
+            }
+            #receipt-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                /* สำหรับเครื่องพิมพ์ 58mm (2 นิ้ว) ใช้ประมาณ 48mm */
+                max-width: 58mm; 
+                margin: 0;
+                padding: 0;
+                font-family: 'Sarabun', 'Courier New', Courier, monospace;
+                font-size: 11px;
+                color: #000;
+            }
+            @page {
+                margin: 0;
+            }
+        }
     </style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-J2SMCM0YK3"></script>
@@ -244,6 +426,40 @@
     </script>
 </head>
 <body>
+
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>ThepAgentBill</h2>
+            <p style="color:#7f8c8d; font-size:14px;">ลงชื่อเข้าใช้งานระบบ</p>
+            <input type="text" id="login-id" placeholder="รหัสพนักงาน (เช่น E001 หรือ admin)">
+            <input type="password" id="login-password" placeholder="รหัสผ่าน (Password)" style="margin-top: 10px;">
+            <button onclick="doLogin()">เข้าสู่ระบบ</button>
+            <p style="margin-top:15px; font-size:12px; color:#e74c3c;">*เข้าใช้งานครั้งแรก รหัสพนักงาน: <strong>admin</strong> | รหัสผ่าน: <strong>1234</strong></p>
+        </div>
+    </div>
+
+    <!-- User Info Bar -->
+    <div class="user-info-bar" id="user-info-bar" style="display:none;">
+        <span id="current-user-display">ผู้ใช้งาน: - | ตำแหน่ง: -</span>
+        <button onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+
+
+    <!-- ERP Navigation -->
+    <div class="erp-nav">
+        <button class="tab-btn active" data-perm="pos" onclick="switchTab('pos')">🛒 หน้าร้าน (POS)</button>
+        <button class="tab-btn" data-perm="product" onclick="switchTab('product')">📦 คลังสินค้า</button>
+        <button class="tab-btn" data-perm="employee" onclick="switchTab('employee')">👥 พนักงาน</button>
+        <button class="tab-btn" data-perm="table" onclick="switchTab('table')">🪑 โต๊ะ</button>
+        <button class="tab-btn" data-perm="customer" onclick="switchTab('customer')">💎 ลูกค้า (CRM)</button>
+        <button class="tab-btn" data-perm="printer" onclick="switchTab('printer')">🖨️ เครื่องพิมพ์</button>
+        <button class="tab-btn" data-perm="report" onclick="switchTab('report')">📊 รายงาน</button>
+    </div>
+
+    <!-- TAB: POS (The Original App) -->
+    <div id="tab-pos" class="tab-content active">
+
 
 <div class="container">
     <div style="text-align: right; margin-bottom: -15px;">
@@ -349,9 +565,11 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <span style="font-weight: bold; font-size: 15px; color: #2c3e50;">📋 รายการสินค้า</span>
         <div style="display: flex; align-items: center; gap: 5px;">
-            <input type="text" id="staff-name" placeholder="ชื่อพนักงาน..." style="width: 100px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; font-family: 'Prompt', sans-serif;" onblur="localStorage.setItem('thep_current_staff', this.value)">
+            <input type="text" id="staff-name" list="staff-datalist" placeholder="ชื่อพนักงาน..." style="width: 140px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; font-family: 'Prompt', sans-serif;" onblur="localStorage.setItem('thep_current_staff', this.value)">
+            <datalist id="staff-datalist"></datalist>
             <label style="font-weight: bold; color: #e74c3c; font-size: 15px; margin-left: 2px;">NO.</label>
-            <input type="text" id="queue-no" placeholder="คิว/โต๊ะ..." style="width: 65px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; font-family: 'Prompt', sans-serif;">
+            <input type="text" id="queue-no" list="table-datalist" placeholder="คิว/โต๊ะ..." style="width: 65px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; font-family: 'Prompt', sans-serif;" onclick="this.value='';">
+          <datalist id="table-datalist"></datalist>
         </div>
     </div>
 
@@ -365,8 +583,12 @@
         </div>
         <div id="bill-items">
             <div class="bill-item">
-                <div class="item-name-col"><input type="text" class="name-val" placeholder="ชื่อสินค้า..."></div>
-                <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
+                <div class="item-name-col"><input type="text" class="name-val" list="product-list-options" placeholder="ชื่อสินค้าหรือบาร์โค้ด..."></div>
+                <div class="del-wrap" style="display:flex; justify-content:center; align-items:center; gap:2px;">
+                    <button type="button" class="adv-btn" onclick="moveItemRow(this)" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; padding:0 2px;" title="ย้ายเมนูนี้ไปโต๊ะอื่น">➡️</button>
+                    <button type="button" class="adv-btn" onclick="returnItemRow(this)" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; padding:0 2px;" title="คืนสินค้า">🔙</button>
+                    <button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button>
+                </div>
                 <div class="qty-wrap"><input type="number" class="qty-val" value="1"></div>
                 <div class="price-wrap"><input type="number" class="price-val" value="0"></div>
                 <div class="total-wrap"><span class="row-total">0.00</span></div>
@@ -376,9 +598,25 @@
 
     <button type="button" class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-        <button type="button" id="btn-hold-bill" style="flex: 1; background-color: #e67e22; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">⏸️ พักบิลชั่วคราว</button>
-        <button type="button" id="btn-retrieve-bill" style="flex: 1; background-color: #34495e; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">📂 เรียกคืนบิล<br>ที่พักไว้</button>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" id="btn-hold-bill" style="flex: 1; background-color: #e67e22; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">⏳ พักบิลชั่วคราว</button>
+        <button type="button" id="btn-retrieve-bill" style="flex: 1; background-color: #34495e; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">📋 ดึงบิลคืน<br>(พักบิล)</button>
+        <button type="button" id="btn-qr-table" style="flex: 1; background-color: #27ae60; padding: 12px 5px; font-size: 15px; margin-bottom: 0;">📱 สร้าง QR<br>สั่งอาหาร</button>
+    </div>
+    
+    <div id="advanced-pos-toolbar" style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button type="button" onclick="showMergeMoveTable()" style="flex: 1; background-color: #8e44ad; padding: 10px 5px; font-size: 14px; margin-bottom: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🔄 ย้าย/รวม โต๊ะ</button>
+    </div>
+
+    <!-- Advanced POS Modal -->
+    <div id="advanced-pos-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title" id="advanced-pos-title">🔄 เครื่องมือขั้นสูง</div>
+            <div id="advanced-pos-body" style="margin-bottom: 15px; text-align: left;">
+                <!-- Dynamic content -->
+            </div>
+            <button type="button" class="modal-btn-cancel" onclick="document.getElementById('advanced-pos-modal').style.display='none'">❌ ปิดหน้าต่าง</button>
+        </div>
     </div>
 
     <div id="held-bills-container" style="display: none; background: #ebf5fb; border: 1px solid #3498db; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
@@ -391,6 +629,20 @@
             <span>ยอดรวมทั้งสิ้น:</span>
             <span id="grand-total">0.00</span>
         </div>
+        
+        <!-- CRM Logic -->
+        <div class="summary-row" style="background:#fdfefe; border:1px solid #d5dbdb; padding:8px; border-radius:6px; margin-top:5px; margin-bottom:5px; flex-direction:column; gap:5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <span style="font-size:14px; font-weight:bold; color:#34495e;">💎 สมาชิกร้าน:</span>
+                <input type="text" id="crm-phone" list="crm-datalist" placeholder="เบอร์โทร/รหัส..." style="width: 120px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; text-align: center;">
+                <datalist id="crm-datalist"></datalist>
+            </div>
+            <div id="crm-info" style="display:none; font-size:13px; color:#16a085; justify-content:space-between; width:100%;">
+                <span>แต้มที่มี: <strong id="crm-points">0</strong></span>
+                <label style="cursor:pointer; color:#e67e22;"><input type="checkbox" id="crm-use-points" style="accent-color:#e67e22;"> ใช้แต้มลดเงิน</label>
+            </div>
+        </div>
+
         <div class="summary-row">
             <span>รับเงินมา:</span>
             <div style="text-align: right; flex-grow: 1;"><input type="number" id="cash-input" class="input-money" placeholder="0.00"></div>
@@ -457,18 +709,24 @@
         <div id="p-slip-items-list"></div>
         
         <div class="print-total-section">
+            <div class="print-detail-row" id="p-slip-discount-row" style="display:none; font-size: 18px; color:#555;"><span>ส่วนลด (แต้ม):</span><span id="p-slip-discount"></span></div>
             <div class="print-detail-row" style="font-weight: bold; font-size: 20px;"><span>ยอดรวมทั้งสิ้น:</span><span id="p-slip-total"></span></div>
             <div class="print-detail-row" style="font-size: 18px;"><span>รับเงินมา:</span><span id="p-slip-cash"></span></div>
             <div class="print-detail-row" style="font-weight: bold; font-size: 18px; color: red;"><span>เงินทอน:</span><span id="p-slip-change"></span></div>
         </div>
         
+        <div id="p-slip-crm" style="display:none; text-align:center; font-size:16px; font-weight:bold; border-top:1px dashed #000; padding-top:10px; margin-top:10px;">
+            สะสมเพิ่ม: <span id="p-slip-crm-earn"></span> แต้ม<br>
+            คะแนนรวม: <span id="p-slip-crm-total"></span> แต้ม
+        </div>
+        
         <div class="print-footer">
             <div style="margin-bottom: 15px;">
-                <img src="ภาพ/qrcode.jpg" alt="QR Code" style="width: 280px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
-                <span style="font-size: 18px; font-weight: bold;">สแกนชำระเงิน</span>
+                <img src="QRCODE-ธนาคาร/10001.jpg" alt="QR Code Payment" style="width: 350px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
+                <span style="font-size: 22px; font-weight: bold;">สแกนชำระเงิน</span>
             </div>
             --- ขอบคุณที่ใช้บริการ ---<br>
-            <div style="font-size: 8px; font-weight: normal; margin-top: 5px; color: #555;">
+            <div style="font-size: 10px; font-weight: normal; margin-top: 5px; color: #555;">
                 โทร 0987707456, 0949975679<br>
                 By ThepAgentBill
             </div>
@@ -588,6 +846,191 @@
 
 <datalist id="product-list-options"></datalist>
 
+
+    </div> <!-- Close tab-pos -->
+
+    <!-- TAB: Product DB -->
+    <div id="tab-product" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">📦 ฐานข้อมูลสินค้า (Products)</h2>
+        <div class="db-form-box">
+            <label>รหัสสินค้า / SKU (อักษรหรือตัวเลข)</label>
+            <input type="text" id="prod-sku" placeholder="เช่น P001">
+            <label>ชื่อสินค้า</label>
+            <input type="text" id="prod-name" placeholder="เช่น ข้าวผัดกะเพรา">
+            <label>หมวดหมู่สินค้า</label>
+            <input type="text" id="prod-category" placeholder="เช่น อาหาร, เครื่องดื่ม">
+            <label>วันที่/เวลา บันทึกข้อมูล (เลือกปรับเปลี่ยนได้)</label>
+            <input type="datetime-local" id="prod-created">
+            <label>หน่วยนับ</label>
+            <input type="text" id="prod-unit" placeholder="เช่น จาน, ขวด">
+            <label>ราคา (บาท)</label>
+            <input type="number" id="prod-price" placeholder="0.00">
+            <label>คลังสินค้า / สต๊อกคงเหลือ</label>
+            <input type="number" id="prod-stock" placeholder="0">
+            <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('product')">💾 บันทึกสินค้า</button>
+        </div>
+        <div class="db-table-wrapper">
+            <table class="db-table" id="table-product">
+                <thead><tr><th>SKU</th><th>ชื่อสินค้า</th><th>หมวดหมู่</th><th>หน่วย</th><th>ราคา</th><th>สต๊อก</th><th>วันที่สร้าง</th><th>จัดการ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: Employee DB -->
+    <div id="tab-employee" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">👥 ฐานข้อมูลพนักงาน (Employees)</h2>
+        <div class="db-form-box">
+            <label>รหัสพนักงาน (อักษรหรือตัวเลข)</label>
+            <input type="text" id="emp-id" placeholder="เช่น E001">
+            <label>ชื่อ-นามสกุล</label>
+            <input type="text" id="emp-name" placeholder="ชื่อพนักงาน">
+            <label style="color:#e74c3c; font-weight:bold;">🔑 รหัสผ่าน (Password สำหรับเข้าสู่ระบบ)</label>
+            <input type="password" id="emp-password" placeholder="ตั้งรหัสผ่านสำหรับพนักงานคนนี้" style="border:1px solid #e74c3c;">
+            <label>เลขบัตร ปชช.</label>
+            <input type="text" id="emp-card" placeholder="13 หลัก">
+            <label>ที่อยู่</label>
+            <input type="text" id="emp-address" placeholder="บ้านเลขที่, หมู่, ถนน, จังหวัด">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="text" id="emp-phone" placeholder="08xxxxxxxx">
+            <label>อีเมล (Email)</label>
+            <input type="email" id="emp-email" placeholder="example@email.com">
+            <label>สิทธิ์ส่วนลดให้ลูกค้า</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="emp-discount-val" placeholder="ตัวเลข" style="flex:2;">
+                <select id="emp-discount-type" style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <option value="%">% (เปอร์เซ็นต์)</option>
+                    <option value="บาท">บาท (เงินสด)</option>
+                </select>
+            </div>
+            <label>วงเงินเครดิต (บาท) - ถ้าเกินระบบล็อก</label>
+            <input type="number" id="emp-credit" placeholder="0">
+            <label>แต้มสะสม (Reward Points)</label>
+            <input type="number" id="emp-points" placeholder="0">
+            <label>ยอดเงินสะสมที่มาใช้บริการ (บาท)</label>
+            <input type="number" id="emp-total-spent" placeholder="0.00">
+            <label>ตำแหน่ง / สิทธิ์การใช้งาน (Role)</label>
+            <select id="emp-role">
+                <option value="Admin">Admin (ผู้ดูแลระบบสูงสุด)</option>
+                <option value="Manager">ผู้จัดการ (Manager)</option>
+                <option value="Cashier">แคชเชียร์ (Cashier)</option>
+                <option value="Account">บัญชีและการเงิน (Accounting)</option>
+                <option value="Waiter">พนักงานเสิร์ฟ (Waiter)</option>
+            </select>
+            <label style="margin-top:15px; display:block;">สิทธิ์การใช้งานเพิ่มเติม (กำหนดโดย Admin)</label>
+            <div style="background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid var(--border-light); font-size:13px; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <label><input type="checkbox" id="perm-pos"> เข้าระบบหน้าร้าน (POS)</label>
+                <label><input type="checkbox" id="perm-product"> ระบบคลังสินค้า</label>
+                <label><input type="checkbox" id="perm-employee"> ระบบพนักงาน</label>
+                <label><input type="checkbox" id="perm-table"> ระบบโต๊ะ</label>
+                <label><input type="checkbox" id="perm-customer"> ระบบลูกค้า (CRM)</label>
+                <label><input type="checkbox" id="perm-printer"> ระบบเครื่องพิมพ์</label>
+                <label><input type="checkbox" id="perm-report"> ดูรายงาน</label>
+                <label><input type="checkbox" id="perm-delete" style="accent-color:red;"> <span style="color:red;">สิทธิ์ลบข้อมูล</span></label>
+                <label style="grid-column: span 2;"><input type="checkbox" id="perm-advanced-pos"> ฟังก์ชัน POS ขั้นสูง (ย้ายโต๊ะ, แยกโต๊ะ, คืนสินค้า)</label>
+            </div>
+            <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('employee')">💾 บันทึกพนักงาน</button>
+        </div>
+        <div class="db-table-wrapper">
+            <table class="db-table" id="table-employee">
+                <thead><tr><th>รหัส</th><th>ชื่อ</th><th>เบอร์โทร</th><th>ส่วนลด</th><th>แต้ม</th><th>ยอดสะสม</th><th>วงเงิน</th><th>ตำแหน่ง</th><th>จัดการ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: Table DB -->
+    <div id="tab-table" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">🪑 ฐานข้อมูลโต๊ะ (Tables)</h2>
+        <div class="db-form-box">
+            <label>รหัสโต๊ะ</label>
+            <input type="text" id="tb-id" placeholder="เช่น T01">
+            <label>ชื่อโต๊ะ / ป้าย</label>
+            <input type="text" id="tb-name" placeholder="เช่น โต๊ะ 1, ซุ้ม A">
+            <label>โซน (Zone)</label>
+            <input type="text" id="tb-zone" placeholder="เช่น หน้าร้าน, ห้องแอร์">
+            <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('table')">💾 บันทึกโต๊ะ</button>
+        </div>
+        <div class="db-table-wrapper">
+            <table class="db-table" id="table-table">
+                <thead><tr><th>รหัส</th><th>ชื่อ/ป้าย</th><th>โซน</th><th>จัดการ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: Customer CRM -->
+    <div id="tab-customer" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">💎 ฐานข้อมูลลูกค้า (CRM)</h2>
+        <div class="db-form-box">
+            <label>รหัสลูกค้า</label>
+            <input type="text" id="cus-id" placeholder="เช่น C001">
+            <label>ชื่อลูกค้า</label>
+            <input type="text" id="cus-name" placeholder="ชื่อ-นามสกุล">
+              <label>ระดับลูกค้า (Level)</label>
+              <select id="cus-level" style="margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light); width: 100%;">
+                  <option value="ทั่วไป">ทั่วไป (General)</option>
+                  <option value="Member">สมาชิก (Member)</option>
+                  <option value="VIP">วีไอพี (VIP)</option>
+              </select>
+            <label>ที่อยู่</label>
+            <input type="text" id="cus-address" placeholder="บ้านเลขที่, หมู่, ถนน, จังหวัด">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="text" id="cus-phone" placeholder="08xxxxxxxx">
+            <label>อีเมล (Email)</label>
+            <input type="email" id="cus-email" placeholder="example@email.com">
+            <label>สิทธิ์ส่วนลดพิเศษ</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="cus-discount-val" placeholder="ตัวเลข" style="flex:2;">
+                <select id="cus-discount-type" style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <option value="%">% (เปอร์เซ็นต์)</option>
+                    <option value="บาท">บาท (เงินสด)</option>
+                </select>
+            </div>
+            <label>วงเงินเครดิต (บาท) - ถ้าเกินระบบล็อก</label>
+            <input type="number" id="cus-credit" placeholder="0">
+            <label>แต้มสะสม (Reward Points)</label>
+            <input type="number" id="cus-points" placeholder="0">
+            <label>ยอดเงินสะสมที่มาใช้บริการ (บาท)</label>
+            <input type="number" id="cus-total-spent" placeholder="0.00">
+            <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('customer')">💾 บันทึกลูกค้า</button>
+        </div>
+        <div class="db-table-wrapper">
+            <table class="db-table" id="table-customer">
+                <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ระดับ</th><th>เบอร์โทร</th><th>ส่วนลด</th><th>แต้ม</th><th>ยอดสะสม</th><th>วงเงิน</th><th>จัดการ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: Printer DB -->
+    <div id="tab-printer" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">🖨️ ฐานข้อมูลเครื่องพิมพ์</h2>
+        <div class="db-form-box">
+            <label>ชื่อเครื่องพิมพ์ / IP</label>
+            <input type="text" id="prn-name" placeholder="เช่น 192.168.1.50 หรือ BT-Printer">
+            <label>ประเภทเครื่องพิมพ์</label>
+            <select id="prn-type">
+                <option value="Bluetooth">Bluetooth 58mm / 80mm</option>
+                <option value="WiFi/LAN">WiFi / LAN</option>
+                <option value="USB">USB</option>
+            </select>
+            <label>บทบาท (หน้าที่)</label>
+            <select id="prn-role">
+                <option value="Cashier">เครื่องแคชเชียร์ (ใบเสร็จ)</option>
+                <option value="Kitchen">เครื่องครัว (ใบสั่งอาหาร)</option>
+                <option value="Bar">เครื่องบาร์น้ำ (ใบสั่งเครื่องดื่ม)</option>
+            </select>
+            <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('printer')">💾 บันทึกเครื่องพิมพ์</button>
+        </div>
+        <div class="db-table-wrapper">
+            <table class="db-table" id="table-printer">
+                <thead><tr><th>ชื่อ/IP</th><th>ประเภท</th><th>หน้าที่</th><th>จัดการ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
 <script>
     // ลิงก์ Google Apps Script สำหรับเก็บประวัติบิล (ปิดไว้สำหรับแอปเวอร์ชันลูกค้า เพื่อไม่ให้ข้อมูลปนกัน)
     const WEB_APP_URL = "";
@@ -599,6 +1042,7 @@
     const btnStartVoice = document.getElementById('btn-start-voice');
     const btnHoldBill = document.getElementById('btn-hold-bill');
     const btnRetrieveBill = document.getElementById('btn-retrieve-bill');
+    const btnQrTable = document.getElementById('btn-qr-table');
 
     let currentBillSeq = parseInt(localStorage.getItem('thep_bill_seq')) || 1;
     let lastBillDateStr = localStorage.getItem('thep_bill_date') || "";
@@ -762,20 +1206,21 @@
         nameInput.addEventListener('input', function() {
             const val = this.value.trim();
             if(!val) return;
+            let db = (window.erpData && window.erpData['product']) ? window.erpData['product'] : {};
             
             // 1. ตรวจสอบว่าตรงกับบาร์โค้ดที่มีในระบบหรือไม่ (กรณีใช้ปืนยิงบาร์โค้ด)
-            if (productDB[val]) {
-                this.value = productDB[val].name;
-                priceInput.value = productDB[val].price;
+            if (db[val]) {
+                this.value = db[val].name;
+                priceInput.value = db[val].price;
                 calculateTotals();
                 saveActiveBillState();
                 return;
             }
             
             // 2. ตรวจสอบว่าตรงกับชื่อสินค้าที่เลือกจาก Datalist หรือไม่
-            for (let code in productDB) {
-                if (productDB[code].name === val) {
-                    priceInput.value = productDB[code].price;
+            for (let code in db) {
+                if (db[code].name === val) {
+                    priceInput.value = db[code].price;
                     calculateTotals();
                     saveActiveBillState();
                     return;
@@ -818,19 +1263,50 @@
         }
     });
 
-    let productDB = JSON.parse(localStorage.getItem('thep_product_db')) || {};
+    function getProductDB() {
+        return (window.erpData && window.erpData['product']) ? window.erpData['product'] : {};
+    }
 
     function updateProductDatalist() {
         const datalist = document.getElementById('product-list-options');
         if (!datalist) return;
         datalist.innerHTML = '';
-        for (let code in productDB) {
+        let db = getProductDB();
+        for (let code in db) {
             const opt = document.createElement('option');
-            opt.value = productDB[code].name;
+            opt.value = db[code].name;
             datalist.appendChild(opt);
         }
     }
-    updateProductDatalist();
+    
+    function updateStaffDatalist() {
+        const datalist = document.getElementById('staff-datalist');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+        let empDB = (window.erpData && window.erpData['employee']) ? window.erpData['employee'] : {};
+        for (let code in empDB) {
+            const opt = document.createElement('option');
+            // แสดงทั้งรหัสและชื่อพนักงาน
+            let empName = empDB[code].name || 'ไม่มีชื่อ';
+            opt.value = code + ' - ' + empName;
+            datalist.appendChild(opt);
+        }
+    }
+
+    function updateCustomerDatalist() {
+        const datalist = document.getElementById('crm-datalist');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+        let cusDB = (window.erpData && window.erpData['customer']) ? window.erpData['customer'] : {};
+        for (let code in cusDB) {
+            const opt = document.createElement('option');
+            let cusName = cusDB[code].name || 'ไม่มีชื่อ';
+            let cusPhone = cusDB[code].phone || code;
+            opt.value = cusPhone;
+            opt.textContent = cusPhone + ' - ' + cusName;
+            datalist.appendChild(opt);
+        }
+    }
     let html5QrCode = null;
     let isScanning = false;
 
@@ -996,14 +1472,25 @@
         addEmptyRow();
         document.getElementById('cash-input').value = ''; 
         document.getElementById('queue-no').value = ''; 
+        
+        // Clear CRM
+        const crmPhoneEl = document.getElementById('crm-phone');
+        if (crmPhoneEl) {
+            crmPhoneEl.value = '';
+            crmPhoneEl.removeAttribute('data-customer-id');
+        }
+        const crmUsePointsEl = document.getElementById('crm-use-points');
+        if (crmUsePointsEl) crmUsePointsEl.checked = false;
+        const crmInfo = document.getElementById('crm-info');
+        if (crmInfo) crmInfo.style.display = 'none';
+
         document.getElementById('slip-bill-number').innerText = generateBillNumber();   
         calculateTotals();                                     
-        localStorage.removeItem('thep_active_bill');
         localStorage.removeItem('thep_active_bill');
     }
 
     function calculateTotals() {
-        let grandTotal = 0;
+        let originalTotal = 0;
         const items = document.querySelectorAll('.bill-item');
         items.forEach(item => {
             const priceInput = item.querySelector('.price-val');
@@ -1013,16 +1500,45 @@
                 const price = parseFloat(priceInput.value) || 0;
                 const qty = parseFloat(qtyInput.value) || 0;
                 const rowTotal = price * qty;
-                totalCell.innerText = rowTotal.toFixed(2);
-                grandTotal += rowTotal;
+                totalCell.innerText = fmt(rowTotal, true);
+                originalTotal += rowTotal;
             }
         });
-        document.getElementById('grand-total').innerText = grandTotal.toFixed(2);
+        
+        let grandTotal = originalTotal;
+        let discount = 0;
+        
+        // CRM Discount
+        const crmCheckbox = document.getElementById('crm-use-points');
+        if (crmCheckbox && crmCheckbox.checked) {
+            const points = parseInt(document.getElementById('crm-points').innerText.replace(/,/g, '')) || 0;
+            discount = Math.floor(points / 10); // 10 points = 1 baht discount
+            grandTotal -= discount;
+            if (grandTotal < 0) grandTotal = 0;
+        }
+
+        document.getElementById('grand-total').innerText = fmt(grandTotal, true);
+        
+        // Update display to show discount if applied
+        let discountDisplay = document.getElementById('discount-display');
+        if (!discountDisplay) {
+            discountDisplay = document.createElement('div');
+            discountDisplay.id = 'discount-display';
+            discountDisplay.style = 'color:#e67e22; font-size:13px; text-align:right; margin-bottom:5px; font-weight:bold;';
+            document.getElementById('grand-total').parentNode.after(discountDisplay);
+        }
+        if (discount > 0) {
+            discountDisplay.innerText = `หักส่วนลดแต้ม: -${fmt(discount, true)} บาท`;
+        } else {
+            discountDisplay.innerText = '';
+        }
+
         calculateChange(); 
     }
 
     function calculateChange() {
-        const grandTotal = parseFloat(document.getElementById('grand-total').innerText) || 0;
+        const grandTotalText = document.getElementById('grand-total').innerText.replace(/,/g, '');
+        const grandTotal = parseFloat(grandTotalText) || 0;
         const cashInputVal = document.getElementById('cash-input').value;
         const cashInput = parseFloat(cashInputVal) || 0;
         
@@ -1043,8 +1559,47 @@
             changeDueEl.style.color = "#27ae60"; 
             
             if (change < 0 || cashInputVal === "") change = 0;
-            changeDueEl.innerText = change.toFixed(2);
+            changeDueEl.innerText = fmt(change, true);
         }
+    }
+
+    // CRM Event Listeners
+    const crmPhoneEl = document.getElementById('crm-phone');
+    const crmUsePointsEl = document.getElementById('crm-use-points');
+    if (crmPhoneEl) {
+        crmPhoneEl.addEventListener('input', function() {
+            const val = this.value.trim();
+            const crmInfo = document.getElementById('crm-info');
+            const crmPoints = document.getElementById('crm-points');
+            
+            let cusDB = (window.erpData && window.erpData['customer']) ? window.erpData['customer'] : {};
+            let foundCus = null;
+            
+            // Search by phone or ID
+            for (let code in cusDB) {
+                if (cusDB[code].phone === val || code === val) {
+                    foundCus = cusDB[code];
+                    foundCus._id = code; // store key
+                    break;
+                }
+            }
+            
+            if (foundCus) {
+                crmInfo.style.display = 'flex';
+                crmPoints.innerText = fmt(foundCus.points || 0);
+                // Keep track of current customer for payment processing
+                crmPhoneEl.setAttribute('data-customer-id', foundCus._id);
+            } else {
+                crmInfo.style.display = 'none';
+                crmPoints.innerText = '0';
+                crmUsePointsEl.checked = false;
+                crmPhoneEl.removeAttribute('data-customer-id');
+            }
+            calculateTotals(); // Re-calculate in case points were checked
+        });
+    }
+    if (crmUsePointsEl) {
+        crmUsePointsEl.addEventListener('change', calculateTotals);
     }
 
     const cashInputEl = document.getElementById('cash-input');
@@ -1086,7 +1641,249 @@
         localStorage.setItem('thep_active_bill', JSON.stringify(state));
     }
 
-    function loadActiveBillState() {
+    
+// =========================================================
+// Advanced POS Functions
+// =========================================================
+function getTableOptionsHTML() {
+    let options = '';
+    
+    // 1. ดึงข้อมูลโต๊ะทั้งหมดจากฐานข้อมูล (Master Data)
+    let addedKeys = {};
+    if (window.erpData && window.erpData['table']) {
+        const tbs = window.erpData['table'];
+        for (let k in tbs) {
+            options += `<option value="${tbs[k].id}">โต๊ะ: ${tbs[k].name} (${tbs[k].zone})</option>`;
+            addedKeys[tbs[k].id] = true;
+        }
+    }
+    
+    // 2. ดึงข้อมูลคิวที่พักบิลไว้ แต่ไม่มีในฐานข้อมูลโต๊ะหลัก (เช่น พิมพ์คิวสด Q01)
+    const heldBills = getHeldBills();
+    for (let k in heldBills) {
+        if (!addedKeys[k]) {
+            options += `<option value="${k}">คิว: ${k} (บิลที่พักไว้)</option>`;
+            addedKeys[k] = true;
+        }
+    }
+    
+    // 3. รวมคิวปัจจุบันที่กำลังทำรายการ
+    const currentQ = document.getElementById('queue-no').value.trim();
+    if (currentQ && !addedKeys[currentQ]) {
+        options += `<option value="${currentQ}">คิว: ${currentQ} (กำลังทำรายการอยู่)</option>`;
+    }
+    
+    return options;
+}
+
+function showMergeMoveTable() {
+    let options = '<option value="">-- เลือกโต๊ะ/คิว --</option>' + getTableOptionsHTML();
+
+    const html = `
+        <div class="modal-input-group">
+            <label>1. เลือกโต๊ะ/คิวต้นทาง (ดึงข้อมูลที่สั่งไว้):</label>
+            <select id="adv-source-q" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; font-weight:bold;">${options}</select>
+        </div>
+        <div class="modal-input-group">
+            <label>2. เลือกโต๊ะ/คิวปลายทาง (ย้ายไปรวม):</label>
+            <select id="adv-dest-q" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; font-weight:bold;">${options}</select>
+        </div>
+        <button type="button" class="modal-btn-save" onclick="executeMoveMergeTable()" style="background-color:#8e44ad;">✅ ยืนยันย้าย/รวมโต๊ะ</button>
+    `;
+    document.getElementById('advanced-pos-title').innerText = '🔄 รวมโต๊ะ / ย้ายโต๊ะ';
+    document.getElementById('advanced-pos-body').innerHTML = html;
+    document.getElementById('advanced-pos-modal').style.display = 'flex';
+}
+
+function executeMoveMergeTable() {
+    const sourceQ = document.getElementById('adv-source-q').value.trim();
+    const destQ = document.getElementById('adv-dest-q').value.trim();
+    const currentQ = document.getElementById('queue-no').value.trim();
+
+    if (!sourceQ || !destQ) return alert("กรุณาระบุทั้งต้นทางและปลายทางให้ครบค่ะ");
+    if (sourceQ === destQ) return alert("โต๊ะต้นทางและปลายทางเหมือนกันค่ะ!");
+
+    const heldBills = getHeldBills();
+    let sourceItems = [];
+    
+    // Check if source is the current active screen
+    if (sourceQ === currentQ && (!heldBills[sourceQ] || heldBills[sourceQ].items.length === 0)) {
+        const rows = document.querySelectorAll('#bill-items .bill-item');
+        rows.forEach(row => {
+            const name = row.querySelector('.name-val').value;
+            const price = row.querySelector('.price-val').value;
+            const qty = row.querySelector('.qty-val').value;
+            if (name) sourceItems.push({ name, price, qty });
+        });
+        if (sourceItems.length === 0) return alert(`โต๊ะต้นทาง (${sourceQ}) ไม่มีรายการอาหารให้ย้ายค่ะ!`);
+        clearBill(); // clear active screen
+    } else if (heldBills[sourceQ]) {
+        sourceItems = heldBills[sourceQ].items || [];
+        delete heldBills[sourceQ]; // remove source
+    } else {
+        return alert("ไม่พบข้อมูลโต๊ะต้นทางค่ะ");
+    }
+
+    // Merge into dest
+    if (heldBills[destQ]) {
+        // Destination exists, merge items
+        sourceItems.forEach(sItem => {
+            let found = false;
+            heldBills[destQ].items.forEach(dItem => {
+                if (dItem.name === sItem.name && dItem.price === sItem.price) {
+                    dItem.qty = (parseFloat(dItem.qty) + parseFloat(sItem.qty)).toString();
+                    found = true;
+                }
+            });
+            if (!found) heldBills[destQ].items.push(sItem);
+        });
+        alert(`รวมโต๊ะ ${sourceQ} เข้ากับ ${destQ} เรียบร้อยแล้วค่ะ!`);
+    } else {
+        // Destination doesn't exist, just move
+        heldBills[destQ] = {
+            queueNo: destQ,
+            billNumber: "BILL-" + Date.now().toString().slice(-6),
+            cashInput: "",
+            items: sourceItems,
+            time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+        };
+        alert(`ย้ายโต๊ะ ${sourceQ} ไปเป็น ${destQ} เรียบร้อยแล้วค่ะ!`);
+    }
+
+    saveHeldBills(heldBills);
+    renderHeldBills();
+    document.getElementById('advanced-pos-modal').style.display = 'none';
+}
+
+function moveItemRow(btn) {
+    const row = btn.closest('.bill-item');
+    const nameInput = row.querySelector('.name-val');
+    const qtyInput = row.querySelector('.qty-val');
+    const priceInput = row.querySelector('.price-val');
+    
+    if (!nameInput.value) return alert("รายการนี้ไม่มีสินค้าค่ะ");
+    
+    const maxQty = parseFloat(qtyInput.value) || 0;
+    if (maxQty <= 0) return alert("จำนวนสินค้าไม่ถูกต้อง");
+
+    let options = '<option value="">-- เลือกโต๊ะ/คิวปลายทาง --</option>' + getTableOptionsHTML();
+
+    const html = `
+        <div style="font-size:14px; font-weight:bold; color:#2c3e50; margin-bottom:10px; border-bottom:1px solid #ccc; padding-bottom:5px;">
+            รายการ: ${nameInput.value}
+        </div>
+        <div class="modal-input-group">
+            <label>ระบุจำนวนที่ต้องการย้าย (ย้ายได้สูงสุด ${maxQty}):</label>
+            <input type="number" id="adv-move-qty" value="${maxQty}" max="${maxQty}" min="1">
+        </div>
+        <div class="modal-input-group">
+            <label>เลือกโต๊ะ/คิวปลายทาง:</label>
+            <select id="adv-move-dest" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; font-weight:bold;">${options}</select>
+        </div>
+        <button type="button" class="modal-btn-save" onclick="executeMoveItemRow(this)" data-name="${nameInput.value}" data-price="${priceInput.value}" data-maxqty="${maxQty}" style="background-color:#2980b9;">➡️ ย้ายเมนู</button>
+    `;
+    
+    document.getElementById('advanced-pos-title').innerText = '➡️ ย้ายเมนูไปโต๊ะอื่น / แยกโต๊ะ';
+    document.getElementById('advanced-pos-body').innerHTML = html;
+    
+    // Save reference to the row so we can reduce its qty
+    document.getElementById('advanced-pos-modal').setAttribute('data-target-row', Array.from(row.parentNode.children).indexOf(row));
+    document.getElementById('advanced-pos-modal').style.display = 'flex';
+}
+
+function executeMoveItemRow(btn) {
+    const name = btn.getAttribute('data-name');
+    const price = btn.getAttribute('data-price');
+    const maxQty = parseFloat(btn.getAttribute('data-maxqty'));
+    
+    const moveQty = parseFloat(document.getElementById('adv-move-qty').value);
+    const destQ = document.getElementById('adv-move-dest').value.trim();
+
+    if (!destQ) return alert("กรุณาระบุโต๊ะปลายทางค่ะ");
+    if (moveQty <= 0 || moveQty > maxQty) return alert(`จำนวนที่ย้ายต้องอยู่ระหว่าง 1 ถึง ${maxQty} ค่ะ`);
+
+    // Add to Dest Q
+    const heldBills = getHeldBills();
+    if (heldBills[destQ]) {
+        let found = false;
+        heldBills[destQ].items.forEach(dItem => {
+            if (dItem.name === name && dItem.price === price) {
+                dItem.qty = (parseFloat(dItem.qty) + moveQty).toString();
+                found = true;
+            }
+        });
+        if (!found) heldBills[destQ].items.push({name, price, qty: moveQty.toString()});
+    } else {
+        heldBills[destQ] = {
+            queueNo: destQ,
+            billNumber: "BILL-" + Date.now().toString().slice(-6),
+            cashInput: "",
+            items: [{name, price, qty: moveQty.toString()}],
+            time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+        };
+    }
+    saveHeldBills(heldBills);
+    renderHeldBills();
+
+    // Remove from current row
+    const rowIndex = parseInt(document.getElementById('advanced-pos-modal').getAttribute('data-target-row'));
+    const rows = document.getElementById('bill-items').children;
+    if (rows[rowIndex]) {
+        const qtyInput = rows[rowIndex].querySelector('.qty-val');
+        const newQty = maxQty - moveQty;
+        if (newQty <= 0) {
+            rows[rowIndex].remove();
+        } else {
+            qtyInput.value = newQty;
+        }
+        calculateTotals();
+        saveActiveBillState();
+    }
+
+    alert(`ย้ายรายการ ${name} จำนวน ${moveQty} ไปโต๊ะ ${destQ} สำเร็จแล้วค่ะ!`);
+    document.getElementById('advanced-pos-modal').style.display = 'none';
+}
+
+function returnItemRow(btn) {
+    const row = btn.closest('.bill-item');
+    const nameInput = row.querySelector('.name-val');
+    if (!nameInput.value) return;
+    
+    if (confirm(`คุณต้องการทำการ "คืนสินค้า/รับคืน" รายการ [${nameInput.value}] ใช่หรือไม่?\n(ระบบจะปรับจำนวนให้เป็นติดลบเพื่อนำไปคำนวณหักยอดและบันทึกในรายงาน)`)) {
+        const qtyInput = row.querySelector('.qty-val');
+        let currentQty = parseFloat(qtyInput.value) || 0;
+        if (currentQty > 0) {
+            qtyInput.value = -currentQty;
+        }
+        nameInput.value = "[รับคืน] " + nameInput.value;
+        nameInput.style.color = 'red';
+        qtyInput.style.color = 'red';
+        calculateTotals();
+        saveActiveBillState();
+    }
+}
+
+
+// =========================================================
+// Update Datalist for queue-no
+// =========================================================
+function updateTableDatalist() {
+    const datalist = document.getElementById('table-datalist');
+    if (!datalist) return;
+    datalist.innerHTML = '';
+    
+    if (window.erpData && window.erpData['table']) {
+        const tbs = window.erpData['table'];
+        for (let k in tbs) {
+            let opt = document.createElement('option');
+            opt.value = tbs[k].id;
+            opt.innerText = `โซน: ${tbs[k].zone} | ชื่อโต๊ะ: ${tbs[k].name}`;
+            datalist.appendChild(opt);
+        }
+    }
+}
+
+function loadActiveBillState() {
         const saved = localStorage.getItem('thep_active_bill');
         if (!saved) return;
         try {
@@ -1109,12 +1906,18 @@
     }
 
     function getHeldBills() {
+        if (window.erpData && window.erpData['orders']) {
+            return window.erpData['orders'];
+        }
         const held = localStorage.getItem('thep_held_bills');
         return held ? JSON.parse(held) : {};
     }
 
     function saveHeldBills(heldObject) {
         localStorage.setItem('thep_held_bills', JSON.stringify(heldObject));
+        if (typeof database !== 'undefined') {
+            database.ref('erp_db_orders').set(heldObject).catch(err => console.error(err));
+        }
     }
 
     btnHoldBill.addEventListener('click', function() {
@@ -1154,6 +1957,45 @@
         clearBill();
         renderHeldBills();
         alert(`⏸️ พักบิลคิว "NO. ${queueNo}" สำเร็จเรียบร้อยค่ะ! หน้าจอถูกเคลียร์ว่างสำหรับลูกค้าคิวถัดไปแล้วค่ะ`);
+    });
+
+    document.getElementById('btn-qr-table').addEventListener('click', function() {
+        const queueNo = document.getElementById('queue-no').value.trim();
+        if (!queueNo) {
+            alert("⚠️ กรุณากรอกเลขคิวหรือโต๊ะ (NO.) ก่อนสร้าง QR Code สั่งอาหารค่ะ");
+            return;
+        }
+        
+        const currentUrl = window.location.href;
+        let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+        
+        // If running locally from file://, the customer's phone cannot access it. 
+        // We will default to their GitHub Pages domain for the QR Code so it works online.
+        if (currentUrl.startsWith('file://')) {
+            baseUrl = 'https://surathepth.github.io/thepbotbill'; // Change to actual online domain
+        }
+        
+        const orderUrl = `${baseUrl}/customer_order.html?table=${encodeURIComponent(queueNo)}`;
+        const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(orderUrl)}`;
+        
+        let qrModalHtml = `
+            <div class="modal fade" id="qrTableModal" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 text-center" style="border-radius: 20px; padding: 30px 20px;">
+                  <h4 class="fw-bold mb-2">QR Code สั่งอาหาร</h4>
+                  <h5 class="text-success mb-3">${queueNo}</h5>
+                  <p class="text-muted mb-4" style="font-size:16px;">สแกนเพื่อเปิดเมนูและสั่งอาหารได้ทันที</p>
+                  <img src="${qrApi}" alt="QR Code" style="width: 250px; height: 250px; margin: 0 auto; border: 5px solid #2ecc71; border-radius: 10px;">
+                  <a href="customer_order.html?table=${encodeURIComponent(queueNo)}" target="_blank" class="mt-4 text-success d-block">เปิดลิงก์ทดสอบสั่งอาหาร (ในคอม)</a>
+                  <button type="button" class="btn btn-outline-success rounded-pill px-4 mt-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                </div>
+              </div>
+            </div>
+        `;
+        let oldModal = document.getElementById('qrTableModal');
+        if (oldModal) oldModal.remove();
+        document.body.insertAdjacentHTML('beforeend', qrModalHtml);
+        new bootstrap.Modal(document.getElementById('qrTableModal')).show();
     });
 
     btnRetrieveBill.addEventListener('click', function() {
@@ -1310,9 +2152,9 @@
         });
 
         // ดันผลรวมขึ้นป้ายประกาศป้ายสีพาสเทลด้านบน
-        document.getElementById('dash-day-total').innerText = dayTotal.toFixed(2);
-        document.getElementById('dash-month-total').innerText = monthTotal.toFixed(2);
-        document.getElementById('dash-year-total').innerText = yearTotal.toFixed(2);
+        document.getElementById('dash-day-total').innerText = fmt(dayTotal, true);
+        document.getElementById('dash-month-total').innerText = fmt(monthTotal, true);
+        document.getElementById('dash-year-total').innerText = fmt(yearTotal, true);
 
         // อัปเดตรายชื่อในเมนูกล่องตัวกรอง Dropdown ข้อ 3 และ 5
         updateFilterDropdowns(productDropdownOptions, noDropdownOptions);
@@ -1371,7 +2213,7 @@
                 <div class="lb-row">
                     <div class="lb-labels">
                         <span>🏆 อันดับ ${index + 1}: ${item.name}</span>
-                        <span>${item.qty.toFixed(2)} บาท</span>
+                        <span>${fmt(item.qty, true)} บาท</span>
                     </div>
                     <div class="lb-bar-bg">
                         <div class="lb-bar-fill" style="width: ${percent}%"></div>
@@ -1440,7 +2282,7 @@
             let htmlRow = `
                 <div class="ledger-row">
                     <div>${rowDateStr.split(',')[0]}</div>
-                    <div style="font-weight:bold; color:#e67e22;">${totalAmount.toFixed(2)}</div>
+                    <div style="font-weight:bold; color:#e67e22;">${fmt(totalAmount, true)}</div>
                     <div style="font-weight:bold; color:#2980b9;">${rowQueueNo}</div>
                     <div style="color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayDetails}</div>
                 </div>
@@ -1550,9 +2392,9 @@
         }
 
         document.getElementById('slip-date').innerText = new Date().toLocaleString('th-TH');
-        document.getElementById('slip-total').innerText = grandTotal + " บาท";
-        document.getElementById('slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
-        document.getElementById('slip-change').innerText = changeDue + " บาท";
+        document.getElementById('slip-total').innerText = fmt(grandTotal, true) + " บาท";
+        document.getElementById('slip-cash').innerText = fmt(cashInput, true) + " บาท";
+        document.getElementById('slip-change').innerText = fmt(changeDue, true) + " บาท";
         document.getElementById('slip-bill-number').innerText = generateBillNumber();
         document.getElementById('slip-queue-number').innerText = queueNo;
 
@@ -1653,7 +2495,72 @@
         btnPay.innerText = "⏳ กำลังบันทึกข้อมูล...";
         btnPay.disabled = true;
 
-        if (!WEB_APP_URL) { // โหมด Local Standalone: บันทึกบิลลงหน่วยความจำมือถือ
+        // CRM Processing
+        const crmPhone = document.getElementById('crm-phone');
+        let crmUsedPoints = 0;
+        let crmEarnedPoints = 0;
+        let crmCustomerId = null;
+        if (crmPhone && crmPhone.hasAttribute('data-customer-id')) {
+            crmCustomerId = crmPhone.getAttribute('data-customer-id');
+            const grandTotalNum = parseFloat(grandTotal.replace(/,/g, '')) || 0;
+            // สะสมแต้ม: ซื้อทุกๆ 50 บาท ได้ 1 แต้ม
+            crmEarnedPoints = Math.floor(grandTotalNum / 50);
+            
+            // เช็คว่ากดใช้แต้มเป็นส่วนลดหรือไม่ (หักแต้มที่มีอยู่ทิ้งทั้งหมดที่ใช้)
+            const crmCheckbox = document.getElementById('crm-use-points');
+            if (crmCheckbox && crmCheckbox.checked) {
+                const pointsStr = document.getElementById('crm-points').innerText;
+                const points = parseInt(pointsStr.replace(/,/g, '')) || 0;
+                // หักส่วนลด 10 แต้ม = 1 บาท
+                let discountDisplay = document.getElementById('discount-display');
+                if (discountDisplay && discountDisplay.innerText.includes('หักส่วนลดแต้ม: -')) {
+                    let discountAmountMatch = discountDisplay.innerText.match(/หักส่วนลดแต้ม: -([\d,\.]+) บาท/);
+                    if (discountAmountMatch) {
+                        let discountAmount = parseFloat(discountAmountMatch[1].replace(/,/g, '')) || 0;
+                        crmUsedPoints = discountAmount * 10;
+                    }
+                } else {
+                    crmUsedPoints = points;
+                }
+            }
+            
+            if (typeof database !== 'undefined' && crmCustomerId) {
+                database.ref('erp_db_customer/' + crmCustomerId).once('value', (snap) => {
+                    let cusData = snap.val();
+                    if (cusData) {
+                        let currentPoints = parseInt(cusData.points) || 0;
+                        let currentSpent = parseFloat(cusData.totalSpent) || 0;
+                        cusData.points = currentPoints - crmUsedPoints + crmEarnedPoints;
+                        cusData.totalSpent = currentSpent + grandTotalNum;
+                        database.ref('erp_db_customer/' + crmCustomerId).set(cusData);
+                    }
+                });
+            }
+        }
+
+        let currentPointsUi = parseInt(document.getElementById('crm-points') ? document.getElementById('crm-points').innerText.replace(/,/g, '') : "0") || 0;
+        let pGrandTotal = parseFloat(grandTotal.replace(/,/g, '')) || 0;
+        let pCashInput = parseFloat(cashInput) || 0;
+        let pChangeDue = parseFloat(changeDue.replace(/,/g, '')) || 0;
+        let printBillData = {
+            billNumber: billNum,
+            grandTotal: pGrandTotal,
+            cashInput: pCashInput,
+            changeDue: pChangeDue,
+            items: [],
+            discount: crmUsedPoints / 10,
+            earnedPoints: crmEarnedPoints,
+            totalPoints: crmCustomerId ? (currentPointsUi - crmUsedPoints + crmEarnedPoints) : 0
+        };
+        items.forEach(item => {
+            printBillData.items.push({
+                name: item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ",
+                price: item.querySelector('.price-val').value,
+                qty: item.querySelector('.qty-val').value
+            });
+        });
+
+        if (!WEB_APP_URL) { // 🔹 Local Standalone: บันทึกยอดลงหน้าต่างแอดมิน
             // สร้างโครงสร้างแถวข้อมูลให้เหมือน Google Sheet: [วันที่, ยอดรวม, รับเงิน, เงินทอน, รายละเอียด]
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -1673,6 +2580,7 @@
             alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} ลงในประวัติการขายเรียบร้อยค่ะ`);
             currentBillSeq++; 
             localStorage.setItem('thep_bill_seq', currentBillSeq);
+            printReceipt(printBillData);
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / บันทึกยอด";
             btnPay.disabled = false;
@@ -1689,6 +2597,7 @@
             alert(`✅ จบบิลสำเร็จ! บันทึกยอดขายเลขที่ ${billNum} เรียบร้อยค่ะ`);
             currentBillSeq++; 
             localStorage.setItem('thep_bill_seq', currentBillSeq);
+            printReceipt(printBillData);
             clearBill(); 
             btnPay.innerText = "✅ จบบิล / บันทึกยอด";
             btnPay.disabled = false;
@@ -1738,9 +2647,43 @@
         });
         document.getElementById('p-slip-items-list').innerHTML = printItemsHtml;
         
-        document.getElementById('p-slip-total').innerText = grandTotal + " บาท";
-        document.getElementById('p-slip-cash').innerText = parseFloat(cashInput).toFixed(2) + " บาท";
-        document.getElementById('p-slip-change').innerText = changeDue + " บาท";
+        document.getElementById('p-slip-total').innerText = fmt(grandTotal, true) + " บาท";
+        document.getElementById('p-slip-cash').innerText = fmt(cashInput, true) + " บาท";
+        document.getElementById('p-slip-change').innerText = fmt(changeDue, true) + " บาท";
+
+        // CRM Display on Slip
+        const crmPhone = document.getElementById('crm-phone');
+        let discountDisplay = document.getElementById('discount-display');
+        
+        if (discountDisplay && discountDisplay.innerText.includes('หักส่วนลดแต้ม: -')) {
+            document.getElementById('p-slip-discount-row').style.display = "flex";
+            let discountAmountMatch = discountDisplay.innerText.match(/หักส่วนลดแต้ม: -([\d,\.]+) บาท/);
+            document.getElementById('p-slip-discount').innerText = (discountAmountMatch ? "-" + discountAmountMatch[1] : "0") + " บาท";
+        } else {
+            document.getElementById('p-slip-discount-row').style.display = "none";
+        }
+        
+        if (crmPhone && crmPhone.hasAttribute('data-customer-id')) {
+            const grandTotalNum = parseFloat(grandTotal.replace(/,/g, '')) || 0;
+            const earnedPoints = Math.floor(grandTotalNum / 50);
+            document.getElementById('p-slip-crm').style.display = "block";
+            document.getElementById('p-slip-crm-earn').innerText = fmt(earnedPoints);
+            // Calculate total points left by getting current minus used plus earned
+            let currentPoints = 0;
+            let usedPoints = 0;
+            const pointsStr = document.getElementById('crm-points').innerText;
+            currentPoints = parseInt(pointsStr.replace(/,/g, '')) || 0;
+            if (discountDisplay && discountDisplay.innerText.includes('หักส่วนลดแต้ม: -')) {
+                let discountAmountMatch = discountDisplay.innerText.match(/หักส่วนลดแต้ม: -([\d,\.]+) บาท/);
+                if (discountAmountMatch) {
+                    let discountAmount = parseFloat(discountAmountMatch[1].replace(/,/g, '')) || 0;
+                    usedPoints = discountAmount * 10;
+                }
+            }
+            document.getElementById('p-slip-crm-total').innerText = fmt(currentPoints - usedPoints + earnedPoints);
+        } else {
+            document.getElementById('p-slip-crm').style.display = "none";
+        }
 
         html2canvas(printTemplate, { scale: 2 }).then(canvas => {
             printTemplate.style.display = "none"; 
@@ -1961,7 +2904,7 @@
             }
         });
         
-        document.getElementById('sr-total-sales').innerText = totalSales.toFixed(2) + " บาท";
+        document.getElementById('sr-total-sales').innerText = fmt(totalSales, true) + " บาท";
         
         // Render Top 5 Products
         const sortedItems = Object.entries(itemizedMap).sort((a, b) => b[1].total - a[1].total);
@@ -1972,7 +2915,7 @@
                 <div style="margin-bottom: 5px;">
                     <div style="display: flex; justify-content: space-between;">
                         <span>${idx+1}. ${item[0]} (${item[1].qty} ชิ้น)</span>
-                        <strong>${item[1].total.toFixed(2)} บาท</strong>
+                        <strong>${fmt(item[1].total, true)} บาท</strong>
                     </div>
                     <div style="background: #ecf0f1; border-radius: 4px; height: 6px; margin-top: 2px;">
                         <div style="background: linear-gradient(90deg, #3498db, #9b59b6); width: ${width}%; height: 100%; border-radius: 4px;"></div>
@@ -1984,16 +2927,17 @@
         // Render Table Sales
         let tableHtml = "";
         for (const [table, tTotal] of Object.entries(tableMap)) {
-            tableHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>คิว/โต๊ะ: ${table}</span><strong>${tTotal.toFixed(2)} บาท</strong></div>`;
+            tableHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>คิว/โต๊ะ: ${table}</span><strong>${fmt(tTotal, true)} บาท</strong></div>`;
         }
         document.getElementById('sr-table-sales').innerHTML = tableHtml || '<span style="color: #999;">(ไม่มีข้อมูล)</span>';
         
         // Render Itemized Sales
         let itemizedHtml = "";
         for (const [name, data] of Object.entries(itemizedMap)) {
-            itemizedHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>- ${name} (${data.qty} ชิ้น)</span><strong>${data.total.toFixed(2)} บาท</strong></div>`;
+            itemizedHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 3px 0;"><span>- ${name} (${data.qty} ชิ้น)</span><strong>${fmt(data.total, true)} บาท</strong></div>`;
         }
         document.getElementById('sr-itemized-sales').innerHTML = itemizedHtml || '<span style="color: #999;">(ไม่มีข้อมูล)</span>';
+
     }
 
     // เรียกโหลดตอนเปิดแอป
@@ -2046,92 +2990,540 @@
                             localStorage.setItem(key, backupData[key]);
                         }
                     }
-                    alert("✅ กู้คืนข้อมูลสำเร็จ! ระบบจะทำการรีโหลดหน้าจอใหม่เพื่อนำข้อมูลมาใช้");
+                    alert("✅ กู้คืนข้อมูล (Restore) สำเร็จ! กรุณาโหลดหน้าจอใหม่");
                     window.location.reload();
                 }
             } catch (error) {
-                alert("❌ เกิดข้อผิดพลาด! ไฟล์ข้อมูลไม่ถูกต้อง หรือเสียหาย: " + error);
+                alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message);
             }
         };
         reader.readAsText(file);
     }
 </script>
 
-<!-- Bottom Navigation Bar & Body Padding -->
-<style>
-    body {
-        padding-bottom: 75px !important; /* Ensure content clears the bottom nav */
-    }
-    .bottom-nav-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 8px 10px;
-        z-index: 1050;
-        border-top: 1px solid #eee;
-    }
-    .bottom-nav-btn {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        color: #666;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.2s ease-in-out;
-        padding: 5px;
-        border-radius: 8px;
-    }
-    .bottom-nav-btn i {
-        font-size: 1.4rem;
-        margin-bottom: 4px;
-    }
-    .bottom-nav-btn.promo {
-        color: #ff5722;
-    }
-    .bottom-nav-btn.contact {
-        color: #3498db;
-    }
-    .bottom-nav-btn:hover, .bottom-nav-btn:active {
-        background: rgba(0, 0, 0, 0.05);
-        transform: scale(1.05);
-    }
-</style>
-<div class="bottom-nav-bar">
-    <a href="sale.html" class="bottom-nav-btn promo">
-        <i class="fas fa-gift"></i>
-        <span>โปรโมชัน/สั่งซื้อ</span>
-    </a>
-    <a href="card.html" class="bottom-nav-btn contact">
-        <i class="fas fa-id-card"></i>
-        <span>นามบัตร/ติดต่อ</span>
-    </a>
-</div>
+<!-- Firebase SDK (Compat Version) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-<!-- [อัปเดต] เลื่อนหน้าจออัตโนมัติมาที่กลุ่มปุ่มสีฟ้าเมื่อเปิดแอปครั้งแรก -->
 <script>
-    window.addEventListener('load', function() {
-        const btnCamera = document.getElementById('btn-start-camera');
-        if (btnCamera && btnCamera.parentElement) {
-            setTimeout(() => {
-                // เลื่อนหน้าจอให้ขอบบนของจอ ชนกับขอบบนของกลุ่มปุ่มสีฟ้าพอดีเป๊ะ
-                // (ดันกล่องดำๆ "กล้องพร้อมสแกน" ขยับขึ้นไปซ่อนไว้ด้านบน)
-                // เพื่อให้ปุ่มสีฟ้าอยู่บนสุด และด้านล่างโชว์ถึงส่วน "ยอดรวมทั้งสิ้น" พอดี
-                btnCamera.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 400); 
+
+function fmt(num, isCurrency=false) {
+    if(num === null || num === undefined || num === '') return '0' + (isCurrency ? '.00' : '');
+    let n = Number(num);
+    if(isNaN(n)) return '0' + (isCurrency ? '.00' : '');
+    return n.toLocaleString('en-US', isCurrency ? {minimumFractionDigits: 2, maximumFractionDigits: 2} : {});
+}
+
+  // Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBAVKTfvs3XIB8b1FAYDOHho07PUU1hURs",
+  authDomain: "thepagentbill.firebaseapp.com",
+  projectId: "thepagentbill",
+  storageBucket: "thepagentbill.firebasestorage.app",
+  messagingSenderId: "553419544275",
+  appId: "1:553419544275:web:3a6446fb238f453a7d6626",
+  databaseURL: "https://thepagentbill-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ERP Tab Logic
+let currentUser = null;
+
+function doLogin() {
+    let inputId = document.getElementById('login-id').value.trim();
+    let inputPass = document.getElementById('login-password').value.trim();
+    
+    if (!inputId) return alert('กรุณากรอกรหัสพนักงาน');
+    if (!inputPass) return alert('กรุณากรอกรหัสผ่าน');
+    
+    if (inputId.toLowerCase() === 'admin') {
+        if (inputPass !== '1234' && inputPass !== 'admin') {
+            return alert('รหัสผ่าน Admin ไม่ถูกต้อง!');
+        }
+        currentUser = { id: 'admin', name: 'Master Admin', role: 'Admin' };
+        unlockSystem();
+        return;
+    }
+
+    database.ref('erp_db_employee/' + inputId).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            let empData = snapshot.val();
+            // ถ้าพนักงานยังไม่มีรหัสผ่านในระบบ (พนักงานเก่า) จะอนุโลมให้เข้าได้ หรือบังคับให้รหัสผ่านตรงกัน
+            if (empData.password && empData.password !== inputPass) {
+                return alert('รหัสผ่านของพนักงานไม่ถูกต้อง!');
+            } else if (!empData.password && inputPass !== '1234') {
+                // พนักงานที่ถูกสร้างก่อนมีระบบรหัสผ่าน จะใช้ 1234 เป็นค่าเริ่มต้นชั่วคราว
+                return alert('รหัสผ่านเริ่มต้นสำหรับพนักงานเก่าคือ 1234');
+            }
+            currentUser = empData;
+            unlockSystem();
+        } else {
+            alert('ไม่พบรหัสพนักงานนี้ในระบบคลาวด์');
+        }
+    }).catch((error) => {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
+    });
+}
+
+function doLogout() {
+    currentUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('user-info-bar').style.display = 'none';
+    document.getElementById('login-id').value = '';
+    let passInput = document.getElementById('login-password');
+    if(passInput) passInput.value = '';
+}
+
+function unlockSystem() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-info-bar').style.display = 'flex';
+    document.getElementById('current-user-display').innerText = `ผู้ใช้งาน: ${currentUser.name} | ตำแหน่ง: ${currentUser.role}`;
+    
+    // Inject master permissions if Admin
+    if (currentUser.id === 'admin') {
+        currentUser.permissions = { pos:true, product:true, employee:true, table:true, customer:true, printer:true, report:true, delete:true, advanced_pos:true };
+    }
+    let perms = currentUser.permissions || {};
+    
+    let nav = document.querySelector('.erp-nav');
+    let tabs = nav.querySelectorAll('.tab-btn');
+    
+    let firstAllowedTab = null;
+    tabs.forEach(t => {
+        let p = t.getAttribute('data-perm');
+        if (perms[p]) {
+            t.style.display = 'inline-block';
+            if (!firstAllowedTab) firstAllowedTab = p;
+        } else {
+            t.style.display = 'none';
         }
     });
+    
+    
+    if (perms.advanced_pos) {
+        let t = document.getElementById('advanced-pos-toolbar');
+        if (t) t.style.display = 'flex';
+        document.querySelectorAll('.adv-btn').forEach(b => b.style.display = 'inline-block');
+    } else {
+        let t = document.getElementById('advanced-pos-toolbar');
+        if (t) t.style.display = 'none';
+        document.querySelectorAll('.adv-btn').forEach(b => b.style.display = 'none');
+    }
+
+    if (firstAllowedTab) {
+        switchTab(firstAllowedTab);
+    } else {
+        alert("คุณไม่มีสิทธิ์เข้าถึงหน้าใดๆ เลย กรุณาติดต่อ Admin");
+    }
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    
+    let activeBtn = document.querySelector(`.tab-btn[onclick*="switchTab('${tabId}')"]`);
+    if(activeBtn) activeBtn.classList.add('active');
+
+    if(tabId !== 'pos') loadDB(tabId);
+}
+
+// Firebase DB Logic
+function saveDB(type) {
+    let data = {};
+    let id = '';
+    
+    if(type === 'product') {
+        id = document.getElementById('prod-sku').value;
+        if(!id) return alert('กรุณาใส่รหัส SKU');
+        
+        let createdTime = document.getElementById('prod-created').value;
+        if(!createdTime) {
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            createdTime = now.toISOString().slice(0,16); 
+        }
+        
+        data = { 
+            sku: id, 
+            name: document.getElementById('prod-name').value, 
+            category: document.getElementById('prod-category').value || '-',
+            createdAt: createdTime,
+            unit: document.getElementById('prod-unit').value, 
+            price: document.getElementById('prod-price').value, 
+            stock: document.getElementById('prod-stock').value
+        };
+    } else if (type === 'employee') {
+        id = document.getElementById('emp-id').value;
+        if(!id) return alert('กรุณาใส่รหัสพนักงาน');
+        data = {
+              id: id, 
+              name: document.getElementById('emp-name').value, 
+              password: document.getElementById('emp-password').value,
+              card: document.getElementById('emp-card').value, 
+              address: document.getElementById('emp-address').value || '',
+              phone: document.getElementById('emp-phone').value || '',
+              email: document.getElementById('emp-email').value || '',
+              discountVal: document.getElementById('emp-discount-val').value || '',
+              discountType: document.getElementById('emp-discount-type').value || '%',
+              credit: document.getElementById('emp-credit').value || '0',
+              points: document.getElementById('emp-points').value || '0',
+              totalSpent: document.getElementById('emp-total-spent').value || '0',
+              role: document.getElementById('emp-role').value,
+              permissions: {
+                  pos: document.getElementById('perm-pos').checked,
+                  product: document.getElementById('perm-product').checked,
+                  employee: document.getElementById('perm-employee').checked,
+                  table: document.getElementById('perm-table').checked,
+                  customer: document.getElementById('perm-customer').checked,
+                  printer: document.getElementById('perm-printer').checked,
+                  report: document.getElementById('perm-report').checked,
+                  delete: document.getElementById('perm-delete').checked,
+                  advanced_pos: document.getElementById('perm-advanced-pos').checked
+              }
+          };
+    } else if (type === 'table') {
+        id = document.getElementById('tb-id').value;
+        if(!id) return alert('กรุณาใส่รหัสโต๊ะ');
+        data = { id: id, name: document.getElementById('tb-name').value, zone: document.getElementById('tb-zone').value };
+    } else if (type === 'customer') {
+        id = document.getElementById('cus-id').value;
+        if(!id) return alert('กรุณาใส่รหัสลูกค้า');
+        data = { 
+            id: id, 
+            name: document.getElementById('cus-name').value,
+              level: document.getElementById('cus-level').value, 
+            address: document.getElementById('cus-address').value,
+            phone: document.getElementById('cus-phone').value, 
+            email: document.getElementById('cus-email').value,
+            discountVal: document.getElementById('cus-discount-val').value,
+            discountType: document.getElementById('cus-discount-type').value,
+            credit: document.getElementById('cus-credit').value,
+            points: document.getElementById('cus-points').value,
+            totalSpent: document.getElementById('cus-total-spent').value
+        };
+    } else if (type === 'printer') {
+        id = document.getElementById('prn-name').value;
+        if(!id) return alert('กรุณาใส่ชื่อเครื่องพิมพ์');
+        data = { id: id, type: document.getElementById('prn-type').value, role: document.getElementById('prn-role').value };
+    }
+    
+    // Write to Firebase
+    database.ref('erp_db_' + type + '/' + id).set(data).then(() => {
+        alert('✅ บันทึกข้อมูลขึ้นระบบคลาวด์เรียบร้อย!');
+        document.querySelectorAll('#tab-' + type + ' input[type=\"text\"], #tab-' + type + ' input[type=\"number\"], #tab-' + type + ' input[type=\"email\"]').forEach(inp => inp.value = ''); document.querySelectorAll('#tab-' + type + ' input[type=\"checkbox\"]').forEach(inp => inp.checked = false);
+    }).catch((error) => {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+    });
+}
+
+function loadDB(type) {
+    let tbody = document.querySelector('#table-' + type + ' tbody');
+    if(!tbody) return;
+    
+    database.ref('erp_db_' + type).on('value', (snapshot) => {
+        tbody.innerHTML = '';
+        let db = snapshot.val() || {};
+        
+        window.erpData = window.erpData || {};
+        window.erpData[type] = db;
+        
+        if (type === 'table') {
+            updateTableDatalist();
+        } else if (type === 'product') {
+            if (typeof updateProductDatalist === 'function') updateProductDatalist();
+        } else if (type === 'employee') {
+            if (typeof updateStaffDatalist === 'function') updateStaffDatalist();
+        } else if (type === 'customer') {
+            if (typeof updateCustomerDatalist === 'function') updateCustomerDatalist();
+        }
+
+        for(let key in db) {
+            let row = db[key];
+            let tr = document.createElement('tr');
+            
+            let actionBtns = `<button onclick="editDB('${type}', '${key}')" style="background:#f39c12;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:5px;padding:5px 10px;">แก้ไข</button>` +
+                             `<button onclick="deleteDB('${type}', '${key}')" style="background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;padding:5px 10px;">ลบ</button>`;
+
+            if(type === 'product') {
+                let displayDate = row.createdAt ? row.createdAt.replace('T', ' ') : '-';
+                tr.innerHTML = `<td>${row.sku}</td><td>${row.name}</td><td>${row.category || '-'}</td><td>${row.unit}</td><td>${fmt(row.price, true)}</td><td>${fmt(row.stock)}</td><td>${displayDate}</td><td>${actionBtns}</td>`;
+            }
+            if(type === 'employee') {
+                let discText = fmt(row.discountVal || row.discount || '0') + ' ' + (row.discountType || '%');
+                tr.innerHTML = `<td>${row.id}</td><td>${row.name}</td><td>${row.phone || '-'}</td><td>${discText}</td><td>${fmt(row.points)}</td><td>${fmt(row.totalSpent, true)}</td><td>${fmt(row.credit, true)}</td><td>${row.role || '-'}</td><td>${actionBtns}</td>`;
+            }
+            if(type === 'table') {
+                tr.innerHTML = `<td>${row.id}</td><td>${row.name}</td><td>${row.zone}</td><td>${actionBtns}</td>`;
+            }
+            if(type === 'customer') {
+                let discText = fmt(row.discountVal || '0') + ' ' + (row.discountType || '%');
+                tr.innerHTML = `<td>${row.id}</td><td>${row.name}</td><td>${row.level || 'ทั่วไป'}</td><td>${row.phone}</td><td>${discText}</td><td>${fmt(row.points)}</td><td>${fmt(row.totalSpent, true)}</td><td>${fmt(row.credit, true)}</td><td>${actionBtns}</td>`;
+            }
+            if(type === 'printer') {
+                tr.innerHTML = `<td>${row.id}</td><td>${row.type}</td><td>${row.role}</td><td>${actionBtns}</td>`;
+            }
+            tbody.appendChild(tr);
+        }
+    });
+}
+
+function editDB(type, id) {
+    let data = window.erpData[type][id];
+    if(!data) return;
+    
+    if(type === 'product') {
+        document.getElementById('prod-sku').value = data.sku;
+        document.getElementById('prod-name').value = data.name;
+        document.getElementById('prod-category').value = data.category || '';
+        document.getElementById('prod-created').value = data.createdAt || '';
+        document.getElementById('prod-unit').value = data.unit;
+        document.getElementById('prod-price').value = data.price;
+        document.getElementById('prod-stock').value = data.stock;
+    } else if(type === 'employee') {
+          document.getElementById('emp-id').value = data.id;
+          document.getElementById('emp-name').value = data.name;
+          document.getElementById('emp-password').value = data.password || '';
+          document.getElementById('emp-card').value = data.card;
+          document.getElementById('emp-address').value = data.address || '';
+          document.getElementById('emp-phone').value = data.phone || '';
+          document.getElementById('emp-email').value = data.email || '';
+          document.getElementById('emp-discount-val').value = data.discountVal || data.discount || '';
+          document.getElementById('emp-discount-type').value = data.discountType || '%';
+          document.getElementById('emp-credit').value = data.credit || '';
+          document.getElementById('emp-points').value = data.points || '';
+          document.getElementById('emp-total-spent').value = data.totalSpent || '';
+          document.getElementById('emp-role').value = data.role || '';
+        let perms = data.permissions || {};
+        document.getElementById('perm-pos').checked = perms.pos || false;
+        document.getElementById('perm-product').checked = perms.product || false;
+        document.getElementById('perm-employee').checked = perms.employee || false;
+        document.getElementById('perm-table').checked = perms.table || false;
+        document.getElementById('perm-customer').checked = perms.customer || false;
+        document.getElementById('perm-printer').checked = perms.printer || false;
+        document.getElementById('perm-report').checked = perms.report || false;
+        document.getElementById('perm-delete').checked = perms.delete || false;
+        document.getElementById('perm-advanced-pos').checked = perms.advanced_pos || false;
+      } else if(type === 'customer') {
+        document.getElementById('cus-id').value = data.id;
+        document.getElementById('cus-name').value = data.name;
+        document.getElementById('cus-address').value = data.address || '';
+        document.getElementById('cus-phone').value = data.phone || '';
+        document.getElementById('cus-email').value = data.email || '';
+        document.getElementById('cus-discount-val').value = data.discountVal || '';
+        document.getElementById('cus-discount-type').value = data.discountType || '%';
+        document.getElementById('cus-credit').value = data.credit || '';
+        document.getElementById('cus-points').value = data.points || '';
+        document.getElementById('cus-total-spent').value = data.totalSpent || '';
+    } else if(type === 'table') {
+        document.getElementById('tb-id').value = data.id;
+        document.getElementById('tb-name').value = data.name;
+        document.getElementById('tb-zone').value = data.zone || '';
+    } else if(type === 'printer') {
+        document.getElementById('prn-name').value = data.id;
+        document.getElementById('prn-type').value = data.type || '';
+        document.getElementById('prn-role').value = data.role || '';
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteDB(type, id) {
+    if(!confirm('ยืนยันการลบข้อมูลนี้ออกจากระบบคลาวด์?')) return;
+    database.ref('erp_db_' + type + '/' + id).remove().catch((error) => {
+        alert('ลบไม่ได้: ' + error.message);
+    });
+}
+
+// Initialize essential data on page load for POS
+document.addEventListener('DOMContentLoaded', () => {
+    loadDB('table');
+    loadDB('product');
+    loadDB('employee');
+    loadDB('customer'); // To support CRM logic
+    
+    // Listen for Held Bills (Orders) from Network
+    if (typeof database !== 'undefined') {
+        database.ref('erp_db_orders').on('value', (snapshot) => {
+            let data = snapshot.val() || {};
+            window.erpData = window.erpData || {};
+            window.erpData['orders'] = data;
+            
+            // --- Auto-Print Kitchen Logic ---
+            let updates = {};
+            let shouldUpdate = false;
+            for (let tableKey in data) {
+                let order = data[tableKey];
+                if (order.hasNewItems) {
+                    printKitchenBill(order);
+                    
+                    // Mark items as printed
+                    order.hasNewItems = false;
+                    if (order.items) {
+                        order.items.forEach(i => i.isNewItem = false);
+                    }
+                    updates[tableKey] = order;
+                    shouldUpdate = true;
+                }
+            }
+            if (shouldUpdate) {
+                // Update Firebase to mark as printed
+                database.ref('erp_db_orders').update(updates);
+            }
+            // --------------------------------
+
+            if (typeof renderHeldBills === 'function') {
+                renderHeldBills();
+            }
+            
+            // Update button count
+            let retrieveBtn = document.getElementById('btn-retrieve-bill');
+            if (retrieveBtn) {
+                let count = Object.keys(data).length;
+                if (count > 0) {
+                    retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br><span style="color:#f1c40f;">(${count} โต๊ะ)</span>`;
+                } else {
+                    retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br>(พักบิล)`;
+                }
+            }
+        });
+    }
+});
+
+function printKitchenBill(billData) {
+    const printArea = document.getElementById('receipt-print-area');
+    if (!printArea) return;
+    if (!billData.items) return;
+    
+    // Filter only new items that haven't been printed yet
+    let newItems = billData.items.filter(item => item.isNewItem === true);
+    if (newItems.length === 0) return;
+
+    let itemsHtml = '';
+    
+    newItems.forEach((item, index) => {
+        let printDate = new Date();
+        let formattedTime = printDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        let formattedDate = printDate.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        let dateTimeStr = `${formattedTime}/${formattedDate}`;
+        
+        let total = parseFloat(item.price) * parseInt(item.qty);
+        
+        // CSS page-break-after will force the thermal printer to cut/feed a new ticket for each item
+        itemsHtml += `
+        <div style="font-family: 'Kanit', sans-serif; padding: 5px; width: 100%; box-sizing: border-box; ${index < newItems.length - 1 ? 'page-break-after: always;' : ''}">
+            <div style="text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 15px;">
+                โต๊ะ ${billData.queueNo}
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 10px;">
+                <div style="flex: 1; font-weight: bold;">${item.name}</div>
+                <div>${dateTimeStr}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-bottom: 20px;">
+                <div style="width: 20%; text-align: left;">${item.qty}</div>
+                <div style="width: 40%; text-align: center;">${item.price}</div>
+                <div style="width: 40%; text-align: right;">${total}</div>
+            </div>
+            <div style="text-align: right; font-size: 14px; margin-top: 20px;">
+                ${item.category}
+            </div>
+        </div>
+        `;
+    });
+
+    if (!itemsHtml) return;
+
+    printArea.innerHTML = itemsHtml;
+
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => { printArea.innerHTML = ''; }, 500); // Clear after print dialog closes
+    }, 300);
+}
+
+function printReceipt(billData) {
+    const printArea = document.getElementById('receipt-print-area');
+    if (!printArea) return;
+    
+    // ดึงชื่อร้านค้าจาก LocalStorage ถ้ามี
+    let shopName = "My Shop";
+    const shopInfoStr = localStorage.getItem('thep_shop_info');
+    if (shopInfoStr) {
+        try {
+            const info = JSON.parse(shopInfoStr);
+            if (info.name) shopName = info.name;
+        } catch(e){}
+    }
+
+    let itemsHtml = '';
+    billData.items.forEach(item => {
+        itemsHtml += `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px;">
+                <div style="flex:1; padding-right:5px; word-break:break-all;">${item.name}</div>
+                <div style="white-space:nowrap; text-align:right;">${item.qty}x${item.price}</div>
+            </div>
+        `;
+    });
+
+    let discountHtml = '';
+    if (billData.discount > 0) {
+        discountHtml = `
+            <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:10px;">
+                <span>ส่วนลด (แต้ม)</span>
+                <span>-${fmt(billData.discount, true)}</span>
+            </div>
+        `;
+    }
+
+    let crmHtml = '';
+    if (billData.earnedPoints > 0) {
+        crmHtml = `
+            <div style="text-align:center; margin-top:10px; font-size:10px; border-top:1px dashed #000; padding-top:5px;">
+                สะสมเพิ่ม: ${fmt(billData.earnedPoints)} แต้ม<br>
+                คะแนนรวม: ${fmt(billData.totalPoints)} แต้ม
+            </div>
+        `;
+    }
+
+    printArea.innerHTML = `
+        <div style="text-align:center; margin-bottom:10px;">
+            <div style="font-size:14px; font-weight:bold;">${shopName}</div>
+            <div style="font-size:10px;">ใบเสร็จรับเงิน</div>
+            <div style="font-size:10px; margin-bottom:5px;">NO. ${billData.billNumber}</div>
+            <div style="font-size:9px;">${new Date().toLocaleString('th-TH')}</div>
+        </div>
+        <div style="border-top:1px dashed #000; padding:5px 0; border-bottom:1px dashed #000; margin-bottom:5px;">
+            ${itemsHtml}
+        </div>
+        ${discountHtml}
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px; margin-top:5px;">
+            <span>ยอดรวม</span>
+            <span>${fmt(billData.grandTotal, true)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
+            <span>รับเงิน</span>
+            <span>${fmt(billData.cashInput, true)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px;">
+            <span>เงินทอน</span>
+            <span>${fmt(billData.changeDue, true)}</span>
+        </div>
+        ${crmHtml}
+        <div style="text-align:center; font-size:10px; margin-top:15px; margin-bottom:20px;">
+            ขอบคุณที่ใช้บริการค่ะ
+        </div>
+    `;
+
+    setTimeout(() => {
+        window.print();
+    }, 300);
+}
+
 </script>
 
+<div id="receipt-print-area"></div>
 </body>
 </html>

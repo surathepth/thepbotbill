@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สั่งอาหาร - ThepAgentBill</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts: Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; padding-bottom: 80px; }
+        .header { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .product-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .product-info { flex: 1; }
+        .product-name { font-weight: 600; font-size: 16px; margin-bottom: 5px; color: #333; }
+        .product-price { color: #e74c3c; font-weight: 700; font-size: 16px; }
+        .btn-add { background-color: #e67e22; color: white; border: none; border-radius: 50px; padding: 8px 15px; font-weight: 500; font-size: 14px; transition: 0.2s; }
+        .btn-add:active { transform: scale(0.95); background-color: #d35400; }
+        
+        .floating-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; background: #2c3e50; color: white; border-radius: 50px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1000; cursor: pointer; transition: 0.3s; }
+        .floating-cart:active { transform: translateX(-50%) scale(0.98); }
+        
+        .cart-modal-body { max-height: 60vh; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
+        .qty-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #ccc; background: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        
+        /* Category Tabs */
+        .category-scroll { display: flex; overflow-x: auto; white-space: nowrap; padding: 10px 15px; background: white; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .category-scroll::-webkit-scrollbar { display: none; }
+        .category-btn { padding: 6px 15px; border-radius: 20px; background: #eee; margin-right: 10px; font-size: 14px; color: #555; border: none; cursor: pointer; }
+        .category-btn.active { background: #2ecc71; color: white; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold"><i class="fas fa-utensils me-2"></i> สั่งอาหาร</h5>
+            <small id="table-display">กำลังโหลด...</small>
+        </div>
+        <div>
+            <i class="fas fa-store fs-4"></i>
+        </div>
+    </div>
+
+    <div class="category-scroll" id="category-container">
+        <!-- Categories will be loaded here -->
+    </div>
+
+    <div class="container mt-2" id="product-container">
+        <div class="text-center mt-5">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">กำลังโหลดเมนูอาหาร...</p>
+        </div>
+    </div>
+
+    <div class="floating-cart" id="floating-cart" onclick="openCart()" style="display: none;">
+        <div><i class="fas fa-shopping-basket me-2"></i> <span id="cart-count">0</span> รายการ</div>
+        <div class="fw-bold"><span id="cart-total">0.00</span> ฿ <i class="fas fa-chevron-right ms-2 fs-6"></i></div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius: 20px;">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold"><i class="fas fa-shopping-basket text-success me-2"></i> ตะกร้าของคุณ</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body cart-modal-body" id="cart-items">
+             <!-- Cart Items -->
+          </div>
+          <div class="modal-footer border-top-0 flex-column">
+            <div class="d-flex justify-content-between w-100 mb-3 fs-5 fw-bold">
+                <span>ยอดรวมทั้งสิ้น</span>
+                <span class="text-danger"><span id="modal-cart-total">0.00</span> ฿</span>
+            </div>
+            <button type="button" class="btn btn-success w-100 py-3 rounded-pill fw-bold fs-5" onclick="submitOrder()" id="btn-submit-order">
+                ส่งรายการสั่งอาหาร <i class="fas fa-paper-plane ms-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 text-center" style="border-radius: 20px; padding: 30px 20px;">
+          <div class="mb-3">
+              <i class="fas fa-check-circle text-success" style="font-size: 60px;"></i>
+          </div>
+          <h4 class="fw-bold mb-2">ส่งรายการสำเร็จ!</h4>
+          <p class="text-muted mb-4">อาหารกำลังเตรียมจัดเสิร์ฟที่โต๊ะของคุณ</p>
+          <button type="button" class="btn btn-outline-success rounded-pill px-4" data-bs-dismiss="modal" onclick="clearCart()">สั่งอาหารเพิ่ม</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAVKTfvs3XIB8b1FAYDOHho07PUU1hURs",
+            authDomain: "thepagentbill.firebaseapp.com",
+            projectId: "thepagentbill",
+            storageBucket: "thepagentbill.firebasestorage.app",
+            messagingSenderId: "553419544275",
+            appId: "1:553419544275:web:3a6446fb238f453a7d6626",
+            databaseURL: "https://thepagentbill-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Utilities
+        function fmt(num) {
+            let n = Number(num);
+            if(isNaN(n)) return '0.00';
+            return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        let tableNumber = "";
+        let allProducts = [];
+        let categories = ["ทั้งหมด"];
+        let currentCategory = "ทั้งหมด";
+        let cart = []; // [{sku, name, price, qty}]
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            tableNumber = urlParams.get('table');
+            if (!tableNumber) {
+                tableNumber = prompt("กรุณาระบุหมายเลขโต๊ะ (เช่น โต๊ะ 1, โต๊ะ 2):", "โต๊ะ 1");
+                if(!tableNumber) tableNumber = "ลูกค้าทั่วไป";
+            }
+            document.getElementById('table-display').innerText = tableNumber;
+
+            loadProducts();
+        };
+
+        function loadProducts() {
+            database.ref('erp_db_product').once('value', (snapshot) => {
+                let db = snapshot.val() || {};
+                allProducts = [];
+                let cats = new Set();
+                
+                for(let key in db) {
+                    let p = db[key];
+                    allProducts.push(p);
+                    if(p.category && p.category !== '-') {
+                        cats.add(p.category);
+                    }
+                }
+                
+                categories = ["ทั้งหมด", ...Array.from(cats)];
+                renderCategories();
+                renderProducts();
+            });
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('category-container');
+            container.innerHTML = "";
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `category-btn ${cat === currentCategory ? 'active' : ''}`;
+                btn.innerText = cat;
+                btn.onclick = () => {
+                    currentCategory = cat;
+                    renderCategories();
+                    renderProducts();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('product-container');
+            container.innerHTML = "";
+            
+            let filtered = currentCategory === "ทั้งหมด" ? allProducts : allProducts.filter(p => p.category === currentCategory);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center mt-5 text-muted">ไม่พบรายการอาหาร</div>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                let card = document.createElement('div');
+                card.className = "product-card";
+                card.innerHTML = `
+                    <div class="product-info">
+                        <div class="product-name">${p.name}</div>
+                        <div class="product-price">${fmt(p.price)} ฿</div>
+                    </div>
+                    <div>
+                        <button class="btn-add" onclick="addToCart('${p.sku}', '${p.name}', ${p.price}, '${p.category}')">
+                            <i class="fas fa-plus"></i> เพิ่ม
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function addToCart(sku, name, price, category) {
+            let existing = cart.find(item => item.sku === sku);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ sku, name, price: parseFloat(price), qty: 1, category: category });
+            }
+            updateCartUI();
+        }
+
+        function changeQty(sku, delta) {
+            let existing = cart.find(item => item.sku === sku);
+            if (existing) {
+                existing.qty += delta;
+                if (existing.qty <= 0) {
+                    cart = cart.filter(item => item.sku !== sku);
+                }
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const floatingCart = document.getElementById('floating-cart');
+            if (cart.length === 0) {
+                floatingCart.style.display = 'none';
+                return;
+            }
+            floatingCart.style.display = 'flex';
+            
+            let totalQty = 0;
+            let totalPrice = 0;
+            cart.forEach(item => {
+                totalQty += item.qty;
+                totalPrice += (item.price * item.qty);
+            });
+            
+            document.getElementById('cart-count').innerText = totalQty;
+            document.getElementById('cart-total').innerText = fmt(totalPrice);
+            document.getElementById('modal-cart-total').innerText = fmt(totalPrice);
+            
+            // Update Modal Content
+            const cartItems = document.getElementById('cart-items');
+            cartItems.innerHTML = "";
+            cart.forEach(item => {
+                cartItems.innerHTML += `
+                    <div class="cart-item">
+                        <div style="flex: 1; padding-right: 10px;">
+                            <div class="fw-bold">${item.name}</div>
+                            <div class="text-muted small">${fmt(item.price)} ฿</div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <button class="qty-btn text-danger" onclick="changeQty('${item.sku}', -1)"><i class="fas fa-minus"></i></button>
+                            <span class="mx-3 fw-bold">${item.qty}</span>
+                            <button class="qty-btn text-success" onclick="changeQty('${item.sku}', 1)"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        let cartModal;
+        function openCart() {
+            if (!cartModal) cartModal = new bootstrap.Modal(document.getElementById('cartModal'));
+            cartModal.show();
+        }
+
+        function submitOrder() {
+            if (cart.length === 0) return;
+            const btn = document.getElementById('btn-submit-order');
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...`;
+            btn.disabled = true;
+
+            // Prepare items in POS format (name, price, qty, category, isNewItem)
+            let formattedItems = cart.map(item => ({
+                name: item.name,
+                price: item.price.toString(),
+                qty: item.qty.toString(),
+                category: item.category || 'ไม่ระบุ',
+                isNewItem: true
+            }));
+
+            // Fetch existing held bill for this table
+            let tableKey = tableNumber;
+            database.ref('erp_db_orders/' + tableKey).once('value', (snap) => {
+                let existingBill = snap.val();
+                let mergedItems = [];
+                
+                if (existingBill && existingBill.items) {
+                    mergedItems = existingBill.items || [];
+                    // Append new items
+                    formattedItems.forEach(newItem => {
+                        mergedItems.push(newItem);
+                    });
+                } else {
+                    mergedItems = formattedItems;
+                }
+
+                let newBillData = {
+                    queueNo: tableKey,
+                    billNumber: existingBill?.billNumber || "AUTO-" + Date.now().toString().slice(-6),
+                    cashInput: "",
+                    items: mergedItems,
+                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                    hasNewItems: true // Flag to trigger POS auto-print
+                };
+
+                database.ref('erp_db_orders/' + tableKey).set(newBillData).then(() => {
+                    cartModal.hide();
+                    let successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                    btn.innerHTML = `ส่งรายการสั่งอาหาร <i class="fas fa-paper-plane ms-2"></i>`;
+                    btn.disabled = false;
+                }).catch(err => {
+                    alert('เกิดข้อผิดพลาด: ' + err.message);
+                    btn.innerHTML = `ส่งรายการสั่งอาหาร <i class="fas fa-paper-plane ms-2"></i>`;
+                    btn.disabled = false;
+                });
+            });
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+        }
+    </script>
+</body>
+</html>
