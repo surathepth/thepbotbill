@@ -44,7 +44,9 @@
             <small id="table-display">กำลังโหลด...</small>
         </div>
         <div>
-            <i class="fas fa-store fs-4"></i>
+            <button class="btn btn-sm btn-light rounded-pill fw-bold" onclick="openMyBill()" style="color: #2ecc71;">
+                <i class="fas fa-file-invoice-dollar me-1"></i> ดูบิล
+            </button>
         </div>
     </div>
 
@@ -99,10 +101,43 @@
           </div>
           <h4 class="fw-bold mb-2">ส่งรายการสำเร็จ!</h4>
           <p class="text-muted mb-4">อาหารกำลังเตรียมจัดเสิร์ฟที่โต๊ะของคุณ</p>
-          <button type="button" class="btn btn-outline-success rounded-pill px-4" data-bs-dismiss="modal" onclick="clearCart()">สั่งอาหารเพิ่ม</button>
+          <button type="button" class="btn btn-outline-success rounded-pill px-4 mb-2" data-bs-dismiss="modal" onclick="clearCart()">สั่งอาหารเพิ่ม</button>
+          <button type="button" class="btn btn-success rounded-pill px-4" data-bs-dismiss="modal" onclick="clearCart(); openMyBill();">ดูบิลของฉัน</button>
         </div>
       </div>
     </div>
+
+    <!-- My Bill Modal -->
+    <div class="modal fade" id="myBillModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius: 20px;">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold"><i class="fas fa-receipt text-primary me-2"></i> บิลของฉัน</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="my-bill-items" style="background-color: #f8f9fa;">
+             <!-- Bill Items -->
+             <div class="text-center mt-3"><div class="spinner-border text-primary" role="status"></div></div>
+          </div>
+          <div class="modal-footer border-top-0 flex-column bg-white">
+            <div class="d-flex justify-content-between w-100 mb-2 fs-5 fw-bold">
+                <span>ยอดรวมทั้งสิ้น</span>
+                <span class="text-danger"><span id="my-bill-total">0.00</span> ฿</span>
+            </div>
+            
+            <!-- PromptPay QR Code -->
+            <div class="text-center w-100 mt-2 p-3 bg-light rounded" style="border: 2px dashed #ccc;">
+                <p class="fw-bold text-success mb-2"><i class="fas fa-qrcode"></i> สแกนจ่ายด้วยพร้อมเพย์</p>
+                <img src="QRCODE-ธนาคาร/10001.jpg" style="width: 100%; max-width: 250px; border-radius: 10px;" alt="PromptPay QR">
+                <small class="d-block mt-2 text-muted">แนบสลิปแจ้งพนักงานเพื่อเช็คบิลนะคะ</small>
+            </div>
+
+            <button type="button" class="btn btn-secondary w-100 rounded-pill mt-2" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -337,6 +372,48 @@
         function clearCart() {
             cart = [];
             updateCartUI();
+        }
+
+        let myBillModal;
+        function openMyBill() {
+            if (!myBillModal) myBillModal = new bootstrap.Modal(document.getElementById('myBillModal'));
+            myBillModal.show();
+            
+            const container = document.getElementById('my-bill-items');
+            container.innerHTML = '<div class="text-center mt-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">กำลังโหลด...</p></div>';
+            document.getElementById('my-bill-total').innerText = '0.00';
+            
+            let tableKey = tableNumber;
+            database.ref('erp_db_orders/' + tableKey).once('value', (snap) => {
+                let bill = snap.val();
+                if (!bill || !bill.items || bill.items.length === 0) {
+                    container.innerHTML = '<div class="text-center mt-4 text-muted"><i class="fas fa-utensils fs-1 mb-2"></i><p>ยังไม่มีรายการสั่งอาหารค่ะ</p></div>';
+                    return;
+                }
+                
+                let html = '<div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">';
+                let total = 0;
+                bill.items.forEach((item, index) => {
+                    let itemTotal = parseFloat(item.price) * parseInt(item.qty);
+                    total += itemTotal;
+                    html += `
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+                            <div style="flex:1; padding-right: 10px;">
+                                <span class="fw-bold">${index+1}. ${item.name}</span>
+                                <div class="text-muted" style="font-size: 12px;">${item.qty} x ${fmt(item.price)} ฿</div>
+                            </div>
+                            <div class="fw-bold text-end" style="min-width: 70px;">
+                                ${fmt(itemTotal)}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+                document.getElementById('my-bill-total').innerText = fmt(total);
+            }).catch(err => {
+                container.innerHTML = `<div class="text-center text-danger mt-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
+            });
         }
     </script>
 </body>
