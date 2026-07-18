@@ -115,23 +115,24 @@
             <h5 class="modal-title fw-bold"><i class="fas fa-receipt text-primary me-2"></i> บิลของฉัน</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" id="my-bill-items" style="background-color: #f8f9fa;">
-             <!-- Bill Items -->
-             <div class="text-center mt-3"><div class="spinner-border text-primary" role="status"></div></div>
+          <div class="modal-body" style="background-color: #f8f9fa;">
+             <div id="my-bill-items">
+                 <!-- Bill Items -->
+                 <div class="text-center mt-3"><div class="spinner-border text-primary" role="status"></div></div>
+             </div>
+             
+             <!-- PromptPay QR Code -->
+             <div class="text-center w-100 mt-4 p-3 bg-white rounded shadow-sm" style="border: 2px dashed #27ae60;">
+                 <p class="fw-bold text-success mb-2"><i class="fas fa-qrcode"></i> สแกนจ่ายด้วยพร้อมเพย์</p>
+                 <img src="10001.png" style="width: 100%; max-width: 250px; border-radius: 10px;" alt="PromptPay QR">
+                 <small class="d-block mt-2 text-muted">แนบสลิปแจ้งพนักงานเพื่อเช็คบิลนะคะ</small>
+             </div>
           </div>
           <div class="modal-footer border-top-0 flex-column bg-white">
             <div class="d-flex justify-content-between w-100 mb-2 fs-5 fw-bold">
                 <span>ยอดรวมทั้งสิ้น</span>
                 <span class="text-danger"><span id="my-bill-total">0.00</span> ฿</span>
             </div>
-            
-            <!-- PromptPay QR Code -->
-            <div class="text-center w-100 mt-2 p-3 bg-light rounded" style="border: 2px dashed #ccc;">
-                <p class="fw-bold text-success mb-2"><i class="fas fa-qrcode"></i> สแกนจ่ายด้วยพร้อมเพย์</p>
-                <img src="10001.png" style="width: 100%; max-width: 250px; border-radius: 10px;" alt="PromptPay QR">
-                <small class="d-block mt-2 text-muted">แนบสลิปแจ้งพนักงานเพื่อเช็คบิลนะคะ</small>
-            </div>
-
             <button type="button" class="btn btn-secondary w-100 rounded-pill mt-2" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
           </div>
         </div>
