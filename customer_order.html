@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; padding-bottom: 80px; }
@@ -172,6 +174,7 @@
         let categories = ["ทั้งหมด"];
         let currentCategory = "ทั้งหมด";
         let cart = []; // [{sku, name, price, qty}]
+        let hasActiveSession = false; // [Lilin Added] Flag to check if table is active
 
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -183,7 +186,44 @@
             document.getElementById('table-display').innerText = tableNumber;
 
             loadProducts();
+            
+            // [Lilin Added] Auto-Logout Real-time Listener
+            if (tableNumber) {
+                database.ref('erp_db_orders/' + tableNumber).on('value', (snap) => {
+                    let val = snap.val();
+                    if (val && val.items && val.items.length > 0) {
+                        hasActiveSession = true; // Table has an active bill
+                    } else {
+                        // Data is null or empty
+                        if (hasActiveSession) {
+                            // It WAS active, but now it's null -> POS cleared/checked out
+                            triggerCheckoutLogout();
+                        }
+                    }
+                });
+            }
         };
+
+        // [Lilin Added] Auto-Logout Action
+        function triggerCheckoutLogout() {
+            Swal.fire({
+                icon: 'success',
+                title: 'ชำระเงินเรียบร้อยแล้ว',
+                text: 'ขอบคุณที่ใช้บริการค่ะ โต๊ะของท่านชำระเงินเรียบร้อยแล้ว ระบบกำลังปิดการสั่งอาหาร',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#28a745',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then(() => {
+                document.body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f8f9fa; text-align: center; font-family: 'Kanit', sans-serif; padding: 20px;">
+                        <i class="fas fa-check-circle" style="font-size: 80px; color: #28a745; margin-bottom: 20px;"></i>
+                        <h2 style="color: #333; margin-bottom: 10px; font-weight: 600;">ขอบคุณที่ใช้บริการค่ะ 🙏</h2>
+                        <p style="color: #666; font-size: 16px;">โต๊ะของท่านชำระเงินเรียบร้อยแล้ว<br>สามารถปิดหน้านี้ได้เลยค่ะ</p>
+                    </div>
+                `;
+            });
+        }
 
         function loadProducts() {
             database.ref('erp_db_product').once('value', (snapshot) => {
