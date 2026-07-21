@@ -3165,6 +3165,9 @@ function unlockSystem() {
     
     // [Lilin Added] Waitstaff Mode Safety Lock
     if (perms.waitstaff) {
+        perms.pos = true; // บังคับสิทธิ์ POS อัตโนมัติ (เผื่อบอสลืมติ๊ก)
+        document.querySelector('.erp-nav').style.display = 'none'; // ซ่อนเมนูทั้งหมด ล็อกดาวน์หน้าจอ
+
         let elsToHide = ['barcode-scan-btn', 'voice-btn', 'btn-add-item', 'btn-pay', 'btn-hold-bill', 'advanced-pos-toolbar', 'btn-qr-table', 'btn-save-img', 'btn-print', 'btn-discount', 'customer-search-bar', 'btn-clear-bill'];
         elsToHide.forEach(id => {
             let el = document.getElementById(id);
