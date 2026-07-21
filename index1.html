@@ -595,6 +595,21 @@
         </div>
     </div>
 
+    <!-- Waitstaff View Modal -->
+    <div id="waitstaff-view-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; padding: 20px;">
+            <div class="modal-title" style="color: #e67e22; font-size: 18px; margin-bottom: 15px;">🍽️ รายการอาหาร (รอเสิร์ฟ)</div>
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 10px; border-bottom: 2px solid #ccc; padding-bottom: 5px;">
+                <span>โต๊ะ/คิว: <span id="ws-table-no" style="color: #e74c3c;"></span></span>
+                <span>จำนวนรวม: <span id="ws-total-qty" style="color: #2980b9;">0</span></span>
+            </div>
+            <div id="waitstaff-view-body" style="margin-bottom: 20px; text-align: left; max-height: 350px; overflow-y: auto; font-size: 14px; line-height: 1.6;">
+                <!-- Dynamic content -->
+            </div>
+            <button type="button" class="modal-btn-cancel" onclick="document.getElementById('waitstaff-view-modal').style.display='none'" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold;">❌ ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
     <button type="button" class="btn-add-item" id="btn-add-item">➕ เพิ่มรายการสินค้า</button>
 
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
@@ -931,6 +946,7 @@
                 <label><input type="checkbox" id="perm-printer"> ระบบเครื่องพิมพ์</label>
                 <label><input type="checkbox" id="perm-report"> ดูรายงาน</label>
                 <label><input type="checkbox" id="perm-delete" style="accent-color:red;"> <span style="color:red;">สิทธิ์ลบข้อมูล</span></label>
+                <label style="grid-column: span 2;"><input type="checkbox" id="perm-waitstaff" style="accent-color:#f39c12;"> <span style="color:#e67e22; font-weight:bold;">โหมดพนักงานเสิร์ฟ (ดูบิลอย่างเดียว)</span></label>
                 <label style="grid-column: span 2;"><input type="checkbox" id="perm-advanced-pos"> ฟังก์ชัน POS ขั้นสูง (ย้ายโต๊ะ, แยกโต๊ะ, คืนสินค้า)</label>
             </div>
             <button class="btn btn-save" style="margin-top:15px; width:100%;" onclick="saveDB('employee')">💾 บันทึกพนักงาน</button>
@@ -1196,7 +1212,11 @@
         newRow.className = 'bill-item';
         newRow.innerHTML = `
             <div class="item-name-col"><input type="text" class="name-val" list="product-list-options" placeholder="ชื่อสินค้าหรือบาร์โค้ด..." value="${name}"></div>
-            <div class="del-wrap"><button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button></div>
+            <div class="del-wrap" style="display:flex; justify-content:center; align-items:center; gap:2px;">
+                <button type="button" class="adv-btn" onclick="moveItemRow(this)" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; padding:0 2px;" title="ย้ายเมนูนี้ไปโต๊ะอื่น">➡️</button>
+                <button type="button" class="adv-btn" onclick="returnItemRow(this)" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; padding:0 2px;" title="คืนสินค้า">🔙</button>
+                <button type="button" class="btn-delete" onclick="deleteRow(this)">❌</button>
+            </div>
             <div class="qty-wrap"><input type="number" class="qty-val" value="${qty}"></div>
             <div class="price-wrap"><input type="number" class="price-val" value="${price}"></div>
             <div class="total-wrap"><span class="row-total">0.00</span></div>
@@ -1240,7 +1260,7 @@
                 if (!val) return;
                 
                 // ถ้าสแกนรหัสบาร์โค้ดที่ไม่รู้จัก ให้เด้งหน้าต่างเพิ่มสินค้าใหม่
-                if (/^\\d{8,14}$/.test(val) && !productDB[val]) {
+                if (/^\d{8,14}$/.test(val) && !productDB[val]) {
                     openNewItemModal(val);
                 } else if (productDB[val]) {
                     this.value = productDB[val].name;
@@ -2035,7 +2055,11 @@ function loadActiveBillState() {
             btn.style.display = 'inline-block';
             btn.innerText = `📎 NO. ${bill.queueNo} (${bill.time})`;
             btn.addEventListener('click', function() {
-                restoreHeldBill(key);
+                if (currentUser && currentUser.permissions && currentUser.permissions.waitstaff) {
+                    viewHeldBillOnly(key);
+                } else {
+                    restoreHeldBill(key);
+                }
             });
             listContainer.appendChild(btn);
         });
@@ -2064,6 +2088,41 @@ function loadActiveBillState() {
         calculateTotals();
         saveActiveBillState();
         alert(`📂 เรียกคืนบิล "NO. ${key}" กลับคืนมาเรียบร้อยแล้วค่ะ`);
+    }
+
+    function viewHeldBillOnly(key) {
+        const heldBills = getHeldBills();
+        const bill = heldBills[key];
+        if (!bill) return;
+
+        document.getElementById('ws-table-no').innerText = bill.queueNo;
+        let bodyHtml = '';
+        let totalQty = 0;
+        
+        bill.items.forEach((item, index) => {
+            totalQty += Number(item.qty);
+            bodyHtml += `
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding: 8px 0;">
+                <div style="flex: 1;">
+                    <span style="font-weight:bold; color:#2c3e50;">${index + 1}. ${item.name}</span>
+                </div>
+                <div style="font-weight:bold; color:#e67e22; font-size:16px;">
+                    x${item.qty}
+                </div>
+            </div>`;
+        });
+        
+        if (bill.items.length === 0) {
+            bodyHtml = '<div style="text-align:center; color:#e74c3c; font-weight:bold; padding:20px;">ไม่มีรายการอาหาร</div>';
+        }
+
+        document.getElementById('ws-total-qty').innerText = totalQty;
+        document.getElementById('waitstaff-view-body').innerHTML = bodyHtml;
+        
+        // ซ่อนคอนเทนเนอร์รายการบิล
+        document.getElementById('held-bills-container').style.display = 'none';
+        // เปิดหน้าต่าง Modal อ่านบิลอย่างเดียว
+        document.getElementById('waitstaff-view-modal').style.display = 'flex';
     }
 
     loadActiveBillState();
@@ -3103,6 +3162,52 @@ function unlockSystem() {
     }
     let perms = currentUser.permissions || {};
     
+    // [Lilin Added] Waitstaff Mode Safety Lock
+    if (perms.waitstaff) {
+        let elsToHide = ['barcode-scan-btn', 'voice-btn', 'btn-add-item', 'btn-pay', 'btn-hold-bill', 'advanced-pos-toolbar', 'btn-qr-table', 'btn-save-img', 'btn-print', 'btn-discount', 'customer-search-bar', 'btn-clear-bill'];
+        elsToHide.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        let cats = document.querySelector('.product-categories');
+        if (cats) cats.style.display = 'none';
+        let grid = document.querySelector('.product-grid');
+        if (grid) grid.style.display = 'none';
+        let mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.style.display = 'none';
+        
+        let sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.style.flex = '1';
+        
+        let billItems = document.getElementById('bill-items');
+        if (billItems) billItems.innerHTML = '<div style="text-align:center; margin-top:20px; color:#7f8c8d; font-weight:bold; font-size:16px;">พนักงานเสิร์ฟ<br><br>👉 กดปุ่ม "ดึงบิลคืน" เพื่อดูออร์เดอร์ของโต๊ะ</div>';
+        
+        let staffInput = document.getElementById('staff-name');
+        if (staffInput && staffInput.parentElement) staffInput.parentElement.style.display = 'none';
+    } else {
+        // Reset styles for normal users
+        let elsToShow = ['barcode-scan-btn', 'voice-btn', 'btn-add-item', 'btn-pay', 'btn-hold-bill', 'btn-qr-table', 'btn-save-img', 'btn-print'];
+        elsToShow.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.style.display = '';
+        });
+        let advToolbar = document.getElementById('advanced-pos-toolbar');
+        if (advToolbar) advToolbar.style.display = 'flex';
+        
+        let cats = document.querySelector('.product-categories');
+        if (cats) cats.style.display = '';
+        let grid = document.querySelector('.product-grid');
+        if (grid) grid.style.display = 'flex';
+        let mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.style.display = '';
+        
+        let sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.style.flex = '';
+        
+        let staffInput = document.getElementById('staff-name');
+        if (staffInput && staffInput.parentElement) staffInput.parentElement.style.display = 'flex';
+    }
+
     let nav = document.querySelector('.erp-nav');
     let tabs = nav.querySelectorAll('.tab-btn');
     
@@ -3197,6 +3302,7 @@ function saveDB(type) {
                   printer: document.getElementById('perm-printer').checked,
                   report: document.getElementById('perm-report').checked,
                   delete: document.getElementById('perm-delete').checked,
+                  waitstaff: document.getElementById('perm-waitstaff').checked,
                   advanced_pos: document.getElementById('perm-advanced-pos').checked
               }
           };
@@ -3321,6 +3427,7 @@ function editDB(type, id) {
         document.getElementById('perm-printer').checked = perms.printer || false;
         document.getElementById('perm-report').checked = perms.report || false;
         document.getElementById('perm-delete').checked = perms.delete || false;
+        document.getElementById('perm-waitstaff').checked = perms.waitstaff || false;
         document.getElementById('perm-advanced-pos').checked = perms.advanced_pos || false;
       } else if(type === 'customer') {
         document.getElementById('cus-id').value = data.id;
