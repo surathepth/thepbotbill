@@ -2056,8 +2056,9 @@ function loadActiveBillState() {
         document.getElementById('cash-input').value = bill.cashInput || '';
         document.getElementById('slip-bill-number').innerText = bill.billNumber;
 
-        delete heldBills[key];
-        saveHeldBills(heldBills);
+        // [Lilin Modified] ปิดการลบข้อมูลตรงนี้ เพื่อไม่ให้ลูกค้าหลุดตอนดึงบิลมาตรวจสอบ
+        // delete heldBills[key];
+        // saveHeldBills(heldBills);
 
         renderHeldBills();
         document.getElementById('held-bills-container').style.display = 'none';
@@ -2495,6 +2496,16 @@ function loadActiveBillState() {
             changeDue: changeDue,
             billDetails: billDetails
         };
+
+        // [Lilin Added] ลบข้อมูลออกจากคลังเมื่อจบบิล เพื่อเตะลูกค้าออก
+        if (queueNo && queueNo !== "-") {
+            const heldBills = getHeldBills();
+            if (heldBills[queueNo]) {
+                delete heldBills[queueNo];
+                saveHeldBills(heldBills);
+                renderHeldBills();
+            }
+        }
 
         const btnPay = document.getElementById('btn-pay');
         btnPay.innerText = "⏳ กำลังบันทึกข้อมูล...";
