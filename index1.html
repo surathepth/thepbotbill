@@ -3114,7 +3114,8 @@ function doLogin() {
     if (!inputPass) return alert('กรุณากรอกรหัสผ่าน');
     
     if (inputId.toLowerCase() === 'admin') {
-        if (inputPass !== '1234' && inputPass !== 'admin') {
+        // [Lilin Fixed] อนุโลมรหัสผ่านให้บอสเข้าได้ทั้ง 123, 1234 และ admin
+        if (inputPass !== '123' && inputPass !== '1234' && inputPass !== 'admin') {
             return alert('รหัสผ่าน Admin ไม่ถูกต้อง!');
         }
         currentUser = { id: 'admin', name: 'Master Admin', role: 'Admin' };
