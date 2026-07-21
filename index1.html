@@ -2007,11 +2007,12 @@ function loadActiveBillState() {
               <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 text-center" style="border-radius: 20px; padding: 30px 20px;">
                   <h4 class="fw-bold mb-2">QR Code สั่งอาหาร</h4>
-                  <h5 class="text-success mb-3">${queueNo}</h5>
+                  <h5 class="text-success mb-3">โต๊ะ ${queueNo}</h5>
                   <p class="text-muted mb-4" style="font-size:16px;">สแกนเพื่อเปิดเมนูและสั่งอาหารได้ทันที</p>
                   <img src="${qrApi}" alt="QR Code" style="width: 250px; height: 250px; margin: 0 auto; border: 5px solid #2ecc71; border-radius: 10px;">
                   <a href="customer_order.html?table=${encodeURIComponent(queueNo)}" target="_blank" class="mt-4 text-success d-block">เปิดลิงก์ทดสอบสั่งอาหาร (ในคอม)</a>
-                  <button type="button" class="btn btn-outline-success rounded-pill px-4 mt-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                  <button type="button" class="btn btn-primary rounded-pill px-4 mt-4" onclick="printTableQRCode('${queueNo}', '${qrApi}')">🖨️ พิมพ์สลิป QR Code อีกครั้ง</button>
+                  <button type="button" class="btn btn-outline-success rounded-pill px-4 mt-2" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
                 </div>
               </div>
             </div>
@@ -2020,7 +2021,11 @@ function loadActiveBillState() {
         if (oldModal) oldModal.remove();
         document.body.insertAdjacentHTML('beforeend', qrModalHtml);
         new bootstrap.Modal(document.getElementById('qrTableModal')).show();
+        
+        // สั่งพิมพ์ทันที ตามคำสั่งบอส
+        printTableQRCode(queueNo, qrApi);
     });
+
 
     btnRetrieveBill.addEventListener('click', function() {
         const container = document.getElementById('held-bills-container');
@@ -3167,12 +3172,20 @@ function unlockSystem() {
     if (perms.waitstaff) {
         perms.pos = true; // บังคับสิทธิ์ POS อัตโนมัติ (เผื่อบอสลืมติ๊ก)
         document.querySelector('.erp-nav').style.display = 'none'; // ซ่อนเมนูทั้งหมด ล็อกดาวน์หน้าจอ
-
-        let elsToHide = ['barcode-scan-btn', 'voice-btn', 'btn-add-item', 'btn-pay', 'btn-hold-bill', 'advanced-pos-toolbar', 'btn-qr-table', 'btn-save-img', 'btn-print', 'btn-discount', 'customer-search-bar', 'btn-clear-bill'];
+        
+        let elsToHide = [
+            'camera-container', 'btn-start-camera', 'btn-stop-camera', 'btn-add-inventory-manual', 'btn-start-voice', 
+            'btn-add-item', 'btn-pay', 'btn-hold-bill', 'advanced-pos-toolbar', 
+            'btn-save-img', 'btn-print', 'btn-discount', 'customer-search-bar', 'btn-clear-bill'
+        ];
         elsToHide.forEach(id => {
             let el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
+        
+        // Hide the wrappers if they don't have IDs
+        let topActionsWrap = document.getElementById('btn-start-camera');
+        if (topActionsWrap && topActionsWrap.parentElement) topActionsWrap.parentElement.style.display = 'none';
         let cats = document.querySelector('.product-categories');
         if (cats) cats.style.display = 'none';
         let grid = document.querySelector('.product-grid');
@@ -3184,17 +3197,24 @@ function unlockSystem() {
         if (sidebar) sidebar.style.flex = '1';
         
         let billItems = document.getElementById('bill-items');
-        if (billItems) billItems.innerHTML = '<div style="text-align:center; margin-top:20px; color:#7f8c8d; font-weight:bold; font-size:16px;">พนักงานเสิร์ฟ<br><br>👉 กดปุ่ม "ดึงบิลคืน" เพื่อดูออร์เดอร์ของโต๊ะ</div>';
+        if (billItems) billItems.innerHTML = '<div style="text-align:center; margin-top:20px; color:#7f8c8d; font-weight:bold; font-size:16px;">พนักงานเสิร์ฟ<br><br>👉 กรอกหมายเลขโต๊ะในช่อง NO.<br>👉 กดปุ่ม "ดึงบิลคืน" เพื่อดูออร์เดอร์<br>👉 หรือกด "สร้าง QR สั่งอาหาร" เพื่อให้ลูกค้า</div>';
         
         let staffInput = document.getElementById('staff-name');
-        if (staffInput && staffInput.parentElement) staffInput.parentElement.style.display = 'none';
+        // เราไม่ซ่อน parentElement แล้ว เพื่อให้ช่อง NO. (queue-no) ยังคงใช้งานได้
     } else {
         // Reset styles for normal users
-        let elsToShow = ['barcode-scan-btn', 'voice-btn', 'btn-add-item', 'btn-pay', 'btn-hold-bill', 'btn-qr-table', 'btn-save-img', 'btn-print'];
+        let elsToShow = [
+            'camera-container', 'btn-start-camera', 'btn-add-inventory-manual', 'btn-start-voice', 
+            'btn-add-item', 'btn-pay', 'btn-hold-bill', 'btn-qr-table', 'btn-save-img', 'btn-print'
+        ];
         elsToShow.forEach(id => {
             let el = document.getElementById(id);
             if (el) el.style.display = '';
         });
+        
+        let topActionsWrap = document.getElementById('btn-start-camera');
+        if (topActionsWrap && topActionsWrap.parentElement) topActionsWrap.parentElement.style.display = 'flex';
+
         let advToolbar = document.getElementById('advanced-pos-toolbar');
         if (advToolbar) advToolbar.style.display = 'flex';
         
@@ -3650,6 +3670,40 @@ function printReceipt(billData) {
     setTimeout(() => {
         window.print();
     }, 300);
+}
+
+function printTableQRCode(queueNo, qrApi) {
+    const printArea = document.getElementById('receipt-print-area');
+    if (!printArea) return;
+    
+    // ดึงชื่อร้านค้าจาก LocalStorage ถ้ามี
+    let shopName = "My Shop";
+    const shopInfoStr = localStorage.getItem('thep_shop_info');
+    if (shopInfoStr) {
+        try {
+            const info = JSON.parse(shopInfoStr);
+            if (info.name) shopName = info.name;
+        } catch(e){}
+    }
+
+    let printHtml = `
+    <div style="font-family: 'Kanit', sans-serif; text-align: center; padding: 10px; width: 100%; box-sizing: border-box;">
+        <h3 style="margin: 0 0 5px 0;">${shopName}</h3>
+        <h4 style="margin: 0 0 15px 0;">โต๊ะ: ${queueNo}</h4>
+        <div style="font-size: 14px; margin-bottom: 10px;">สแกนเพื่อเปิดเมนูและสั่งอาหาร</div>
+        <img src="${qrApi}" style="width: 150px; height: 150px; margin-bottom: 10px;">
+        <div style="font-size: 12px; border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px;">
+            ขอบคุณที่ใช้บริการ
+        </div>
+    </div>
+    `;
+
+    printArea.innerHTML = printHtml;
+
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => { printArea.innerHTML = ''; }, 500); // Clear after print dialog closes
+    }, 500); // Wait a bit for the image to load
 }
 
 </script>
