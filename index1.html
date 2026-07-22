@@ -2781,17 +2781,33 @@ function loadActiveBillState() {
             }
             document.getElementById('p-slip-crm-total').innerText = fmt(currentPoints - usedPoints + earnedPoints);
         } else {
+            document.getElementById('p-slip-crm').style.display = "none";
+        }
+
         html2canvas(printTemplate, { scale: 2, useCORS: true }).then(canvas => {
             printTemplate.style.display = "none"; 
             const base64Image = canvas.toDataURL("image/png");
             
-            // ใช้การต่อ String แบบคลาสสิก (+) เพื่อความปลอดภัยสูงสุด ป้องกัน Syntax Error จากอักขระพิเศษ 100%
-            const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-            window.location.href = intentUrl;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+                window.location.href = intentUrl;
+            } else {
+                // สำหรับ PC ให้เปิดหน้าต่างใหม่แล้วพิมพ์รูปภาพ หรือใช้ระบบปกติ
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write('<html><head><title>Print Receipt</title></head><body style="margin:0;text-align:center;"><img src="' + base64Image + '" style="max-width:100%;" onload="window.print();window.close();" /></body></html>');
+                    printWindow.document.close();
+                } else {
+                    // ถ้าโดนบล็อก popup ให้ใช้ window.print ธรรมดา
+                    window.print();
+                }
+            }
         }).catch(err => {
             printTemplate.style.display = "none";
-            alert("⚠️ เกิดข้อผิดพลาดในการสร้างรูปใบเสร็จ: " + err.message);
-            window.print(); 
+            alert("⚠️ เกิดข้อผิดพลาดในการสร้างใบเสร็จ: " + err);
+            window.print(); // Fallback ปกติ
         });
     });
 
@@ -3763,9 +3779,8 @@ function printTableQRCode(queueNo, qrApi) {
     printArea.innerHTML = printHtml;
     printArea.style.display = "block"; // แสดงชั่วคราวให้ html2canvas วาดได้ (ถูกซ่อนด้วย CSS อยู่แล้ว)
 
-    // ตรวจสอบว่าเป็น Mobile หรือ PC (แบบใหม่: ถือว่าไม่ใช่ Windows/Mac คือ Mobile POS ทั้งหมด)
-    const isPC = /Windows|Macintosh/i.test(navigator.userAgent);
-    const isMobile = !isPC;
+    // ตรวจสอบว่าเป็น Mobile หรือ PC
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     let imgEl = document.getElementById('qr-img-print');
     
