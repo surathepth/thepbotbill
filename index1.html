@@ -3746,12 +3746,11 @@ function printTableQRCode(queueNo, qrApi) {
     }
 
     let printHtml = `
-    <div id="qr-print-content" style="font-family: 'Kanit', sans-serif; text-align: center; padding: 10px; width: 100%; box-sizing: border-box; background: white;">
+    <div style="font-family: 'Kanit', sans-serif; text-align: center; padding: 10px; width: 100%; box-sizing: border-box;">
         <h3 style="margin: 0 0 5px 0;">${shopName}</h3>
         <h4 style="margin: 0 0 15px 0;">โต๊ะ: ${queueNo}</h4>
         <div style="font-size: 14px; margin-bottom: 10px;">สแกนเพื่อเปิดเมนูและสั่งอาหาร</div>
-        <!-- ใส่ crossorigin และเติม parameter ป้องกัน cache เพื่อให้ html2canvas ดึงภาพได้ 100% -->
-        <img id="qr-img-print" src="${qrApi}&_t=${new Date().getTime()}" style="width: 150px; height: 150px; margin-bottom: 10px;" crossorigin="anonymous">
+        <img src="${qrApi}" style="width: 150px; height: 150px; margin-bottom: 10px;">
         <div style="font-size: 12px; border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px;">
             ขอบคุณที่ใช้บริการ
         </div>
@@ -3759,40 +3758,15 @@ function printTableQRCode(queueNo, qrApi) {
     `;
 
     printArea.innerHTML = printHtml;
-    printArea.style.display = "block"; // แสดงชั่วคราวให้ html2canvas วาดได้ (ถูกซ่อนด้วย CSS อยู่แล้ว)
 
-    // ตรวจสอบว่าเป็น Mobile หรือ PC
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    let imgEl = document.getElementById('qr-img-print');
-    
-    // รอให้รูป QR Code โหลดเสร็จสมบูรณ์ก่อน
-    imgEl.onload = function() {
-        if (isMobile && typeof html2canvas !== 'undefined') {
-            const content = document.getElementById('qr-print-content');
-            // แปลง HTML เป็นรูปภาพแล้วยิงเข้าแอป RawBT
-            html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
-                const base64Image = canvas.toDataURL("image/png");
-                const intentUrl = \`intent:\${base64Image}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;\`;
-                window.location.href = intentUrl;
-                printArea.innerHTML = ''; // ล้างขยะหลังทำเสร็จ
-            }).catch(e => {
-                // ถ้า html2canvas พลาด ให้กลับไปใช้ระบบพิมพ์ปกติ
-                window.print();
-                setTimeout(() => { printArea.innerHTML = ''; }, 3000);
-            });
-        } else {
-            // สำหรับ PC ให้ใช้ระบบพิมพ์ปกติ
-            window.print();
-            setTimeout(() => { printArea.innerHTML = ''; }, 3000); 
-        }
-    };
-    
-    // ถ้าโหลดรูปไม่ขึ้น (Net ตัด) ให้บังคับพิมพ์แบบปกติ
-    imgEl.onerror = function() {
+    // หน่วงเวลาสั้นๆ 150ms เพื่อให้เบราว์เซอร์วาด (Render) ภาพให้เสร็จก่อนส่งเข้ามือถือ
+    // 150ms สั้นพอที่จะไม่โดน Mobile Browser บล็อกว่าเป็น Spam Popup
+    setTimeout(() => {
         window.print();
+        
+        // หน่วงเวลา 3 วินาทีเพื่อให้แอปปริ้นเตอร์บนมือถือ (เช่น RawBT) ดึงภาพไปพิมพ์ได้สำเร็จก่อนล้างหน้าจอ
         setTimeout(() => { printArea.innerHTML = ''; }, 3000); 
-    };
+    }, 150);
 }
 
 </script>
