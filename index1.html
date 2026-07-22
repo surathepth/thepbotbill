@@ -2784,30 +2784,36 @@ function loadActiveBillState() {
             document.getElementById('p-slip-crm').style.display = "none";
         }
 
-        html2canvas(printTemplate, { scale: 2, useCORS: true }).then(canvas => {
+        html2canvas(printTemplate, { scale: 2 }).then(canvas => {
             printTemplate.style.display = "none"; 
-            const base64Image = canvas.toDataURL("image/png");
             
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-                window.location.href = intentUrl;
-            } else {
-                // สำหรับ PC ให้เปิดหน้าต่างใหม่แล้วพิมพ์รูปภาพ หรือใช้ระบบปกติ
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                    printWindow.document.write('<html><head><title>Print Receipt</title></head><body style="margin:0;text-align:center;"><img src="' + base64Image + '" style="max-width:100%;" onload="window.print();window.close();" /></body></html>');
-                    printWindow.document.close();
+            try {
+                // ใช้ image/jpeg แทน image/png เพื่อลดขนาด Base64 ป้องกัน Android Intent ล่ม (TransactionTooLargeException)
+                const base64Image = canvas.toDataURL("image/jpeg", 0.8);
+                
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                    const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+                    window.location.href = intentUrl;
                 } else {
-                    // ถ้าโดนบล็อก popup ให้ใช้ window.print ธรรมดา
-                    window.print();
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write('<html><head><title>Print Receipt</title></head><body style="margin:0;text-align:center;"><img src="' + base64Image + '" style="max-width:100%;" onload="window.print();window.close();" /></body></html>');
+                        printWindow.document.close();
+                    } else {
+                        window.print();
+                    }
                 }
+            } catch (err) {
+                // ถ้าเกิด Tainted Canvas Error (เช่น ติด CORS จากรูป 10001.png)
+                alert("⚠️ ไม่สามารถสร้างรูปใบเสร็จได้ (CORS/Tainted Canvas): " + err.message);
+                window.print();
             }
         }).catch(err => {
             printTemplate.style.display = "none";
-            alert("⚠️ เกิดข้อผิดพลาดในการสร้างใบเสร็จ: " + err);
-            window.print(); // Fallback ปกติ
+            alert("⚠️ เกิดข้อผิดพลาด html2canvas: " + err.message);
+            window.print(); 
         });
     });
 
