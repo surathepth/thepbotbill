@@ -3504,6 +3504,26 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let tableKey in data) {
                 let order = data[tableKey];
                 if (order.hasNewItems) {
+                    // --- ระบบแจ้งเตือน (Notification & Voice) ---
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'info',
+                            title: `🔔 ออร์เดอร์ใหม่ โต๊ะ ${tableKey}`,
+                            text: 'กำลังส่งพิมพ์เข้าครัว...',
+                            showConfirmButton: false,
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+                    }
+                    if ('speechSynthesis' in window) {
+                        let msg = new SpeechSynthesisUtterance(`มีออร์เดอร์ใหม่ โต๊ะ ${tableKey} ค่ะ`);
+                        msg.lang = 'th-TH';
+                        window.speechSynthesis.speak(msg);
+                    }
+                    // --------------------------------------------
+                    
                     printKitchenBill(order);
                     
                     // Mark items as printed
