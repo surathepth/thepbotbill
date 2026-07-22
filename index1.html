@@ -390,6 +390,13 @@
             font-weight: normal;
         }
         /* --- Receipt Printing --- */
+        @media screen {
+            #receipt-print-area {
+                position: absolute;
+                left: -9999px;
+                top: 0;
+            }
+        }
         @media print {
             body * {
                 visibility: hidden;
@@ -3752,10 +3759,11 @@ function printTableQRCode(queueNo, qrApi) {
 
     printArea.innerHTML = printHtml;
 
-    setTimeout(() => {
-        window.print();
-        setTimeout(() => { printArea.innerHTML = ''; }, 500); // Clear after print dialog closes
-    }, 500); // Wait a bit for the image to load
+    // ลบ setTimeout ออก เพื่อไม่ให้ Mobile Browser บล็อกคำสั่งพิมพ์
+    window.print();
+    
+    // หน่วงเวลา 3 วินาทีเพื่อให้แอปปริ้นเตอร์บนมือถือ (เช่น RawBT) ดึงภาพไปพิมพ์ได้สำเร็จก่อนล้างหน้าจอ
+    setTimeout(() => { printArea.innerHTML = ''; }, 3000); 
 }
 
 </script>
