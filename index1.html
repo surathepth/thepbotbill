@@ -3759,11 +3759,14 @@ function printTableQRCode(queueNo, qrApi) {
 
     printArea.innerHTML = printHtml;
 
-    // ลบ setTimeout ออก เพื่อไม่ให้ Mobile Browser บล็อกคำสั่งพิมพ์
-    window.print();
-    
-    // หน่วงเวลา 3 วินาทีเพื่อให้แอปปริ้นเตอร์บนมือถือ (เช่น RawBT) ดึงภาพไปพิมพ์ได้สำเร็จก่อนล้างหน้าจอ
-    setTimeout(() => { printArea.innerHTML = ''; }, 3000); 
+    // หน่วงเวลาสั้นๆ 150ms เพื่อให้เบราว์เซอร์วาด (Render) ภาพให้เสร็จก่อนส่งเข้ามือถือ
+    // 150ms สั้นพอที่จะไม่โดน Mobile Browser บล็อกว่าเป็น Spam Popup
+    setTimeout(() => {
+        window.print();
+        
+        // หน่วงเวลา 3 วินาทีเพื่อให้แอปปริ้นเตอร์บนมือถือ (เช่น RawBT) ดึงภาพไปพิมพ์ได้สำเร็จก่อนล้างหน้าจอ
+        setTimeout(() => { printArea.innerHTML = ''; }, 3000); 
+    }, 150);
 }
 
 </script>
