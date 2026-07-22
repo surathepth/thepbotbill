@@ -2784,37 +2784,62 @@ function loadActiveBillState() {
             document.getElementById('p-slip-crm').style.display = "none";
         }
 
-        html2canvas(printTemplate, { scale: 2 }).then(canvas => {
-            printTemplate.style.display = "none"; 
-            
-            try {
-                // ใช้ image/jpeg แทน image/png เพื่อลดขนาด Base64 ป้องกัน Android Intent ล่ม (TransactionTooLargeException)
-                const base64Image = canvas.toDataURL("image/jpeg", 0.8);
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // ================== ระบบมือถือ (RawBT) ==================
+            // ปรับ scale เป็น 1 และลด quality เป็น 0.5 เพื่อบีบอัด Base64 ให้เล็กที่สุด ป้องกัน Android บล็อกคำสั่ง Intent
+            html2canvas(printTemplate, { scale: 1 }).then(canvas => {
+                printTemplate.style.display = "none"; 
                 
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                
-                if (isMobile) {
+                try {
+                    // ใช้ image/jpeg แทน image/png เพื่อลดขนาด Base64 ป้องกัน Android Intent ล่ม (TransactionTooLargeException)
+                    const base64Image = canvas.toDataURL("image/jpeg", 0.5);
                     const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
                     window.location.href = intentUrl;
-                } else {
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                        printWindow.document.write('<html><head><title>Print Receipt</title></head><body style="margin:0;text-align:center;"><img src="' + base64Image + '" style="max-width:100%;" onload="window.print();window.close();" /></body></html>');
-                        printWindow.document.close();
-                    } else {
-                        window.print();
-                    }
+                } catch (err) {
+                    alert("⚠️ ไม่สามารถสร้างรูปใบเสร็จได้ (CORS/Tainted Canvas): " + err.message);
+                    window.print();
                 }
-            } catch (err) {
-                // ถ้าเกิด Tainted Canvas Error (เช่น ติด CORS จากรูป 10001.png)
-                alert("⚠️ ไม่สามารถสร้างรูปใบเสร็จได้ (CORS/Tainted Canvas): " + err.message);
+            }).catch(err => {
+                printTemplate.style.display = "none";
+                alert("⚠️ เกิดข้อผิดพลาด html2canvas: " + err.message);
+                window.print(); 
+            });
+
+        } else {
+            // ================== ระบบ PC / โน้ตบุ๊ก ==================
+            // พิมพ์ด้วย HTML ปกติแทนการวาดรูป เพื่อให้ข้อความคมชัด และแก้ปัญหาแบ่งหน้ากระดาษ (Image Pagination Bug)
+            printTemplate.style.display = "none";
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+                
+                printWindow.document.write('<html><head><title>Print Receipt</title>');
+                printWindow.document.write('<base href="' + baseUrl + '">');
+                printWindow.document.write('<style>');
+                // @page margin:0 เอา Headers/Footers (about:blank) ออก
+                printWindow.document.write('@page { margin: 0; } ');
+                printWindow.document.write('body { width: 384px; font-family: "Segoe UI", Tahoma, sans-serif; margin: 0 auto; padding: 10px; color: black; } ');
+                printWindow.document.write('.print-header { text-align: center; font-weight: bold; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; } ');
+                printWindow.document.write('.print-header h3 { margin: 0; font-size: 30px; font-weight: 900; } ');
+                printWindow.document.write('.print-header p { margin: 6px 0 0 0; font-size: 18px; font-weight: bold; } ');
+                printWindow.document.write('.print-detail-row { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 6px; } ');
+                printWindow.document.write('.print-items-title { font-weight: bold; font-size: 18px; border-bottom: 2px solid #000; margin-top: 15px; margin-bottom: 8px; padding-bottom: 4px; } ');
+                printWindow.document.write('.print-item-name { font-size: 22px; margin-top: 8px; font-weight: bold; color: black; } ');
+                printWindow.document.write('.print-item-calc { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 6px; } ');
+                printWindow.document.write('.print-total-section { border-top: 2px dashed #000; padding-top: 8px; margin-top: 12px; } ');
+                printWindow.document.write('</style></head><body>');
+                printWindow.document.write(printTemplate.innerHTML);
+                // หน่วงเวลารอโหลดรูปภาพ 10001.png ก่อนสั่งพิมพ์
+                printWindow.document.write('<script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }</script>');
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+            } else {
+                // ถ้าโดนบล็อก Popup 
                 window.print();
             }
-        }).catch(err => {
-            printTemplate.style.display = "none";
-            alert("⚠️ เกิดข้อผิดพลาด html2canvas: " + err.message);
-            window.print(); 
-        });
+        }
     });
 
     // --- ระบบร้านค้า (Shop Info) ---
