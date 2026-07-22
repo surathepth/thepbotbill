@@ -598,7 +598,7 @@
     <!-- Waitstaff View Modal -->
     <div id="waitstaff-view-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px; padding: 20px;">
-            <div class="modal-title" style="color: #e67e22; font-size: 18px; margin-bottom: 15px;">🍽️ รายการอาหาร (รอเสิร์ฟ)</div>
+            <div class="modal-title" style="color: #e67e22; font-size: 18px; margin-bottom: 15px;">🍽️ รายการอาหาร</div>
             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 10px; border-bottom: 2px solid #ccc; padding-bottom: 5px;">
                 <span>โต๊ะ/คิว: <span id="ws-table-no" style="color: #e74c3c;"></span></span>
                 <span>จำนวนรวม: <span id="ws-total-qty" style="color: #2980b9;">0</span></span>
@@ -2010,9 +2010,8 @@ function loadActiveBillState() {
                   <h5 class="text-success mb-3">โต๊ะ ${queueNo}</h5>
                   <p class="text-muted mb-4" style="font-size:16px;">สแกนเพื่อเปิดเมนูและสั่งอาหารได้ทันที</p>
                   <img src="${qrApi}" alt="QR Code" style="width: 250px; height: 250px; margin: 0 auto; border: 5px solid #2ecc71; border-radius: 10px;">
-                  <a href="customer_order.html?table=${encodeURIComponent(queueNo)}" target="_blank" class="mt-4 text-success d-block">เปิดลิงก์ทดสอบสั่งอาหาร (ในคอม)</a>
-                  <button type="button" class="btn btn-primary rounded-pill px-4 mt-4" onclick="printTableQRCode('${queueNo}', '${qrApi}')">🖨️ พิมพ์สลิป QR Code อีกครั้ง</button>
-                  <button type="button" class="btn btn-outline-success rounded-pill px-4 mt-2" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                  <button type="button" onclick="printTableQRCode('${queueNo}', '${qrApi}')" style="background-color: #3498db; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; width: 100%; border-radius: 50px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; opacity: 1;">🖨️ พิมพ์สลิป QR Code อีกครั้ง</button>
+                  <button type="button" class="btn btn-outline-success rounded-pill px-4 mt-3" style="width: 100%; padding: 10px; font-weight: bold;" data-bs-dismiss="modal">❌ ปิดหน้าต่าง</button>
                 </div>
               </div>
             </div>
@@ -2104,20 +2103,34 @@ function loadActiveBillState() {
         let bodyHtml = '';
         let totalQty = 0;
         
+        let totalAmount = 0;
         bill.items.forEach((item, index) => {
-            totalQty += Number(item.qty);
+            let qty = Number(item.qty);
+            let price = Number(item.price);
+            let itemTotal = qty * price;
+            totalQty += qty;
+            totalAmount += itemTotal;
             bodyHtml += `
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding: 8px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 10px 0;">
                 <div style="flex: 1;">
-                    <span style="font-weight:bold; color:#2c3e50;">${index + 1}. ${item.name}</span>
+                    <div style="font-weight:bold; color:#2c3e50; font-size:15px;">${index + 1}. ${item.name}</div>
+                    <div style="font-size:13px; color:#7f8c8d; margin-top:4px;">
+                        ${qty} x ${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
+                    </div>
                 </div>
                 <div style="font-weight:bold; color:#e67e22; font-size:16px;">
-                    x${item.qty}
+                    ${itemTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
             </div>`;
         });
         
-        if (bill.items.length === 0) {
+        if (bill.items.length > 0) {
+            bodyHtml += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0 5px 0; margin-top: 10px; border-top: 2px solid #ccc; font-weight: bold; font-size: 18px;">
+                <span>ยอดรวมทั้งสิ้น:</span>
+                <span style="color: #c0392b;">${totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท</span>
+            </div>`;
+        } else {
             bodyHtml = '<div style="text-align:center; color:#e74c3c; font-weight:bold; padding:20px;">ไม่มีรายการอาหาร</div>';
         }
 
