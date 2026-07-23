@@ -2716,100 +2716,144 @@ function loadActiveBillState() {
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
         const queueNo = document.getElementById('queue-no').value || "-";
+        const staffName = document.getElementById('staff-name').value || "-";
         
         if (items.length === 0) {
             alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
             return;
         }
 
-        const printTemplate = document.getElementById('print-slip-template');
-        printTemplate.style.display = "block"; 
-        
-        document.getElementById('p-slip-bill-number').innerText = billNum;
-        document.getElementById('p-slip-staff-name').innerText = document.getElementById('staff-name').value || "-";
-        document.getElementById('p-slip-queue-number').innerText = queueNo;
-        document.getElementById('p-slip-date').innerText = new Date().toLocaleString('th-TH');
-        
-        let printItemsHtml = "";
+        // ดึงชื่อร้าน
+        let shopName = "My Shop";
+        const shopInfoStr = localStorage.getItem('thep_shop_info');
+        if (shopInfoStr) {
+            try {
+                const info = JSON.parse(shopInfoStr);
+                if (info.name) shopName = info.name;
+            } catch(e){}
+        }
+
+        let itemsHtml = "";
+        let subtotal = 0;
         items.forEach(item => {
             const name = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
             const price = item.querySelector('.price-val').value;
             const qty = item.querySelector('.qty-val').value;
             const total = item.querySelector('.row-total').innerText;
-            printItemsHtml += `
-                <div class="print-item-name">${name}</div>
-                <div class="print-item-calc">
-                    <span>&nbsp;&nbsp;${qty} x ${price}</span>
-                    <span>${total}</span>
+            subtotal += parseFloat(total.replace(/,/g, '')) || 0;
+            
+            itemsHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px; font-size: 14px;">
+                    <div style="flex:1; padding-right:5px; word-break:break-all;">${name}</div>
+                    <div style="white-space:nowrap; text-align:right;">${qty}x${price}<br>${total}</div>
                 </div>
             `;
         });
-        document.getElementById('p-slip-items-list').innerHTML = printItemsHtml;
-        
-        document.getElementById('p-slip-total').innerText = fmt(grandTotal, true) + " บาท";
-        document.getElementById('p-slip-cash').innerText = fmt(cashInput, true) + " บาท";
-        document.getElementById('p-slip-change').innerText = fmt(changeDue, true) + " บาท";
 
-        // CRM Display on Slip
+        // CRM & Discount
         const crmPhone = document.getElementById('crm-phone');
         let discountDisplay = document.getElementById('discount-display');
+        let discountHtml = "";
+        let usedPoints = 0;
         
         if (discountDisplay && discountDisplay.innerText.includes('หักส่วนลดแต้ม: -')) {
-            document.getElementById('p-slip-discount-row').style.display = "flex";
             let discountAmountMatch = discountDisplay.innerText.match(/หักส่วนลดแต้ม: -([\d,\.]+) บาท/);
-            document.getElementById('p-slip-discount').innerText = (discountAmountMatch ? "-" + discountAmountMatch[1] : "0") + " บาท";
-        } else {
-            document.getElementById('p-slip-discount-row').style.display = "none";
+            if (discountAmountMatch) {
+                let discountAmt = discountAmountMatch[1];
+                usedPoints = (parseFloat(discountAmt.replace(/,/g, '')) || 0) * 10;
+                discountHtml = `
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 14px;">
+                        <span>หักส่วนลดแต้ม</span>
+                        <span>-${discountAmt} บาท</span>
+                    </div>
+                `;
+            }
         }
         
+        let crmHtml = "";
         if (crmPhone && crmPhone.hasAttribute('data-customer-id')) {
             const grandTotalNum = parseFloat(grandTotal.replace(/,/g, '')) || 0;
             const earnedPoints = Math.floor(grandTotalNum / 50);
-            document.getElementById('p-slip-crm').style.display = "block";
-            document.getElementById('p-slip-crm-earn').innerText = fmt(earnedPoints);
-            // Calculate total points left by getting current minus used plus earned
+            
             let currentPoints = 0;
-            let usedPoints = 0;
             const pointsStr = document.getElementById('crm-points').innerText;
             currentPoints = parseInt(pointsStr.replace(/,/g, '')) || 0;
-            if (discountDisplay && discountDisplay.innerText.includes('หักส่วนลดแต้ม: -')) {
-                let discountAmountMatch = discountDisplay.innerText.match(/หักส่วนลดแต้ม: -([\d,\.]+) บาท/);
-                if (discountAmountMatch) {
-                    let discountAmount = parseFloat(discountAmountMatch[1].replace(/,/g, '')) || 0;
-                    usedPoints = discountAmount * 10;
-                }
-            }
-            document.getElementById('p-slip-crm-total').innerText = fmt(currentPoints - usedPoints + earnedPoints);
-        } else {
-            document.getElementById('p-slip-crm').style.display = "none";
+            
+            let totalPointsLeft = currentPoints - usedPoints + earnedPoints;
+            
+            crmHtml = `
+                <div style="text-align:center; margin-top:10px; font-size:12px; border-top:1px dashed #000; padding-top:5px;">
+                    ได้รับแต้ม: ${fmt(earnedPoints)} แต้ม<br>
+                    แต้มสะสมคงเหลือ: ${fmt(totalPointsLeft)} แต้ม
+                </div>
+            `;
         }
 
-        html2canvas(printTemplate, { scale: 1, useCORS: true }).then(canvas => {
-            printTemplate.style.display = "none"; 
-            const base64Image = canvas.toDataURL("image/jpeg", 0.5);
-            
-            // ตรวจสอบอุปกรณ์ใหม่: ถ้า "ไม่ใช่" Windows หรือ Mac ให้ฟันธงเลยว่าเป็น POS มือถือ 100%
-            const isPC = /Windows|Macintosh/i.test(navigator.userAgent);
-            
-            if (!isPC) {
-                const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-                window.location.href = intentUrl;
-            } else {
-                // สำหรับ PC ให้เปิดหน้าต่างใหม่แล้วพิมพ์รูปภาพ หรือใช้ระบบปกติ
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                    printWindow.document.write('<html><head><title>Print Receipt</title></head><body style="margin:0;text-align:center;"><img src="' + base64Image + '" style="max-width:100%;" onload="window.print();window.close();" /></body></html>');
-                    printWindow.document.close();
-                } else {
-                    // ถ้าโดนบล็อก popup ให้ใช้ window.print ธรรมดา
+        let printHtml = `
+        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 384px; box-sizing: border-box; color: #000; font-family: 'Kanit', sans-serif;">
+            <div style="text-align:center; margin-bottom:10px;">
+                <div style="font-size:18px; font-weight:bold;">${shopName}</div>
+                <div style="font-size:14px;">ใบเสร็จรับเงิน</div>
+                <div style="font-size:12px; margin-bottom:5px;">NO. ${billNum}</div>
+                <div style="font-size:12px;">${new Date().toLocaleString('th-TH')}</div>
+                <div style="font-size:12px; margin-top:5px;">พนักงาน: ${staffName}</div>
+                <div style="font-size:14px; font-weight:bold; margin-top:5px;">คิว: ${queueNo}</div>
+            </div>
+            <div style="border-top:1px dashed #000; padding:5px 0; border-bottom:1px dashed #000; margin-bottom:5px;">
+                ${itemsHtml}
+            </div>
+            ${discountHtml}
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; margin-top:5px;">
+                <span>ยอดรวม</span>
+                <span>${fmt(grandTotal, true)} บาท</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:14px; margin-top:5px;">
+                <span>รับเงินสด</span>
+                <span>${fmt(cashInput, true)} บาท</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:14px;">
+                <span>เงินทอน</span>
+                <span>${fmt(changeDue, true)} บาท</span>
+            </div>
+            ${crmHtml}
+            <div style="text-align:center; margin-top:15px; margin-bottom:20px;">
+                <div style="margin-bottom: 15px;">
+                    <img src="10001.png" alt="QR Code Payment" style="width: 350px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
+                    <span style="font-size: 22px; font-weight: bold;">สแกนจ่ายเงิน</span>
+                </div>
+                <div style="font-size:12px;">--- ขอบคุณที่ใช้บริการ ---</div>
+                <div style="font-size: 10px; font-weight: normal; margin-top: 5px; color: #555;">
+                    โทร 0987707456, 0949975679<br>
+                    By ThepAgentBill
+                </div>
+            </div>
+        </div>
+        `;
+
+        const printArea = document.getElementById('receipt-print-area');
+        printArea.innerHTML = printHtml;
+        printArea.style.display = "block";
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        setTimeout(() => {
+            if (isMobile && typeof html2canvas !== 'undefined') {
+                const content = document.getElementById('slip-print-content');
+                html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
+                    const base64Image = canvas.toDataURL("image/png");
+                    const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+                    window.location.href = intentUrl;
+                    printArea.innerHTML = '';
+                }).catch(e => {
+                    console.error("html2canvas error:", e);
                     window.print();
-                }
+                    setTimeout(() => { printArea.innerHTML = ''; }, 3000);
+                });
+            } else {
+                window.print();
+                setTimeout(() => { printArea.innerHTML = ''; }, 3000);
             }
-        }).catch(err => {
-            printTemplate.style.display = "none";
-            alert("⚠️ เกิดข้อผิดพลาดในการสร้างใบเสร็จ: " + err);
-            window.print(); // Fallback ปกติ
-        });
+        }, 300);
     });
 
     // --- ระบบร้านค้า (Shop Info) ---
