@@ -2723,13 +2723,15 @@ function loadActiveBillState() {
             return;
         }
 
-        // ดึงชื่อร้าน
+        // ดึงชื่อร้านและที่อยู่
         let shopName = "My Shop";
+        let shopAddress = "69/96 ม.9 ต.ลาดบางตี อ.เก้าเค้า<br>จ.เก้าเค้า 99999 โทร 099-999-9999";
         const shopInfoStr = localStorage.getItem('thep_shop_info');
         if (shopInfoStr) {
             try {
                 const info = JSON.parse(shopInfoStr);
                 if (info.name) shopName = info.name;
+                if (info.address) shopAddress = info.address;
             } catch(e){}
         }
 
@@ -2743,9 +2745,10 @@ function loadActiveBillState() {
             subtotal += parseFloat(total.replace(/,/g, '')) || 0;
             
             itemsHtml += `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px; font-size: 14px;">
-                    <div style="flex:1; padding-right:5px; word-break:break-all;">${name}</div>
-                    <div style="white-space:nowrap; text-align:right;">${qty}x${price}<br>${total}</div>
+                <div class="print-item-name">${name}</div>
+                <div class="print-item-calc">
+                    <span>&nbsp;&nbsp;${qty} x ${price}</span>
+                    <span>${total}</span>
                 </div>
             `;
         });
@@ -2762,8 +2765,8 @@ function loadActiveBillState() {
                 let discountAmt = discountAmountMatch[1];
                 usedPoints = (parseFloat(discountAmt.replace(/,/g, '')) || 0) * 10;
                 discountHtml = `
-                    <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 14px;">
-                        <span>หักส่วนลดแต้ม</span>
+                    <div class="print-detail-row" style="color:#555;">
+                        <span>หักส่วนลดแต้ม:</span>
                         <span>-${discountAmt} บาท</span>
                     </div>
                 `;
@@ -2782,7 +2785,7 @@ function loadActiveBillState() {
             let totalPointsLeft = currentPoints - usedPoints + earnedPoints;
             
             crmHtml = `
-                <div style="text-align:center; margin-top:10px; font-size:12px; border-top:1px dashed #000; padding-top:5px;">
+                <div style="text-align:center; font-size:16px; font-weight:bold; border-top:1px dashed #000; padding-top:10px; margin-top:10px;">
                     ได้รับแต้ม: ${fmt(earnedPoints)} แต้ม<br>
                     แต้มสะสมคงเหลือ: ${fmt(totalPointsLeft)} แต้ม
                 </div>
@@ -2790,39 +2793,47 @@ function loadActiveBillState() {
         }
 
         let printHtml = `
-        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 384px; box-sizing: border-box; color: #000; font-family: 'Kanit', sans-serif;">
-            <div style="text-align:center; margin-bottom:10px;">
-                <div style="font-size:18px; font-weight:bold;">${shopName}</div>
-                <div style="font-size:14px;">ใบเสร็จรับเงิน</div>
-                <div style="font-size:12px; margin-bottom:5px;">NO. ${billNum}</div>
-                <div style="font-size:12px;">${new Date().toLocaleString('th-TH')}</div>
-                <div style="font-size:12px; margin-top:5px;">พนักงาน: ${staffName}</div>
-                <div style="font-size:14px; font-weight:bold; margin-top:5px;">คิว: ${queueNo}</div>
+        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 384px; box-sizing: border-box; color: #000; font-family: 'Segoe UI', Tahoma, sans-serif;">
+            <div class="print-header">
+                <h3>${shopName}</h3>
+                <p>${shopAddress}</p>
             </div>
-            <div style="border-top:1px dashed #000; padding:5px 0; border-bottom:1px dashed #000; margin-bottom:5px;">
+            
+            <div class="print-detail-row"><span>เลขที่บิล:</span><strong>${billNum}</strong></div>
+            <div class="print-detail-row"><span>วันที่:</span><span>${new Date().toLocaleString('th-TH')}</span></div>
+            <div class="print-detail-row"><span>พนักงาน:</span><strong>${staffName}</strong></div>
+            <div class="print-detail-row"><span>คิว:</span><strong>${queueNo}</strong></div>
+            
+            <div class="print-items-title">รายการสินค้า</div>
+            <div>
                 ${itemsHtml}
             </div>
-            ${discountHtml}
-            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; margin-top:5px;">
-                <span>ยอดรวม</span>
-                <span>${fmt(grandTotal, true)} บาท</span>
+            
+            <div class="print-total-section">
+                ${discountHtml}
+                <div class="print-detail-row" style="font-weight: bold; font-size: 20px;">
+                    <span>ยอดรวมทั้งสิ้น:</span>
+                    <span>${fmt(grandTotal, true)} บาท</span>
+                </div>
+                <div class="print-detail-row" style="font-size: 18px;">
+                    <span>รับเงินมา:</span>
+                    <span>${fmt(cashInput, true)} บาท</span>
+                </div>
+                <div class="print-detail-row" style="font-weight: bold; font-size: 18px; color: red;">
+                    <span>เงินทอน:</span>
+                    <span>${fmt(changeDue, true)} บาท</span>
+                </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:14px; margin-top:5px;">
-                <span>รับเงินสด</span>
-                <span>${fmt(cashInput, true)} บาท</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:14px;">
-                <span>เงินทอน</span>
-                <span>${fmt(changeDue, true)} บาท</span>
-            </div>
+            
             ${crmHtml}
-            <div style="text-align:center; margin-top:15px; margin-bottom:20px;">
+            
+            <div class="print-footer" style="margin-top: 40px;">
                 <div style="margin-bottom: 15px;">
                     <img src="10001.png" alt="QR Code Payment" style="width: 350px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
                     <span style="font-size: 22px; font-weight: bold;">สแกนจ่ายเงิน</span>
                 </div>
-                <div style="font-size:12px;">--- ขอบคุณที่ใช้บริการ ---</div>
-                <div style="font-size: 10px; font-weight: normal; margin-top: 5px; color: #555;">
+                --- ขอบคุณที่ใช้บริการ ---<br>
+                <div style="font-size: 12px; font-weight: normal; margin-top: 5px; color: #555;">
                     โทร 0987707456, 0949975679<br>
                     By ThepAgentBill
                 </div>
