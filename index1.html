@@ -2788,9 +2788,10 @@ function loadActiveBillState() {
             printTemplate.style.display = "none"; 
             const base64Image = canvas.toDataURL("image/png");
             
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            // ตรวจสอบอุปกรณ์ใหม่: ถ้า "ไม่ใช่" Windows หรือ Mac ให้ฟันธงเลยว่าเป็น POS มือถือ 100%
+            const isPC = /Windows|Macintosh/i.test(navigator.userAgent);
             
-            if (isMobile) {
+            if (!isPC) {
                 const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
                 window.location.href = intentUrl;
             } else {
