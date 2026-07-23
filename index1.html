@@ -2784,9 +2784,9 @@ function loadActiveBillState() {
             document.getElementById('p-slip-crm').style.display = "none";
         }
 
-        html2canvas(printTemplate, { scale: 2, useCORS: true }).then(canvas => {
+        html2canvas(printTemplate, { scale: 1, useCORS: true }).then(canvas => {
             printTemplate.style.display = "none"; 
-            const base64Image = canvas.toDataURL("image/png");
+            const base64Image = canvas.toDataURL("image/jpeg", 0.5);
             
             // ตรวจสอบอุปกรณ์ใหม่: ถ้า "ไม่ใช่" Windows หรือ Mac ให้ฟันธงเลยว่าเป็น POS มือถือ 100%
             const isPC = /Windows|Macintosh/i.test(navigator.userAgent);
