@@ -2828,9 +2828,10 @@ function loadActiveBillState() {
             ${crmHtml}
             
             <div class="print-footer" style="margin-top: 40px;">
-                <div style="margin-bottom: 15px;">
-                    <img src="10001.png" alt="QR Code Payment" style="width: 350px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
-                    <span style="font-size: 22px; font-weight: bold;">สแกนจ่ายเงิน</span>
+                <div style="margin-bottom: 15px; border-top: 1px dashed #000; padding-top: 15px;">
+                    <span style="font-size: 22px; font-weight: bold;">สแกนโอนเข้าบัญชี</span><br>
+                    <span style="font-size: 16px; font-weight: bold;">ชื่อบัญชี: น.ส. จิระภา พ่อไชยราช</span><br>
+                    <span style="font-size: 16px; font-weight: bold;">บัญชี: xxx-x-x9426-x</span>
                 </div>
                 --- ขอบคุณที่ใช้บริการ ---<br>
                 <div style="font-size: 12px; font-weight: normal; margin-top: 5px; color: #555;">
@@ -2850,8 +2851,9 @@ function loadActiveBillState() {
         setTimeout(() => {
             if (isMobile && typeof html2canvas !== 'undefined') {
                 const content = document.getElementById('slip-print-content');
-                html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
-                    const base64Image = canvas.toDataURL("image/png");
+                // ใช้ scale: 1 และ image/jpeg 0.6 เพื่อป้องกันปัญหา String ขยะใหญ่เกินไป (TransactionTooLargeException) บนมือถือ
+                html2canvas(content, { scale: 1, useCORS: true }).then(canvas => {
+                    const base64Image = canvas.toDataURL("image/jpeg", 0.6);
                     const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
                     window.location.href = intentUrl;
                     printArea.innerHTML = '';
