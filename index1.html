@@ -1155,7 +1155,7 @@
                                     window.print();
                                     setTimeout(function() { window.close(); }, 500);
                                 };
-                            </script>
+                            <\/script>
                         </body>
                     </html>
                 `);
@@ -1174,6 +1174,17 @@
             <input type="text" id="prod-name" placeholder="เช่น ข้าวผัดกะเพรา">
             <label>หมวดหมู่สินค้า</label>
             <input type="text" id="prod-category" placeholder="เช่น อาหาร, เครื่องดื่ม">
+            
+            <label style="color:#d35400; font-weight:bold;">รูปแบบค่าคอมมิชชั่น (ให้พนักงาน)</label>
+            <select id="prod-commission-type" style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+                <option value="none">ไม่มีคอมมิชชั่น</option>
+                <option value="percent">เป็นเปอร์เซ็นต์ (%)</option>
+                <option value="baht">เป็นบาท (฿)</option>
+            </select>
+            
+            <label style="color:#d35400; font-weight:bold;">จำนวนค่าคอมมิชชั่น</label>
+            <input type="number" id="prod-commission-val" placeholder="0" value="0">
+
             <label>วันที่/เวลา บันทึกข้อมูล (เลือกปรับเปลี่ยนได้)</label>
             <input type="datetime-local" id="prod-created">
             <label>หน่วยนับ</label>
@@ -3809,7 +3820,9 @@ function saveDB(type) {
         data = { 
             sku: id, 
             name: document.getElementById('prod-name').value, 
-            category: document.getElementById('prod-category').value || '-',
+            category: document.getElementById('prod-category').value || 'ทั่วไป',
+            commissionType: document.getElementById('prod-commission-type').value || 'none',
+            commissionValue: parseFloat(document.getElementById('prod-commission-val').value) || 0,
             createdAt: createdTime,
             unit: document.getElementById('prod-unit').value, 
             price: document.getElementById('prod-price').value, 
@@ -3944,7 +3957,9 @@ function editDB(type, id) {
     if(type === 'product') {
         document.getElementById('prod-sku').value = data.sku;
         document.getElementById('prod-name').value = data.name;
-        document.getElementById('prod-category').value = data.category || '';
+        document.getElementById('prod-category').value = data.category || 'ทั่วไป';
+        document.getElementById('prod-commission-type').value = data.commissionType || 'none';
+        document.getElementById('prod-commission-val').value = data.commissionValue || 0;
         document.getElementById('prod-created').value = data.createdAt || '';
         document.getElementById('prod-unit').value = data.unit;
         document.getElementById('prod-price').value = data.price;
