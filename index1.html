@@ -509,6 +509,22 @@
                 <label>สต๊อกรับเข้า/คงเหลือ:</label>
                 <input type="number" id="modal-stock" placeholder="0">
             </div>
+            <div class="modal-input-group">
+                <label>หมวดหมู่สินค้า (ประเภท):</label>
+                <input type="text" id="modal-category" placeholder="เช่น อาหาร, เครื่องดื่ม...">
+            </div>
+            <div class="modal-input-group">
+                <label>รูปแบบค่าคอมมิชชั่นพนักงาน:</label>
+                <select id="modal-commission-type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                    <option value="none">ไม่มีคอมมิชชั่น</option>
+                    <option value="percent">% (เปอร์เซ็นต์)</option>
+                    <option value="baht">บาท (ต่อชิ้น)</option>
+                </select>
+            </div>
+            <div class="modal-input-group">
+                <label>จำนวนคอมมิชชั่น:</label>
+                <input type="number" id="modal-commission-val" placeholder="0">
+            </div>
             <button type="button" class="modal-btn-save" id="btn-save-new-item">💾 บันทึก & เพิ่มลงบิลทันที</button>
             <button type="button" class="modal-btn-cancel" id="btn-cancel-modal">❌ ยกเลิก</button>
         </div>
@@ -876,6 +892,277 @@
 
 
     </div> <!-- Close tab-pos -->
+
+    <!-- TAB: Report -->
+    <div id="tab-report" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">📊 ระบบรายงานการขาย</h2>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:12px; color:var(--text-main);">ตั้งแต่วันที่:</label>
+                <input type="date" id="report-start-date" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light); box-sizing: border-box;">
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:12px; color:var(--text-main);">ถึงวันที่:</label>
+                <input type="date" id="report-end-date" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light); box-sizing: border-box;">
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn btn-save" style="background-color: #3498db;" onclick="generateReport('category')">📊 1. รายงานยอดรวมแยกประเภทสินค้า</button>
+            <button class="btn btn-save" style="background-color: #9b59b6;" onclick="generateReport('product')">📊 2. รายงานยอดรวมแยกชื่อสินค้า</button>
+            <button class="btn btn-save" style="background-color: #f39c12;" onclick="generateReport('staff')">📊 3. รายงานยอดรวมแยกพนักงาน (ค่าคอมมิชชั่น)</button>
+        </div>
+
+        <div id="report-result-wrapper" style="display:none; margin-top: 20px;">
+            <div id="report-result-content" style="background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border-light); color: black;"></div>
+            <button class="btn btn-save" style="width: 100%; margin-top: 15px; background-color: #2c3e50;" onclick="printReportDiv()">🖨️ พิมพ์รายงาน (A4)</button>
+        </div>
+
+        <script>
+            // กำหนดวันที่เริ่มต้นให้เป็นวันนี้
+            document.addEventListener('DOMContentLoaded', () => {
+                const today = new Date().toISOString().split('T')[0];
+                const startInput = document.getElementById('report-start-date');
+                const endInput = document.getElementById('report-end-date');
+                if(startInput && endInput) {
+                    startInput.value = today;
+                    endInput.value = today;
+                }
+            });
+
+            function generateReport(type) {
+                const startDateStr = document.getElementById('report-start-date').value;
+                const endDateStr = document.getElementById('report-end-date').value;
+                
+                if (!startDateStr || !endDateStr) {
+                    alert("⚠️ กรุณาเลือกช่วงวันที่ให้ครบถ้วนค่ะ");
+                    return;
+                }
+                
+                const startObj = new Date(startDateStr);
+                startObj.setHours(0,0,0,0);
+                const endObj = new Date(endDateStr);
+                endObj.setHours(23,59,59,999);
+
+                // ดึงข้อมูลการขายจาก local (รองรับระบบ offline ด้วย)
+                let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+                
+                // ดึงข้อมูลการขายจาก Firebase (ถ้าร้านค้าออนไลน์ใช้งาน)
+                if (window.erpData && window.erpData['sales']) {
+                    const fbSales = window.erpData['sales'];
+                    for(let key in fbSales) {
+                        localSales.push([
+                            fbSales[key].date,
+                            fbSales[key].grandTotal,
+                            fbSales[key].cashInput,
+                            fbSales[key].changeDue,
+                            fbSales[key].details,
+                            fbSales[key].itemsJSON || "[]"
+                        ]);
+                    }
+                }
+
+                let filteredSales = [];
+                localSales.forEach(row => {
+                    let dateStr = row[0]; // รูปแบบ "YYYY-MM-DD HH:MM:SS" หรือ "YYYY-MM-DD"
+                    if (!dateStr) return;
+                    let saleDate = new Date(dateStr.replace(' ', 'T'));
+                    if (isNaN(saleDate)) {
+                        // ลองแปลงแบบไทย DD/MM/YYYY
+                        let parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                        } else {
+                            saleDate = new Date(dateStr);
+                        }
+                    }
+                    
+                    if (saleDate >= startObj && saleDate <= endObj) {
+                        filteredSales.push(row);
+                    }
+                });
+
+                let html = "";
+                let grandTotalAll = 0;
+
+                if (type === 'category') {
+                    let summary = {};
+                    filteredSales.forEach(row => {
+                        let itemsJSON = row[5];
+                        if (itemsJSON) {
+                            try {
+                                let items = JSON.parse(itemsJSON);
+                                items.forEach(item => {
+                                    let cat = item.category || "ทั่วไป";
+                                    let totalLine = parseFloat(item.price) * parseInt(item.qty);
+                                    if(!summary[cat]) summary[cat] = { qty: 0, total: 0 };
+                                    summary[cat].qty += parseInt(item.qty);
+                                    summary[cat].total += totalLine;
+                                    grandTotalAll += totalLine;
+                                });
+                            } catch(e){}
+                        }
+                    });
+                    
+                    html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกประเภทสินค้า</h3>`;
+                    html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+                    html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #333;">
+                                        <th style="padding:8px;">ประเภทสินค้า</th>
+                                        <th style="padding:8px; text-align:right;">จำนวนขาย</th>
+                                        <th style="padding:8px; text-align:right;">ยอดรวม (บาท)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    for (let cat in summary) {
+                        html += `<tr style="border-bottom: 1px solid #ddd;">
+                                    <td style="padding:8px;">${cat}</td>
+                                    <td style="padding:8px; text-align:right;">${summary[cat].qty.toLocaleString()}</td>
+                                    <td style="padding:8px; text-align:right;">${summary[cat].total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                 </tr>`;
+                    }
+                    html += `</tbody></table>`;
+                    html += `<h4 style="text-align:right; margin-top:15px;">ยอดขายรวมทั้งสิ้น: ${grandTotalAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
+                } 
+                else if (type === 'product') {
+                    let summary = {};
+                    filteredSales.forEach(row => {
+                        let itemsJSON = row[5];
+                        if (itemsJSON) {
+                            try {
+                                let items = JSON.parse(itemsJSON);
+                                items.forEach(item => {
+                                    let name = item.name || "ไม่มีชื่อ";
+                                    let totalLine = parseFloat(item.price) * parseInt(item.qty);
+                                    if(!summary[name]) summary[name] = { qty: 0, total: 0 };
+                                    summary[name].qty += parseInt(item.qty);
+                                    summary[name].total += totalLine;
+                                    grandTotalAll += totalLine;
+                                });
+                            } catch(e){}
+                        }
+                    });
+
+                    // Sort by total descending
+                    let sortedArray = Object.keys(summary).map(key => {
+                        return { name: key, ...summary[key] };
+                    }).sort((a, b) => b.total - a.total);
+
+                    html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกชื่อสินค้า</h3>`;
+                    html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+                    html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #333;">
+                                        <th style="padding:8px;">ชื่อสินค้า</th>
+                                        <th style="padding:8px; text-align:right;">จำนวนขาย</th>
+                                        <th style="padding:8px; text-align:right;">ยอดรวม (บาท)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    sortedArray.forEach(item => {
+                        html += `<tr style="border-bottom: 1px solid #ddd;">
+                                    <td style="padding:8px;">${item.name}</td>
+                                    <td style="padding:8px; text-align:right;">${item.qty.toLocaleString()}</td>
+                                    <td style="padding:8px; text-align:right;">${item.total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                 </tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    html += `<h4 style="text-align:right; margin-top:15px;">ยอดขายรวมทั้งสิ้น: ${grandTotalAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
+                }
+                else if (type === 'staff') {
+                    let summary = {};
+                    let grandCommissionAll = 0;
+                    filteredSales.forEach(row => {
+                        let itemsJSON = row[5];
+                        if (itemsJSON) {
+                            try {
+                                let items = JSON.parse(itemsJSON);
+                                items.forEach(item => {
+                                    let sName = item.staffName || "ไม่ได้ระบุ";
+                                    let totalLine = parseFloat(item.price) * parseInt(item.qty);
+                                    let comm = parseFloat(item.calculatedCommission) || 0;
+                                    if(!summary[sName]) summary[sName] = { qty: 0, total: 0, commission: 0 };
+                                    summary[sName].qty += parseInt(item.qty);
+                                    summary[sName].total += totalLine;
+                                    summary[sName].commission += comm;
+                                    grandTotalAll += totalLine;
+                                    grandCommissionAll += comm;
+                                });
+                            } catch(e){}
+                        }
+                    });
+
+                    html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกพนักงาน & ค่าคอมมิชชั่น</h3>`;
+                    html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+                    html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #333;">
+                                        <th style="padding:8px;">ชื่อพนักงาน</th>
+                                        <th style="padding:8px; text-align:right;">จำนวนสินค้า</th>
+                                        <th style="padding:8px; text-align:right;">ยอดขาย (บาท)</th>
+                                        <th style="padding:8px; text-align:right; color: #c0392b;">คอมมิชชั่น (บาท)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    for (let sName in summary) {
+                        html += `<tr style="border-bottom: 1px solid #ddd;">
+                                    <td style="padding:8px;">${sName}</td>
+                                    <td style="padding:8px; text-align:right;">${summary[sName].qty.toLocaleString()}</td>
+                                    <td style="padding:8px; text-align:right;">${summary[sName].total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                    <td style="padding:8px; text-align:right; font-weight:bold; color: #c0392b;">${summary[sName].commission.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                 </tr>`;
+                    }
+                    html += `</tbody></table>`;
+                    html += `<h4 style="text-align:right; margin-top:15px;">ยอดขายรวม: ${grandTotalAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
+                    html += `<h4 style="text-align:right; color: #c0392b; margin-top:5px;">ยอดคอมมิชชั่นรวม: ${grandCommissionAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
+                }
+
+                if (filteredSales.length === 0 || grandTotalAll === 0) {
+                    html = `<p style="text-align:center; color: #7f8c8d; font-style:italic; padding: 30px;">ไม่พบข้อมูลการขายในช่วงวันที่ที่เลือก หรือข้อมูลเก่าไม่มีการแยกสินค้า (Backward Compatibility)</p>`;
+                }
+
+                document.getElementById('report-result-content').innerHTML = html;
+                document.getElementById('report-result-wrapper').style.display = "block";
+            }
+
+            function printReportDiv() {
+                const printContent = document.getElementById('report-result-content').innerHTML;
+                const printWindow = window.open('', '_blank');
+                
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>พิมพ์รายงาน - ThepAgentBill</title>
+                            <style>
+                                body { font-family: 'Sarabun', 'Prompt', sans-serif; padding: 20px; color: black; }
+                                table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                                th, td { border: 1px solid #ddd; padding: 8px; }
+                                th { background-color: #f2f2f2; }
+                                @media print {
+                                    button { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${printContent}
+                            <script>
+                                window.onload = function() {
+                                    window.print();
+                                    setTimeout(function() { window.close(); }, 500);
+                                };
+                            </script>
+                        </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            }
+        </script>
+    </div>
 
     <!-- TAB: Product DB -->
     <div id="tab-product" class="tab-content">
@@ -1445,12 +1732,21 @@
     const modalName = document.getElementById('modal-name');
     const modalPrice = document.getElementById('modal-price');
     const modalStock = document.getElementById('modal-stock');
+    const modalCategory = document.getElementById('modal-category');
+    const modalCommissionType = document.getElementById('modal-commission-type');
+    const modalCommissionVal = document.getElementById('modal-commission-val');
     
+    // Global fallback if not declared earlier
+    window.productDB = window.productDB || JSON.parse(localStorage.getItem('thep_product_db')) || {};
+
     function openNewItemModal(barcode) {
         modalBarcode.value = barcode;
         modalName.value = "";
         modalPrice.value = "";
         modalStock.value = "0";
+        modalCategory.value = "ทั่วไป";
+        modalCommissionType.value = "none";
+        modalCommissionVal.value = "0";
         modalOverlay.style.display = "flex";
         modalName.focus();
     }
@@ -1469,6 +1765,9 @@
         const name = modalName.value.trim();
         const price = parseFloat(modalPrice.value);
         const stock = parseFloat(modalStock.value) || 0;
+        const category = modalCategory.value.trim() || "ทั่วไป";
+        const commissionType = modalCommissionType.value;
+        const commissionValue = parseFloat(modalCommissionVal.value) || 0;
 
         if (name === "" || isNaN(price)) {
             alert("⚠️ กรุณาระบุชื่อสินค้าและราคาให้ถูกต้องค่ะ");
@@ -1479,8 +1778,18 @@
         const isVip = localStorage.getItem('thep_is_vip') === 'true';
 
         const barcode = modalBarcode.value;
-        productDB[barcode] = { name: name, price: price, stock: stock };
-        localStorage.setItem('thep_product_db', JSON.stringify(productDB));
+        if (typeof productDB === 'undefined') { window.productDB = window.productDB || {}; }
+        let targetDB = (typeof productDB !== 'undefined') ? productDB : window.productDB;
+        
+        targetDB[barcode] = { 
+            name: name, 
+            price: price, 
+            stock: stock,
+            category: category,
+            commissionType: commissionType,
+            commissionValue: commissionValue
+        };
+        localStorage.setItem('thep_product_db', JSON.stringify(targetDB));
         updateProductDatalist();
 
         addProductToBill(name, price);
@@ -2591,7 +2900,8 @@ function loadActiveBillState() {
             grandTotal: grandTotal,
             cashInput: cashInput,
             changeDue: changeDue,
-            billDetails: billDetails
+            billDetails: billDetails,
+            itemsJSON: JSON.stringify(printBillData.items)
         };
 
         // [Lilin Added] ลบข้อมูลออกจากคลังเมื่อจบบิล เพื่อเตะลูกค้าออก
@@ -2665,11 +2975,44 @@ function loadActiveBillState() {
             earnedPoints: crmEarnedPoints,
             totalPoints: crmCustomerId ? (currentPointsUi - crmUsedPoints + crmEarnedPoints) : 0
         };
+        let staffName = document.getElementById('staff-name') ? document.getElementById('staff-name').value : "";
+        let currentProductDB = window.productDB || {}; // Use memory DB
+        
         items.forEach(item => {
+            let pName = item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ";
+            let pPrice = parseFloat(item.querySelector('.price-val').value) || 0;
+            let pQty = parseInt(item.querySelector('.qty-val').value) || 1;
+            
+            // หา category และ commission จาก productDB โดยแมพจากชื่อสินค้า
+            let pCat = "ทั่วไป";
+            let cType = "none";
+            let cVal = 0;
+            for (let barcode in currentProductDB) {
+                if (currentProductDB[barcode].name === pName) {
+                    pCat = currentProductDB[barcode].category || "ทั่วไป";
+                    cType = currentProductDB[barcode].commissionType || "none";
+                    cVal = parseFloat(currentProductDB[barcode].commissionValue) || 0;
+                    break;
+                }
+            }
+            
+            // คำนวณคอมมิชชั่น
+            let calcComm = 0;
+            if (cType === 'percent') {
+                calcComm = (pPrice * pQty) * (cVal / 100);
+            } else if (cType === 'baht') {
+                calcComm = cVal * pQty;
+            }
+
             printBillData.items.push({
-                name: item.querySelector('.name-val').value || "สินค้าไม่มีชื่อ",
-                price: item.querySelector('.price-val').value,
-                qty: item.querySelector('.qty-val').value
+                name: pName,
+                price: pPrice,
+                qty: pQty,
+                category: pCat,
+                commissionType: cType,
+                commissionValue: cVal,
+                calculatedCommission: calcComm,
+                staffName: staffName
             });
         });
 
@@ -2683,7 +3026,8 @@ function loadActiveBillState() {
                 grandTotal, 
                 cashInput, 
                 changeDue, 
-                billDetails
+                billDetails,
+                JSON.stringify(printBillData.items)
             ];
             
             let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
@@ -3550,6 +3894,12 @@ function loadDB(type) {
         if (type === 'table') {
             updateTableDatalist();
         } else if (type === 'product') {
+            // Backward Compatibility: เติมค่า category และ commission ให้กับข้อมูลเก่า
+            for (let pId in db) {
+                if (!db[pId].category) db[pId].category = "ทั่วไป";
+                if (!db[pId].commissionType) db[pId].commissionType = "none";
+                if (typeof db[pId].commissionValue === 'undefined') db[pId].commissionValue = 0;
+            }
             if (typeof updateProductDatalist === 'function') updateProductDatalist();
         } else if (type === 'employee') {
             if (typeof updateStaffDatalist === 'function') updateStaffDatalist();
