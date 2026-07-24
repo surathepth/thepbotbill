@@ -965,16 +965,24 @@
 
                 let filteredSales = [];
                 localSales.forEach(row => {
-                    let dateStr = row[0]; // รูปแบบ "YYYY-MM-DD HH:MM:SS" หรือ "YYYY-MM-DD"
+                    let dateStr = row[0]; // รูปแบบ "YYYY-MM-DD HH:MM:SS" หรือ "DD/MM/YYYY HH:MM:SS"
                     if (!dateStr) return;
                     let saleDate = new Date(dateStr.replace(' ', 'T'));
+                    
                     if (isNaN(saleDate)) {
-                        // ลองแปลงแบบไทย DD/MM/YYYY
-                        let parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                        } else {
-                            saleDate = new Date(dateStr);
+                        let dateTimeParts = dateStr.split(' ');
+                        let dPart = dateTimeParts[0]; // "25/07/2026"
+                        let tPart = dateTimeParts[1] || "00:00:00";
+                        
+                        if (dPart.includes('/')) {
+                            let parts = dPart.split('/');
+                            if (parts.length === 3) {
+                                saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${tPart}`);
+                            }
+                        }
+                        
+                        if (isNaN(saleDate)) {
+                            saleDate = new Date(dateStr); // Fallback
                         }
                     }
                     
