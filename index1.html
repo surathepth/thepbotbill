@@ -613,6 +613,8 @@
             <div id="waitstaff-view-body" style="margin-bottom: 20px; text-align: left; max-height: 350px; overflow-y: auto; font-size: 14px; line-height: 1.6;">
                 <!-- Dynamic content -->
             </div>
+            <!-- [Lilin Update] ปุ่มนำบิลไปคิดเงิน สำหรับแคชเชียร์/แอดมิน -->
+            <button type="button" id="ws-btn-checkout" style="display: none; background-color: #2ecc71; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; margin-bottom: 10px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🛒 นำบิลนี้ไปคิดเงิน</button>
             <button type="button" class="modal-btn-cancel" onclick="document.getElementById('waitstaff-view-modal').style.display='none'" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold;">❌ ปิดหน้าต่าง</button>
         </div>
     </div>
@@ -2066,11 +2068,8 @@ function loadActiveBillState() {
             btn.style.display = 'inline-block';
             btn.innerText = `📎 NO. ${bill.queueNo} (${bill.time})`;
             btn.addEventListener('click', function() {
-                if (currentUser && currentUser.permissions && currentUser.permissions.waitstaff) {
-                    viewHeldBillOnly(key);
-                } else {
-                    restoreHeldBill(key);
-                }
+                // [Lilin Update] บังคับให้ทุกคนกดแล้วเด้งหน้าต่างสรุปบิล (Modal) ขึ้นมาก่อน
+                viewHeldBillOnly(key);
             });
             listContainer.appendChild(btn);
         });
@@ -2144,6 +2143,21 @@ function loadActiveBillState() {
         document.getElementById('ws-total-qty').innerText = totalQty;
         document.getElementById('waitstaff-view-body').innerHTML = bodyHtml;
         
+        // [Lilin Update] เช็คสิทธิ์แคชเชียร์/แอดมิน เพื่อแสดงปุ่ม "นำบิลไปคิดเงิน"
+        let btnCheckout = document.getElementById('ws-btn-checkout');
+        if (btnCheckout) {
+            // เช็คว่ามีสิทธิ์รับเงิน/ขาย (pos) หรือเป็นแอดมิน
+            if (currentUser && currentUser.permissions && (currentUser.permissions.pos || currentUser.permissions.advanced_pos || currentUser.permissions.dashboard)) {
+                btnCheckout.style.display = 'block';
+                btnCheckout.onclick = function() {
+                    document.getElementById('waitstaff-view-modal').style.display = 'none';
+                    restoreHeldBill(key);
+                };
+            } else {
+                btnCheckout.style.display = 'none';
+            }
+        }
+
         // ซ่อนคอนเทนเนอร์รายการบิล
         document.getElementById('held-bills-container').style.display = 'none';
         // เปิดหน้าต่าง Modal อ่านบิลอย่างเดียว
