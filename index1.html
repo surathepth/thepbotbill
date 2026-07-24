@@ -2914,15 +2914,6 @@ function loadActiveBillState() {
             billDetails += `${name} (${price}x${qty}=${total}) | `;
         });
 
-        const payload = {
-            billNumber: billNum,
-            grandTotal: grandTotal,
-            cashInput: cashInput,
-            changeDue: changeDue,
-            billDetails: billDetails,
-            itemsJSON: JSON.stringify(printBillData.items)
-        };
-
         // [Lilin Added] ลบข้อมูลออกจากคลังเมื่อจบบิล เพื่อเตะลูกค้าออก
         if (queueNo && queueNo !== "-") {
             const heldBills = getHeldBills();
@@ -3034,6 +3025,15 @@ function loadActiveBillState() {
                 staffName: staffName
             });
         });
+
+        const payload = {
+            billNumber: billNum,
+            grandTotal: grandTotal,
+            cashInput: cashInput,
+            changeDue: changeDue,
+            billDetails: billDetails,
+            itemsJSON: JSON.stringify(printBillData.items)
+        };
 
         if (!WEB_APP_URL) { // 🔹 Local Standalone: บันทึกยอดลงหน้าต่างแอดมิน
             // สร้างโครงสร้างแถวข้อมูลให้เหมือน Google Sheet: [วันที่, ยอดรวม, รับเงิน, เงินทอน, รายละเอียด]
