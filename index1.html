@@ -2188,7 +2188,7 @@ function loadActiveBillState() {
             if(!row[0] || !row[1]) return;
 
             let rowDateStr = row[0].toString(); // รองรับรูปแบบที่หลากหลายจาก Google Sheets
-            let totalAmount = parseFloat(row[1]) || 0;
+            let totalAmount = parseFloat(row[1].toString().replace(/,/g, '')) || 0;
             let details = row[4] ? row[4].toString() : "";
 
             // 🛠️ แก้ไข A1: ลอจิกแปลงวันที่ให้แม่นยำขึ้น รองรับหลายฟอร์แมต (ISO, ไทย DD/MM/YYYY)
@@ -2340,7 +2340,7 @@ function loadActiveBillState() {
             if(!row[0] || !row[1]) return;
 
             let rowDateStr = row[0].toString();
-            let totalAmount = parseFloat(row[1]) || 0;
+            let totalAmount = parseFloat(row[1].toString().replace(/,/g, '')) || 0;
             let details = row[4] ? row[4].toString() : "";
 
             // สกัดหาเลข NO. คิว/โต๊ะ
@@ -3116,11 +3116,11 @@ function loadActiveBillState() {
             const rStaff = row[5] || (row[4].match(/พนักงาน:\s(.*?)\s\|/)?.[1]) || "ไม่ระบุ";
             if (filterStaff && rStaff !== filterStaff) return;
             
-            totalSales += parseFloat(row[1]);
+            totalSales += parseFloat(row[1].toString().replace(/,/g, '')) || 0;
             
             const queueMatch = row[4].match(/NO:\s(.*?)\s\|/);
             const rQueue = queueMatch ? queueMatch[1] : "-";
-            tableMap[rQueue] = (tableMap[rQueue] || 0) + parseFloat(row[1]);
+            tableMap[rQueue] = (tableMap[rQueue] || 0) + parseFloat(row[1].toString().replace(/,/g, '')) || 0;
             
             // Extract items: "Name (Price x Qty = Total) | "
             const itemMatches = row[4].matchAll(/\|\s*(.*?)\s\((.*?)\s*x\s*(.*?)\s*=\s*(.*?)\)/g);
