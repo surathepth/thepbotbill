@@ -2730,7 +2730,19 @@ function loadActiveBillState() {
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
         const queueNo = document.getElementById('queue-no').value || "-";
-        const staffName = document.getElementById('staff-name').value || "-";
+        const rawStaffName = document.getElementById('staff-name').value || "-";
+        
+        // ตัดรหัสพนักงานทิ้ง เอาเฉพาะชื่อ
+        const staffName = rawStaffName.split(' ')[0] || rawStaffName;
+
+        // ดึงชื่อโต๊ะแทนรหัสโต๊ะ
+        let tableName = queueNo;
+        if (window.erpData && window.erpData['table']) {
+            const tableObj = window.erpData['table'][queueNo];
+            if (tableObj && tableObj.name) {
+                tableName = tableObj.name;
+            }
+        }
         
         if (items.length === 0) {
             alert('⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ');
@@ -2748,6 +2760,10 @@ function loadActiveBillState() {
                 if (info.address) shopAddress = info.address;
             } catch(e){}
         }
+        // แทรก 47000 ต่อท้าย จ.สกลนคร อัตโนมัติ หากยังไม่มี
+        if (shopAddress.includes("จ.สกลนคร") && !shopAddress.includes("47000")) {
+            shopAddress = shopAddress.replace("จ.สกลนคร", "จ.สกลนคร 47000");
+        }
 
         let itemsHtml = "";
         let subtotal = 0;
@@ -2761,8 +2777,8 @@ function loadActiveBillState() {
             itemsHtml += `
                 <div class="print-item-name">${name}</div>
                 <div class="print-item-calc">
-                    <span>&nbsp;&nbsp;${qty} x ${price}</span>
-                    <span>${total}</span>
+                    <span style="font-size: 22px; font-weight: bold;">&nbsp;&nbsp;${qty} x ${price}</span>
+                    <span style="font-size: 22px; font-weight: bold;">${total}</span>
                 </div>
             `;
         });
@@ -2816,7 +2832,7 @@ function loadActiveBillState() {
             <div class="print-detail-row"><span>เลขที่บิล:</span><strong>${billNum}</strong></div>
             <div class="print-detail-row"><span>วันที่:</span><span>${new Date().toLocaleString('th-TH')}</span></div>
             <div class="print-detail-row"><span>พนักงาน:</span><strong>${staffName}</strong></div>
-            <div class="print-detail-row"><span>โต๊ะ:</span><strong>${queueNo}</strong></div>
+            <div class="print-detail-row"><span>โต๊ะ:</span><strong style="font-size: 32px; font-weight: 900; line-height: 1;">${tableName}</strong></div>
             
             <div class="print-items-title">รายการสินค้า</div>
             <div>
@@ -2825,7 +2841,7 @@ function loadActiveBillState() {
             
             <div class="print-total-section">
                 ${discountHtml}
-                <div class="print-detail-row" style="font-weight: bold; font-size: 20px;">
+                <div class="print-detail-row" style="font-weight: bold; font-size: 28px;">
                     <span>ยอดรวมทั้งสิ้น:</span>
                     <span>${fmt(grandTotal, true)} บาท</span>
                 </div>
