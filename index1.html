@@ -2701,6 +2701,11 @@ function loadActiveBillState() {
                     }
                 }
                 
+                // 🛠️ แก้ไข: แปลง พ.ศ. เป็น ค.ศ. เพื่อให้ตารางประวัติบิลค้นหาข้อมูลเจอ (ป้องกัน 2569 vs 2026)
+                if (rY > 2500) {
+                    rY -= 543;
+                }
+                
                 let rowFormattedDate = `${rY}-${String(rM).padStart(2,'0')}-${String(rD).padStart(2,'0')}`;
                 if (rowFormattedDate !== filterDate) return;
             }
