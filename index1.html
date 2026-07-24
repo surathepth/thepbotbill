@@ -2732,8 +2732,20 @@ function loadActiveBillState() {
         const queueNo = document.getElementById('queue-no').value || "-";
         const rawStaffName = document.getElementById('staff-name').value || "-";
         
-        // ตัดรหัสพนักงานทิ้ง เอาเฉพาะชื่อ
-        const staffName = rawStaffName.split(' ')[0] || rawStaffName;
+        // แก้ไข: ดึงเฉพาะชื่อพนักงานอย่างแม่นยำ
+        let staffName = rawStaffName;
+        let empDB = (window.erpData && window.erpData['employee']) ? window.erpData['employee'] : {};
+        let codePart = rawStaffName.split(' ')[0]; // สกัดส่วนแรกเผื่อเป็นรหัส เช่น "0003"
+        
+        if (empDB[codePart]) {
+            staffName = empDB[codePart].name || staffName;
+        } else if (empDB[rawStaffName]) {
+            staffName = empDB[rawStaffName].name || staffName;
+        } else if (rawStaffName.includes(' - ')) {
+            staffName = rawStaffName.split(' - ')[1].trim(); // เช่น "0003 - สุรเทพ" -> "สุรเทพ"
+        } else {
+            staffName = rawStaffName.split(' ')[0];
+        }
 
         // ดึงชื่อโต๊ะแทนรหัสโต๊ะ
         let tableName = queueNo;
@@ -2763,6 +2775,11 @@ function loadActiveBillState() {
         // แทรก 47000 ต่อท้าย จ.สกลนคร อัตโนมัติ หากยังไม่มี
         if (shopAddress.includes("จ.สกลนคร") && !shopAddress.includes("47000")) {
             shopAddress = shopAddress.replace("จ.สกลนคร", "จ.สกลนคร 47000");
+        }
+        
+        // แทรกเบอร์โทร อัตโนมัติ หากยังไม่มี
+        if (!shopAddress.includes("080-465") && !shopAddress.includes("080465")) {
+            shopAddress += "<br>โทร 080-465-6399";
         }
 
         let itemsHtml = "";
