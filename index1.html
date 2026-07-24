@@ -986,6 +986,11 @@
                         }
                     }
                     
+                    // แปลง พ.ศ. เป็น ค.ศ. เพื่อให้เปรียบเทียบช่วงวันที่ได้ถูกต้อง (กรณีเครื่องบันทึกปีเป็น 2569)
+                    if (!isNaN(saleDate) && saleDate.getFullYear() > 2500) {
+                        saleDate.setFullYear(saleDate.getFullYear() - 543);
+                    }
+                    
                     if (saleDate >= startObj && saleDate <= endObj) {
                         filteredSales.push(row);
                     }
