@@ -1185,8 +1185,23 @@
                         totalTransfer += tr;
                     });
                     
-                    let startingCashStr = localStorage.getItem('thep_starting_cash_' + startDateStr);
-                    let startingCash = startingCashStr ? parseFloat(startingCashStr) : 0;
+                    // 🛠️ [ADDITIVE] ตรวจสอบและแปลงปี พ.ศ. เป็น ค.ศ. สำหรับเป็นกุญแจค้นหายอดเงินตั้งต้น
+                    let searchDate = startDateStr;
+                    let dateParts = startDateStr.split('-');
+                    if (dateParts.length === 3 && parseInt(dateParts[0]) > 2500) {
+                        dateParts[0] = (parseInt(dateParts[0]) - 543).toString();
+                        searchDate = dateParts.join('-');
+                    }
+                    
+                    let startingCash = 0;
+                    // 1. ดึงจาก Firebase (Cross-Device Sync) เป็นหลัก
+                    if (window.erpData && window.erpData['drawer_cash'] && window.erpData['drawer_cash'][searchDate]) {
+                        startingCash = parseFloat(window.erpData['drawer_cash'][searchDate].amount) || 0;
+                    } else {
+                        // 2. ถ้าหาใน Firebase ไม่เจอ ให้ลองหาจาก LocalStorage (Fallback สำหรับโหมด Offline)
+                        let startingCashStr = localStorage.getItem('thep_starting_cash_' + searchDate);
+                        startingCash = startingCashStr ? parseFloat(startingCashStr) : 0;
+                    }
                     
                     let netCashToSubmit = totalSales - totalTransfer; // ยอดนำส่งสุทธิ (ยอดขายรวม ลบ ยอดโอน)
                     let totalCashInDrawer = netCashToSubmit + startingCash; // ยอดเงินสดที่ต้องมีในลิ้นชักจริงๆ
@@ -1200,8 +1215,8 @@
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>2. ยอดเงินรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #2980b9; font-weight: bold;">${totalSales.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalCashInput.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
-                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>5. ยอดจำนวนเงินทอนเข้าลิ้นชัก:</strong></td><td style="text-align:right; color: #e74c3c;">- ${totalChangeDue.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
-                    html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>6. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">+ ${startingCash.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>5. ยอดจำนวนเงินทอนเข้าลิ้นชัก:</strong></td><td style="text-align:right; color: #e74c3c;">${totalChangeDue.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>6. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
                     html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>7. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>8. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
@@ -4226,6 +4241,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // 🛠️ [ADDITIVE] ดึงข้อมูลยอดเงินตั้งต้นลิ้นชัก (Drawer Cash) แบบ Realtime เพื่อซิงก์ข้ามเครื่อง
+        database.ref('erp_db_drawer_cash').on('value', (snapshot) => {
+            let data = snapshot.val() || {};
+            window.erpData = window.erpData || {};
+            window.erpData['drawer_cash'] = data;
+        });
 
         database.ref('erp_db_orders').on('value', (snapshot) => {
             let data = snapshot.val() || {};
@@ -4503,7 +4524,9 @@ function promptStartingCash() {
     let amountStr = prompt("💵 กรุณากรอกจำนวนเงินทอนตั้งต้น (เงินลอย) ในลิ้นชัก สำหรับวันนี้ (" + today + "):", currentCash);
     
     if (amountStr !== null) { // User didn't click Cancel
-        let amount = parseFloat(amountStr);
+        // 🛠️ [ADDITIVE] ลบลูกน้ำ (comma) ออกก่อนแปลงเป็นตัวเลข เพื่อป้องกันค่าผิดพลาด
+        let amountStrClean = amountStr.replace(/,/g, '');
+        let amount = parseFloat(amountStrClean);
         if (!isNaN(amount) && amount >= 0) {
             // Save locally
             localStorage.setItem('thep_starting_cash_' + today, amount);
