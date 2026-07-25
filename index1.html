@@ -690,6 +690,21 @@
             <span>ยอดโอน (สแกนจ่าย):</span>
             <div style="text-align: right; flex-grow: 1;"><input type="number" id="transfer-input" class="input-money" placeholder="0.00"></div>
         </div>
+        <div class="summary-row" id="transfer-bank-row" style="font-size: 13px; color: #34495e;">
+            <span>ธนาคารผู้รับโอน:</span>
+            <div style="text-align: right; flex-grow: 1;">
+                <input type="text" id="transfer-bank" list="bank-list" placeholder="ชื่อธนาคาร..." style="width: 140px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; text-align: center;">
+                <datalist id="bank-list">
+                    <option value="กสิกรไทย (KBANK)"></option>
+                    <option value="ไทยพาณิชย์ (SCB)"></option>
+                    <option value="กรุงไทย (KTB)"></option>
+                    <option value="กรุงเทพ (BBL)"></option>
+                    <option value="กรุงศรี (BAY)"></option>
+                    <option value="ออมสิน (GSB)"></option>
+                    <option value="พร้อมเพย์ (PromptPay)"></option>
+                </datalist>
+            </div>
+        </div>
         
         <div id="cash-warning" style="color: #e74c3c; font-size: 14px; text-align: right; display: none; margin-top: -5px; margin-bottom: 5px; font-weight: bold;">
             ⚠️ รับเงินมาไม่พอ!
@@ -793,6 +808,9 @@
             <button type="button" id="btn-show-staff-report" style="background-color: #9b59b6; width: auto; padding: 8px 10px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1;">📊 เมนูรายงานพนักงานขาย</button>
             <button type="button" id="btn-clear-sales" style="background-color: #e74c3c; width: auto; padding: 8px 10px; font-size: 13px; margin: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1;">🗑️ ล้างข้อมูลยอดขายทั้งหมด</button>
         </div>
+        
+        <button type="button" onclick="promptStartingCash()" style="background-color: #34495e; width: 100%; padding: 10px; font-size: 14px; font-weight: bold; margin-bottom: 15px; border-radius: var(--radius-main); color: white; border: none; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background-color 0.2s;">💵 บันทึกเงินทอนตั้งต้นในลิ้นชัก (เงินลอย)</button>
+
         
         <div class="dash-cards">
             <div class="d-card dc-day">
@@ -1167,7 +1185,11 @@
                         totalTransfer += tr;
                     });
                     
+                    let startingCashStr = localStorage.getItem('thep_starting_cash_' + startDateStr);
+                    let startingCash = startingCashStr ? parseFloat(startingCashStr) : 0;
+                    
                     let netCashToSubmit = totalSales - totalTransfer; // ยอดนำส่งสุทธิ (ยอดขายรวม ลบ ยอดโอน)
+                    let totalCashInDrawer = netCashToSubmit + startingCash; // ยอดเงินสดที่ต้องมีในลิ้นชักจริงๆ
 
                     html += `<h3 style="text-align:center; color: #e74c3c;">รายงานยอดเงินแคชเชียร์</h3>`;
                     html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
@@ -1179,8 +1201,10 @@
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalCashInput.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>5. ยอดจำนวนเงินทอนเข้าลิ้นชัก:</strong></td><td style="text-align:right; color: #e74c3c;">- ${totalChangeDue.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>6. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">+ ${startingCash.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
-                    html += `<tr style="font-size: 18px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>7. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>8. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
                     html += `</table>`;
                     html += `</div>`;
                     
@@ -1688,6 +1712,25 @@
             datalist.appendChild(opt);
         }
     }
+    
+    // [Lilin Additive] Auto-link Staff Name when ID is typed
+    const staffInputEl = document.getElementById('staff-name');
+    if (staffInputEl) {
+        staffInputEl.addEventListener('blur', function() {
+            let val = this.value.trim();
+            if (!val) return;
+            // ถ้ากรอกแต่ตัวเลข/รหัสเพียวๆ (ไม่มีขีด) ลองค้นหาพนักงานเพื่อแทนค่า
+            if (!val.includes('-')) {
+                let empDB = (window.erpData && window.erpData['employee']) ? window.erpData['employee'] : {};
+                if (empDB[val]) {
+                    // เจอพนักงานที่รหัสตรง
+                    let empName = empDB[val].name || 'ไม่มีชื่อ';
+                    this.value = val + ' - ' + empName;
+                    localStorage.setItem('thep_current_staff', this.value);
+                }
+            }
+        });
+    }
 
     function updateCustomerDatalist() {
         const datalist = document.getElementById('crm-datalist');
@@ -1890,6 +1933,7 @@
         addEmptyRow();
         document.getElementById('cash-input').value = ''; 
         if (document.getElementById('transfer-input')) document.getElementById('transfer-input').value = ''; 
+        if (document.getElementById('transfer-bank')) document.getElementById('transfer-bank').value = ''; 
         document.getElementById('queue-no').value = ''; 
         
         // Clear CRM
@@ -3134,11 +3178,15 @@ function loadActiveBillState() {
             });
         });
 
+        const transferBankEl = document.getElementById('transfer-bank');
+        const transferBank = transferBankEl ? transferBankEl.value : "";
+        
         const payload = {
             billNumber: billNum,
             grandTotal: grandTotal,
             cashInput: cashInput,
             transferInput: transferInput,
+            transferBank: transferBank,
             changeDue: changeDue,
             billDetails: billDetails,
             itemsJSON: JSON.stringify(printBillData.items)
@@ -3154,6 +3202,7 @@ function loadActiveBillState() {
                 grandTotal: grandTotal, // เปลี่ยนให้ตรงกับโค้ดบอส
                 cashInput: cashInput,   // เปลี่ยนให้ตรงกับโค้ดบอส
                 transferInput: transferInput,
+                transferBank: transferBank,
                 changeDue: changeDue,   // เปลี่ยนให้ตรงกับโค้ดบอส
                 details: billDetails,
                 itemsJSON: JSON.stringify(printBillData.items) // เปลี่ยนให้ตรงกับโค้ดบอส
@@ -4444,6 +4493,39 @@ function printTableQRCode(queueNo, qrApi) {
     };
 }
 
+// ==========================================
+// ฟังก์ชันบันทึกเงินทอนตั้งต้น (เงินลอย) ประจำวัน
+// ==========================================
+function promptStartingCash() {
+    let today = new Date().toISOString().split('T')[0];
+    let currentCash = localStorage.getItem('thep_starting_cash_' + today) || '';
+    
+    let amountStr = prompt("💵 กรุณากรอกจำนวนเงินทอนตั้งต้น (เงินลอย) ในลิ้นชัก สำหรับวันนี้ (" + today + "):", currentCash);
+    
+    if (amountStr !== null) { // User didn't click Cancel
+        let amount = parseFloat(amountStr);
+        if (!isNaN(amount) && amount >= 0) {
+            // Save locally
+            localStorage.setItem('thep_starting_cash_' + today, amount);
+            
+            // Sync to Firebase
+            if (window.firebase && firebase.database) {
+                firebase.database().ref('erp_db_drawer_cash/' + today).set({
+                    amount: amount,
+                    updatedAt: new Date().toISOString()
+                }).then(() => {
+                    alert("✅ บันทึกเงินทอนตั้งต้นจำนวน " + amount + " บาท สำหรับวันที่ " + today + " สำเร็จแล้ว!");
+                }).catch((err) => {
+                    alert("⚠️ บันทึกในเครื่องสำเร็จ แต่เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: " + err.message);
+                });
+            } else {
+                alert("✅ บันทึกเงินทอนตั้งต้นจำนวน " + amount + " บาท (Local) สำเร็จแล้ว!");
+            }
+        } else {
+            alert("❌ จำนวนเงินไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+        }
+    }
+}
 </script>
 
 <div id="receipt-print-area"></div>
