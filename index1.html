@@ -658,6 +658,52 @@
         </div>
     </div>
 
+    <!-- Modal สินค้ารับเข้า -->
+    <div id="stock-in-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title">📥 คีย์สินค้ารับเข้า (ตามบิล)</div>
+            <div class="modal-input-group">
+                <label>เลขที่เอกสาร / บิลผู้จำหน่าย:</label>
+                <input type="text" id="si-doc-no" placeholder="เช่น INV-001">
+            </div>
+            <div class="modal-input-group">
+                <label>ค้นหาสินค้า (ชื่อหรือบาร์โค้ด):</label>
+                <input type="text" id="si-search" list="product-datalist" placeholder="ค้นหา...">
+            </div>
+            <div class="modal-input-group">
+                <label>จำนวนรับเข้า:</label>
+                <input type="number" id="si-qty" placeholder="จำนวน" value="1">
+            </div>
+            <div class="modal-input-group">
+                <label>ราคาต้นทุนรวม (บาท):</label>
+                <input type="number" id="si-cost" placeholder="มูลค่ารวม" value="0">
+            </div>
+            <button type="button" class="modal-btn-save" onclick="saveStockIn()">✅ บันทึกรับเข้า</button>
+            <button type="button" class="modal-btn-cancel" onclick="document.getElementById('stock-in-modal').style.display='none'">❌ ยกเลิก</button>
+        </div>
+    </div>
+
+    <!-- Modal ปรับยอดด่วน -->
+    <div id="stock-adjust-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title">⚖️ ปรับยอดสต๊อกด่วน</div>
+            <div class="modal-input-group">
+                <label>ค้นหาสินค้า (ชื่อหรือบาร์โค้ด):</label>
+                <input type="text" id="sa-search" list="product-datalist" placeholder="ค้นหา..." onchange="onStockAdjustProductChange()">
+            </div>
+            <div class="modal-input-group">
+                <label>จำนวนสต๊อกในระบบตอนนี้:</label>
+                <input type="text" id="sa-current" disabled style="background:#f1f2f6; color:#e74c3c; font-weight:bold;">
+            </div>
+            <div class="modal-input-group">
+                <label>ยอดปรับ (บวก/ลบ):</label>
+                <input type="number" id="sa-qty" placeholder="เช่น 5 หรือ -2">
+            </div>
+            <button type="button" class="modal-btn-save" style="background:#f39c12;" onclick="saveStockAdjust()">⚡ บันทึกปรับยอด</button>
+            <button type="button" class="modal-btn-cancel" onclick="document.getElementById('stock-adjust-modal').style.display='none'">❌ ยกเลิก</button>
+        </div>
+    </div>
+
     <div id="held-bills-container" style="display: none; background: #ebf5fb; border: 1px solid #3498db; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
         <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #2c3e50;">📌 เลือกคิวบิลที่ต้องการดึงกลับมาทำต่อ:</div>
         <div id="held-bills-list" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
@@ -914,6 +960,55 @@
 
 
     </div> <!-- Close tab-pos -->
+
+    <!-- TAB: Inventory -->
+    <div id="tab-inventory" class="tab-content">
+        <h2 style="color:var(--text-main); margin-top:0;">📦 สต๊อกสินค้า (Inventory)</h2>
+        <div class="db-form-box">
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <button onclick="openStockInModal()" style="padding:10px; background:var(--accent-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">📥 คีย์สินค้ารับเข้า (ตามบิล)</button>
+                <button onclick="openStockAdjustModal()" style="padding:10px; background:var(--accent-orange); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">⚖️ ปรับยอดสต๊อกด่วน</button>
+            </div>
+            
+            <h3 style="color:var(--text-main); font-size:16px;">📊 รายงานความเคลื่อนไหวสต๊อก</h3>
+            <div class="filter-group" style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap:wrap;">
+                <div style="flex: 1; min-width:200px;">
+                    <label>รูปแบบรายงาน:</label>
+                    <select id="inv-report-type" onchange="generateInventoryReport()">
+                        <option value="balance_cat">4.1 สินค้าคงเหลือ (แยกหมวด)</option>
+                        <option value="balance_name">4.1 สินค้าคงเหลือ (แยกชื่อ)</option>
+                        <option value="move_cat">4.2 ความเคลื่อนไหว (แยกหมวด)</option>
+                        <option value="move_name">4.3 ความเคลื่อนไหว (แยกชื่อ)</option>
+                        <option value="move_detail">4.4 ความเคลื่อนไหว (แบบละเอียด)</option>
+                    </select>
+                </div>
+                <div style="flex: 1; min-width:130px;">
+                    <label>ตั้งแต่วันที่:</label>
+                    <input type="date" id="inv-start-date" onchange="generateInventoryReport()">
+                </div>
+                <div style="flex: 1; min-width:130px;">
+                    <label>ถึงวันที่:</label>
+                    <input type="date" id="inv-end-date" onchange="generateInventoryReport()">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button onclick="generateInventoryReport()" style="padding:10px 15px; background:var(--accent-green); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">🔍 ดูรายงาน</button>
+                </div>
+            </div>
+
+            <div class="db-table-wrapper">
+                <table class="db-table" id="inv-report-table">
+                    <thead>
+                        <tr id="inv-report-head" style="background:#f5f7fa;">
+                        </tr>
+                    </thead>
+                    <tbody id="inv-report-body">
+                    </tbody>
+                    <tfoot id="inv-report-foot" style="background:#e8f8f5; font-weight:bold;">
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <!-- TAB: Report -->
     <div id="tab-report" class="tab-content">
@@ -3166,15 +3261,39 @@ function loadActiveBillState() {
             let pCat = "ทั่วไป";
             let cType = "none";
             let cVal = 0;
+            let barcodeToUse = "";
             for (let barcode in currentProductDB) {
                 if (currentProductDB[barcode].name === pName) {
                     pCat = currentProductDB[barcode].category || "ทั่วไป";
                     cType = currentProductDB[barcode].commissionType || "none";
                     cVal = parseFloat(currentProductDB[barcode].commissionValue) || 0;
+                    barcodeToUse = barcode;
                     break;
                 }
             }
-            
+
+            // [Lilin Added] ตัดสต๊อกอัตโนมัติและเก็บบันทึกลง Stock Ledger (Inventory)
+            if (barcodeToUse) {
+                const prod = currentProductDB[barcodeToUse];
+                const currentStock = parseFloat(prod.stock) || 0;
+                prod.stock = currentStock - pQty;
+                
+                window.stockLedger = window.stockLedger || JSON.parse(localStorage.getItem('thep_stock_ledger') || "[]");
+                window.stockLedger.push({
+                    id: "SALE_" + new Date().getTime() + "_" + Math.floor(Math.random()*1000),
+                    date: new Date().toISOString(),
+                    type: "OUT_SELL",
+                    docNo: billNum,
+                    barcode: barcodeToUse,
+                    name: prod.name,
+                    category: prod.category || "ทั่วไป",
+                    qty: -pQty,
+                    pricePerUnit: pPrice,
+                    balanceAfter: prod.stock,
+                    valueAfter: prod.stock * (parseFloat(prod.price) || 0)
+                });
+            }
+
             // คำนวณคอมมิชชั่น
             let calcComm = 0;
             if (cType === 'percent') {
@@ -3320,6 +3439,21 @@ function loadActiveBillState() {
         // ดึงชื่อร้านและที่อยู่
         let shopName = "My Shop";
         let shopAddress = "69/96 ม.9 ต.ลาดบางตี อ.เก้าเค้า<br>จ.เก้าเค้า 99999 โทร 099-999-9999";
+        // [Lilin Added] บันทึกสต๊อกที่ถูกตัดออกไป และอัปเดต Firebase ทันที
+        localStorage.setItem('thep_product_db', JSON.stringify(currentProductDB));
+        localStorage.setItem('thep_stock_ledger', JSON.stringify(window.stockLedger || []));
+        if (typeof database !== 'undefined') {
+            const infoStr = localStorage.getItem('thep_shop_info');
+            if (infoStr) {
+                const info = JSON.parse(infoStr);
+                const shopPhone = info.phone1;
+                if (shopPhone) {
+                    database.ref('erp_db_stock_ledger/' + shopPhone).set(window.stockLedger || []).catch(e=>console.log(e));
+                    database.ref('erp_db_products/' + shopPhone).set(currentProductDB).catch(e=>console.log(e));
+                }
+            }
+        }
+
         const shopInfoStr = localStorage.getItem('thep_shop_info');
         if (shopInfoStr) {
             try {
@@ -4549,6 +4683,231 @@ function promptStartingCash() {
         } else {
             alert("❌ จำนวนเงินไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
         }
+    }
+}
+
+// --- ระบบบริหารสต๊อกสินค้าคงคลัง (Inventory Management) ---
+window.stockLedger = window.stockLedger || JSON.parse(localStorage.getItem('thep_stock_ledger') || "[]");
+
+function saveStockLedger() {
+    localStorage.setItem('thep_stock_ledger', JSON.stringify(window.stockLedger));
+    if (typeof database !== 'undefined') {
+        const infoStr = localStorage.getItem('thep_shop_info');
+        if (infoStr) {
+            const info = JSON.parse(infoStr);
+            const shopPhone = info.phone1;
+            if (shopPhone) {
+                database.ref('erp_db_stock_ledger/' + shopPhone).set(window.stockLedger).catch(e => console.log('Firebase ledger error', e));
+                database.ref('erp_db_products/' + shopPhone).set(window.productDB).catch(e => console.log('Firebase product error', e));
+            }
+        }
+    }
+}
+
+function openStockInModal() {
+    document.getElementById('si-doc-no').value = "";
+    document.getElementById('si-search').value = "";
+    document.getElementById('si-qty').value = "1";
+    document.getElementById('si-cost').value = "0";
+    document.getElementById('stock-in-modal').style.display = 'flex';
+}
+
+function saveStockIn() {
+    const docNo = document.getElementById('si-doc-no').value.trim();
+    const searchVal = document.getElementById('si-search').value.trim();
+    const qty = parseFloat(document.getElementById('si-qty').value) || 0;
+    const cost = parseFloat(document.getElementById('si-cost').value) || 0;
+
+    if (!docNo) { alert("⚠️ กรุณาระบุเลขที่เอกสารบิลผู้จำหน่าย"); return; }
+    if (!searchVal) { alert("⚠️ กรุณาเลือกสินค้า"); return; }
+    if (qty <= 0) { alert("⚠️ จำนวนรับเข้าต้องมากกว่า 0"); return; }
+
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    if (!barcodeToUse) { alert("⚠️ ไม่พบสินค้าชื่อ/บาร์โค้ดนี้ในระบบ กรุณาเพิ่มสินค้าก่อนค่ะ"); return; }
+
+    const prod = window.productDB[barcodeToUse];
+    const currentStock = parseFloat(prod.stock) || 0;
+    prod.stock = currentStock + qty;
+    localStorage.setItem('thep_product_db', JSON.stringify(window.productDB));
+    if (typeof updateProductDatalist === 'function') updateProductDatalist();
+
+    const pricePerUnit = cost / qty;
+    const valueAfter = prod.stock * (parseFloat(prod.price) || 0); 
+    
+    window.stockLedger.push({
+        id: "IN_" + new Date().getTime(),
+        date: new Date().toISOString(),
+        type: "IN_BILL",
+        docNo: docNo,
+        barcode: barcodeToUse,
+        name: prod.name,
+        category: prod.category || "ทั่วไป",
+        qty: qty,
+        pricePerUnit: pricePerUnit,
+        balanceAfter: prod.stock,
+        valueAfter: valueAfter
+    });
+    
+    saveStockLedger();
+    alert("✅ บันทึกสินค้ารับเข้าสำเร็จ สต๊อกใหม่ของ " + prod.name + " คือ " + prod.stock + " ชิ้น");
+    document.getElementById('stock-in-modal').style.display = 'none';
+    generateInventoryReport();
+}
+
+function openStockAdjustModal() {
+    document.getElementById('sa-search').value = "";
+    document.getElementById('sa-current').value = "";
+    document.getElementById('sa-qty').value = "";
+    document.getElementById('stock-adjust-modal').style.display = 'flex';
+}
+
+function onStockAdjustProductChange() {
+    const searchVal = document.getElementById('sa-search').value.trim();
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    if (barcodeToUse) {
+        document.getElementById('sa-current').value = (parseFloat(window.productDB[barcodeToUse].stock) || 0) + " ชิ้น";
+    } else {
+        document.getElementById('sa-current').value = "-";
+    }
+}
+
+function saveStockAdjust() {
+    const searchVal = document.getElementById('sa-search').value.trim();
+    const qty = parseFloat(document.getElementById('sa-qty').value);
+    
+    if (!searchVal) { alert("⚠️ กรุณาเลือกสินค้า"); return; }
+    if (isNaN(qty) || qty === 0) { alert("⚠️ กรุณาระบุยอดปรับเพิ่มหรือลด (ห้ามเป็น 0)"); return; }
+
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    if (!barcodeToUse) { alert("⚠️ ไม่พบสินค้าในระบบ"); return; }
+
+    const prod = window.productDB[barcodeToUse];
+    const currentStock = parseFloat(prod.stock) || 0;
+    prod.stock = currentStock + qty;
+    localStorage.setItem('thep_product_db', JSON.stringify(window.productDB));
+    if (typeof updateProductDatalist === 'function') updateProductDatalist();
+
+    window.stockLedger.push({
+        id: "ADJ_" + new Date().getTime(),
+        date: new Date().toISOString(),
+        type: qty > 0 ? "IN_ADJUST" : "OUT_ADJUST",
+        docNo: "ปรับยอดด่วน",
+        barcode: barcodeToUse,
+        name: prod.name,
+        category: prod.category || "ทั่วไป",
+        qty: qty,
+        pricePerUnit: parseFloat(prod.price) || 0,
+        balanceAfter: prod.stock,
+        valueAfter: prod.stock * (parseFloat(prod.price) || 0)
+    });
+    
+    saveStockLedger();
+    alert("✅ ปรับยอดสต๊อกสำเร็จ สต๊อกใหม่ของ " + prod.name + " คือ " + prod.stock + " ชิ้น");
+    document.getElementById('stock-adjust-modal').style.display = 'none';
+    generateInventoryReport();
+}
+
+function generateInventoryReport() {
+    const reportType = document.getElementById('inv-report-type').value;
+    const startDateStr = document.getElementById('inv-start-date').value;
+    const endDateStr = document.getElementById('inv-end-date').value;
+    
+    const thead = document.getElementById('inv-report-head');
+    const tbody = document.getElementById('inv-report-body');
+    const tfoot = document.getElementById('inv-report-foot');
+    
+    thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = '';
+
+    let start = startDateStr ? new Date(startDateStr) : new Date('2000-01-01');
+    start.setHours(0,0,0,0);
+    let end = endDateStr ? new Date(endDateStr) : new Date('2100-01-01');
+    end.setHours(23,59,59,999);
+
+    if (reportType === 'balance_cat' || reportType === 'balance_name') {
+        thead.innerHTML = `<th>${reportType === 'balance_cat' ? 'หมวดหมู่' : 'ชื่อสินค้า'}</th><th>สต๊อกคงเหลือ</th>`;
+        let agg = {};
+        for(let bc in window.productDB) {
+            let p = window.productDB[bc];
+            let key = reportType === 'balance_cat' ? (p.category || 'ทั่วไป') : p.name;
+            agg[key] = (agg[key] || 0) + (parseFloat(p.stock) || 0);
+        }
+        let total = 0;
+        for(let key in agg) {
+            tbody.innerHTML += `<tr><td>${key}</td><td style="font-weight:bold; color:${agg[key] < 0 ? '#e74c3c' : '#2ecc71'};">${agg[key].toLocaleString()}</td></tr>`;
+            total += agg[key];
+        }
+        tfoot.innerHTML = `<tr><td>รวมทั้งสิ้น</td><td>${total.toLocaleString()} ชิ้น</td></tr>`;
+    } 
+    else if (reportType === 'move_cat' || reportType === 'move_name') {
+        thead.innerHTML = `<th>${reportType === 'move_cat' ? 'หมวดหมู่' : 'ชื่อสินค้า'}</th><th>รับเข้า (+ปรับ)</th><th>ขายออก (-ปรับ)</th><th>คงเหลือสะสมในกรอบเวลา</th>`;
+        let agg = {};
+        window.stockLedger.forEach(txn => {
+            let d = new Date(txn.date);
+            if(d >= start && d <= end) {
+                let key = reportType === 'move_cat' ? (txn.category || 'ทั่วไป') : txn.name;
+                if(!agg[key]) agg[key] = { in: 0, out: 0 };
+                if (txn.qty > 0) agg[key].in += txn.qty;
+                else agg[key].out += Math.abs(txn.qty);
+            }
+        });
+        
+        let tIn = 0, tOut = 0, tBal = 0;
+        for(let key in agg) {
+            let bal = agg[key].in - agg[key].out;
+            tbody.innerHTML += `<tr><td>${key}</td><td><span style="color:green;">+${agg[key].in.toLocaleString()}</span></td><td><span style="color:red;">-${agg[key].out.toLocaleString()}</span></td><td><b>${bal.toLocaleString()}</b></td></tr>`;
+            tIn += agg[key].in; tOut += agg[key].out; tBal += bal;
+        }
+        tfoot.innerHTML = `<tr><td>รวมทั้งสิ้น</td><td><span style="color:green;">+${tIn.toLocaleString()}</span></td><td><span style="color:red;">-${tOut.toLocaleString()}</span></td><td><b>${tBal.toLocaleString()} ชิ้น</b></td></tr>`;
+    }
+    else if (reportType === 'move_detail') {
+        thead.innerHTML = `<th>วัน/เวลา</th><th>ประเภท</th><th>เอกสาร</th><th>รายการ</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>คงเหลือ</th><th>มูลค่าคงเหลือ</th>`;
+        let filtered = window.stockLedger.filter(txn => {
+            let d = new Date(txn.date);
+            return d >= start && d <= end;
+        });
+        
+        // Sort descending (newest first)
+        filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        filtered.forEach(txn => {
+            let d = new Date(txn.date).toLocaleString('th-TH');
+            let color = txn.qty > 0 ? 'green' : 'red';
+            let sign = txn.qty > 0 ? '+' : '';
+            let val = (txn.valueAfter || 0);
+            
+            let typeLabel = "ไม่ทราบ";
+            if(txn.type==="IN_BILL") typeLabel = "รับเข้า(บิล)";
+            if(txn.type==="IN_ADJUST") typeLabel = "ปรับเข้า";
+            if(txn.type==="OUT_ADJUST") typeLabel = "ปรับออก";
+            if(txn.type==="OUT_SELL") typeLabel = "ขายออก";
+
+            tbody.innerHTML += `<tr>
+                <td>${d}</td>
+                <td><span style="background:#f1f2f6; padding:2px 6px; border-radius:4px; font-size:11px;">${typeLabel}</span></td>
+                <td>${txn.docNo || '-'}</td>
+                <td>${txn.name}</td>
+                <td style="color:${color}; font-weight:bold;">${sign}${txn.qty.toLocaleString()}</td>
+                <td>${txn.pricePerUnit.toLocaleString()}</td>
+                <td>${txn.balanceAfter.toLocaleString()}</td>
+                <td>${val.toLocaleString()}</td>
+            </tr>`;
+        });
+        tfoot.innerHTML = `<tr><td colspan="8" style="text-align:right;">(แสดงเฉพาะรายการเคลื่อนไหวในกรอบเวลา)</td></tr>`;
     }
 }
 </script>
