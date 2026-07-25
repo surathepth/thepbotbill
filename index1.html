@@ -981,7 +981,8 @@
                             fbSales[key].cashInput,
                             fbSales[key].changeDue,
                             fbSales[key].details,
-                            fbSales[key].itemsJSON || "[]"
+                            fbSales[key].itemsJSON || "[]",
+                            fbSales[key].transferInput || 0
                         ]);
                     }
                 }
@@ -1174,10 +1175,10 @@
                     let totalTransfer = 0;
 
                     filteredSales.forEach(row => {
-                        let gt = parseFloat(row[1]) || 0; // ยอดขาย
-                        let ci = parseFloat(row[2]) || 0; // รับเงินสด
-                        let cd = parseFloat(row[3]) || 0; // เงินทอน
-                        let tr = parseFloat(row[6]) || 0; // ยอดโอน (ดึงจาก index 6)
+                        let gt = parseFloat(String(row[1]).replace(/,/g, '')) || 0; // ยอดขาย
+                        let ci = parseFloat(String(row[2]).replace(/,/g, '')) || 0; // รับเงินสด
+                        let cd = parseFloat(String(row[3]).replace(/,/g, '')) || 0; // เงินทอน
+                        let tr = parseFloat(String(row[6]).replace(/,/g, '')) || 0; // ยอดโอน (ดึงจาก index 6)
                         
                         totalSales += gt;
                         totalCashInput += ci;
@@ -3026,11 +3027,11 @@ function loadActiveBillState() {
     });
 
     document.getElementById('btn-pay').addEventListener('click', function() {
-        const grandTotal = document.getElementById('grand-total').innerText;
+        const grandTotal = document.getElementById('grand-total').innerText.replace(/,/g, '');
         const cashInput = document.getElementById('cash-input').value;
         const transferInputEl = document.getElementById('transfer-input');
         const transferInput = transferInputEl ? transferInputEl.value : "";
-        const changeDue = document.getElementById('change-due').innerText;
+        const changeDue = document.getElementById('change-due').innerText.replace(/,/g, '');
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
         const queueNo = document.getElementById('queue-no').value || "-";
