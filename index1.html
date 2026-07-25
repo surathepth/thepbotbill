@@ -683,8 +683,12 @@
         </div>
 
         <div class="summary-row" id="cash-receive-row">
-            <span>รับเงินมา:</span>
+            <span>รับเงินมา (เงินสด):</span>
             <div style="text-align: right; flex-grow: 1;"><input type="number" id="cash-input" class="input-money" placeholder="0.00"></div>
+        </div>
+        <div class="summary-row" id="transfer-receive-row">
+            <span>ยอดโอน (สแกนจ่าย):</span>
+            <div style="text-align: right; flex-grow: 1;"><input type="number" id="transfer-input" class="input-money" placeholder="0.00"></div>
         </div>
         
         <div id="cash-warning" style="color: #e74c3c; font-size: 14px; text-align: right; display: none; margin-top: -5px; margin-bottom: 5px; font-weight: bold;">
@@ -912,6 +916,7 @@
             <button class="btn btn-save" style="background-color: #3498db;" onclick="generateReport('category')">📊 1. รายงานยอดรวมแยกประเภทสินค้า</button>
             <button class="btn btn-save" style="background-color: #9b59b6;" onclick="generateReport('product')">📊 2. รายงานยอดรวมแยกชื่อสินค้า</button>
             <button class="btn btn-save" style="background-color: #f39c12;" onclick="generateReport('staff')">📊 3. รายงานยอดรวมแยกพนักงาน (ค่าคอมมิชชั่น)</button>
+            <button class="btn btn-save" style="background-color: #e74c3c;" onclick="generateReport('cashier')">📊 4. รายงานยอดเงินแคชเชียร์</button>
         </div>
 
         <div id="report-result-wrapper" style="display:none; margin-top: 20px;">
@@ -1143,8 +1148,46 @@
                     html += `<h4 style="text-align:right; margin-top:15px;">ยอดขายรวม: ${grandTotalAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
                     html += `<h4 style="text-align:right; color: #c0392b; margin-top:5px;">ยอดคอมมิชชั่นรวม: ${grandCommissionAll.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</h4>`;
                 }
+                else if (type === 'cashier') {
+                    let totalBills = filteredSales.length;
+                    let totalSales = 0;
+                    let totalCashInput = 0;
+                    let totalChangeDue = 0;
+                    let totalTransfer = 0;
 
-                if (filteredSales.length === 0 || grandTotalAll === 0) {
+                    filteredSales.forEach(row => {
+                        let gt = parseFloat(row[1]) || 0; // ยอดขาย
+                        let ci = parseFloat(row[2]) || 0; // รับเงินสด
+                        let cd = parseFloat(row[3]) || 0; // เงินทอน
+                        let tr = parseFloat(row[6]) || 0; // ยอดโอน (ดึงจาก index 6)
+                        
+                        totalSales += gt;
+                        totalCashInput += ci;
+                        totalChangeDue += cd;
+                        totalTransfer += tr;
+                    });
+                    
+                    let netCashToSubmit = totalSales - totalTransfer; // ยอดนำส่งสุทธิ (ยอดขายรวม ลบ ยอดโอน)
+
+                    html += `<h3 style="text-align:center; color: #e74c3c;">รายงานยอดเงินแคชเชียร์</h3>`;
+                    html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+                    
+                    html += `<div style="background-color: #fdfefe; border: 1px solid #d5dbdb; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: 'Prompt', sans-serif;">`;
+                    html += `<table style="width:100%; border-collapse:collapse; font-size:15px; line-height: 2;">`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>1. ยอดจำนวนบิลรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalBills.toLocaleString()} บิล</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>2. ยอดเงินรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #2980b9; font-weight: bold;">${totalSales.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalCashInput.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>5. ยอดจำนวนเงินทอนเข้าลิ้นชัก:</strong></td><td style="text-align:right; color: #e74c3c;">- ${totalChangeDue.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+                    html += `<tr style="font-size: 18px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+                    html += `</table>`;
+                    html += `</div>`;
+                    
+                    grandTotalAll = totalSales; // ป้องกันการ trigger "ไม่พบข้อมูล" ด้านล่างถ้ามีบิล 0 บาท
+                }
+
+                if (filteredSales.length === 0 || (type !== 'cashier' && grandTotalAll === 0)) {
                     html = `<p style="text-align:center; color: #7f8c8d; font-style:italic; padding: 30px;">ไม่พบข้อมูลการขายในช่วงวันที่ที่เลือก หรือข้อมูลเก่าไม่มีการแยกสินค้า (Backward Compatibility)</p>`;
                 }
 
@@ -1846,6 +1889,7 @@
         document.getElementById('bill-items').innerHTML = '';
         addEmptyRow();
         document.getElementById('cash-input').value = ''; 
+        if (document.getElementById('transfer-input')) document.getElementById('transfer-input').value = ''; 
         document.getElementById('queue-no').value = ''; 
         
         // Clear CRM
@@ -1917,13 +1961,18 @@
         const cashInputVal = document.getElementById('cash-input').value;
         const cashInput = parseFloat(cashInputVal) || 0;
         
+        const transferInputEl = document.getElementById('transfer-input');
+        const transferInputVal = transferInputEl ? transferInputEl.value : "";
+        const transferInput = parseFloat(transferInputVal) || 0;
+        
         const warningMsg = document.getElementById('cash-warning');
         const btnPay = document.getElementById('btn-pay');
         const changeDueEl = document.getElementById('change-due');
 
-        let change = cashInput - grandTotal;
+        let totalReceived = cashInput + transferInput;
+        let change = totalReceived - grandTotal;
         
-        if (cashInputVal !== "" && cashInput < grandTotal && grandTotal > 0) {
+        if ((cashInputVal !== "" || transferInputVal !== "") && totalReceived < grandTotal && grandTotal > 0) {
             warningMsg.style.display = "block"; 
             btnPay.disabled = true; 
             changeDueEl.innerText = "0.00";
@@ -1977,6 +2026,16 @@
         crmUsePointsEl.addEventListener('change', calculateTotals);
     }
 
+    const transferInputEl = document.getElementById('transfer-input');
+    if(transferInputEl) {
+        ['input', 'keyup', 'change', 'blur'].forEach(evt => {
+            transferInputEl.addEventListener(evt, () => {
+                calculateChange();
+                saveActiveBillState();
+            });
+        });
+    }
+
     const cashInputEl = document.getElementById('cash-input');
     if(cashInputEl) {
         ['input', 'keyup', 'change', 'blur'].forEach(evt => {
@@ -2010,6 +2069,7 @@
         const state = {
             queueNo: document.getElementById('queue-no').value,
             cashInput: document.getElementById('cash-input').value,
+            transferInput: document.getElementById('transfer-input') ? document.getElementById('transfer-input').value : "",
             billNumber: document.getElementById('slip-bill-number').innerText,
             items: items
         };
@@ -2271,6 +2331,7 @@ function loadActiveBillState() {
             }
             document.getElementById('queue-no').value = state.queueNo || '';
             document.getElementById('cash-input').value = state.cashInput || '';
+            if (document.getElementById('transfer-input')) document.getElementById('transfer-input').value = state.transferInput || '';
             if (state.billNumber) {
                 document.getElementById('slip-bill-number').innerText = state.billNumber;
             }
@@ -2767,7 +2828,8 @@ function loadActiveBillState() {
                         fbSales[key].cashInput,
                         fbSales[key].changeDue,
                         fbSales[key].details,
-                        fbSales[key].itemsJSON || "[]"
+                        fbSales[key].itemsJSON || "[]",
+                        fbSales[key].transferInput || 0
                     ]);
                 }
             }
@@ -2906,6 +2968,8 @@ function loadActiveBillState() {
     document.getElementById('btn-pay').addEventListener('click', function() {
         const grandTotal = document.getElementById('grand-total').innerText;
         const cashInput = document.getElementById('cash-input').value;
+        const transferInputEl = document.getElementById('transfer-input');
+        const transferInput = transferInputEl ? transferInputEl.value : "";
         const changeDue = document.getElementById('change-due').innerText;
         const items = document.querySelectorAll('.bill-item');
         const billNum = generateBillNumber();
@@ -2943,8 +3007,9 @@ function loadActiveBillState() {
             localStorage.setItem('thep_first_use_date', new Date().toLocaleDateString('th-TH'));
         }
 
-        if (!cashInput || parseFloat(cashInput) < parseFloat(grandTotal)) {
-            alert('⚠️ กรุณาใส่จำนวน "รับเงินมา" ให้ครบถ้วนก่อนจบบิลค่ะ');
+        const totalInput = (parseFloat(cashInput) || 0) + (parseFloat(transferInput) || 0);
+        if (totalInput < parseFloat(grandTotal) && parseFloat(grandTotal) > 0) {
+            alert('⚠️ กรุณาใส่จำนวน "รับเงินมา" หรือ "ยอดโอน" ให้ครบถ้วนก่อนจบบิลค่ะ');
             return;
         }
 
@@ -3073,6 +3138,7 @@ function loadActiveBillState() {
             billNumber: billNum,
             grandTotal: grandTotal,
             cashInput: cashInput,
+            transferInput: transferInput,
             changeDue: changeDue,
             billDetails: billDetails,
             itemsJSON: JSON.stringify(printBillData.items)
@@ -3087,6 +3153,7 @@ function loadActiveBillState() {
                 date: dateStrFb,
                 grandTotal: grandTotal, // เปลี่ยนให้ตรงกับโค้ดบอส
                 cashInput: cashInput,   // เปลี่ยนให้ตรงกับโค้ดบอส
+                transferInput: transferInput,
                 changeDue: changeDue,   // เปลี่ยนให้ตรงกับโค้ดบอส
                 details: billDetails,
                 itemsJSON: JSON.stringify(printBillData.items) // เปลี่ยนให้ตรงกับโค้ดบอส
@@ -3105,7 +3172,8 @@ function loadActiveBillState() {
                 cashInput, 
                 changeDue, 
                 billDetails,
-                JSON.stringify(printBillData.items)
+                JSON.stringify(printBillData.items),
+                transferInput
             ];
             
             let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
