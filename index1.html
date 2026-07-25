@@ -3040,6 +3040,22 @@ function loadActiveBillState() {
             itemsJSON: JSON.stringify(printBillData.items)
         };
 
+        // 🛠️ [ADDITIVE] ส่งยอดขายไปที่ Firebase (erp_db_sales) เพื่อระบบ Multi-user ควบคู่กับ Google Sheets/LocalStorage
+        if (typeof database !== 'undefined') {
+            const nowFb = new Date();
+            const dateStrFb = `${nowFb.getFullYear()}-${String(nowFb.getMonth()+1).padStart(2,'0')}-${String(nowFb.getDate()).padStart(2,'0')} ${String(nowFb.getHours()).padStart(2,'0')}:${String(nowFb.getMinutes()).padStart(2,'0')}:${String(nowFb.getSeconds()).padStart(2,'0')}`;
+            const saleId = 'SALE_' + Date.now();
+            const firebaseSaleData = {
+                date: dateStrFb,
+                total: grandTotal,
+                cash: cashInput,
+                change: changeDue,
+                details: billDetails,
+                items: JSON.stringify(printBillData.items)
+            };
+            database.ref('erp_db_sales/' + saleId).set(firebaseSaleData).catch(err => console.error("Firebase Sync Error:", err));
+        }
+
         if (!WEB_APP_URL) { // 🔹 Local Standalone: บันทึกยอดลงหน้าต่างแอดมิน
             // สร้างโครงสร้างแถวข้อมูลให้เหมือน Google Sheet: [วันที่, ยอดรวม, รับเงิน, เงินทอน, รายละเอียด]
             const now = new Date();
@@ -4042,6 +4058,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Listen for Held Bills (Orders) from Network
     if (typeof database !== 'undefined') {
+        // 🛠️ [ADDITIVE] เปิดการเชื่อมต่อ Firebase ดึงข้อมูลยอดขาย (Sales) แบบ Realtime เข้าหน้า Dashboard
+        database.ref('erp_db_sales').on('value', (snapshot) => {
+            let data = snapshot.val() || {};
+            window.erpData = window.erpData || {};
+            window.erpData['sales'] = data;
+            
+            // ถ้ายืนอยู่หน้า Dashboard ให้รีเฟรชข้อมูลทันที
+            const dashContainer = document.getElementById('dashboard-container');
+            if (dashContainer && dashContainer.style.display !== 'none' && typeof parseSheetsAndBuildDashboard === 'function') {
+                parseSheetsAndBuildDashboard(null);
+            }
+        });
+
+
         database.ref('erp_db_orders').on('value', (snapshot) => {
             let data = snapshot.val() || {};
             window.erpData = window.erpData || {};
