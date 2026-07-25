@@ -2813,6 +2813,11 @@ function loadActiveBillState() {
             btn.innerText = "⏳ กำลังล้างข้อมูล...";
             btn.disabled = true;
 
+            // 🛠️ [ADDITIVE] ล้างข้อมูลฝั่ง Firebase ด้วย เพื่อให้ระบบซิงก์กลับไปเป็น 0.00 พร้อมกัน
+            if (typeof database !== 'undefined') {
+                database.ref('erp_db_sales').remove().catch(err => console.error("Firebase Clear Error:", err));
+            }
+
             if (!WEB_APP_URL) { // โหมด Local Standalone: ล้างประวัติจากหน่วยความจำมือถือ
                 localStorage.removeItem('thep_local_sales_history');
                 alert("🗑️ ล้างข้อมูลยอดขายในฐานข้อมูลสำเร็จแล้ว! ยอดทั้งหมดถูกรีเซ็ตเป็น 0.00 ค่ะ");
