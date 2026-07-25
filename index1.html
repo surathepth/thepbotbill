@@ -1453,6 +1453,7 @@
                 <label><input type="checkbox" id="perm-table"> ระบบโต๊ะ</label>
                 <label><input type="checkbox" id="perm-customer"> ระบบลูกค้า (CRM)</label>
                 <label><input type="checkbox" id="perm-printer"> ระบบเครื่องพิมพ์</label>
+                <label><input type="checkbox" id="perm-inventory"> ระบบสต๊อกสินค้า</label>
                 <label><input type="checkbox" id="perm-report"> ดูรายงาน</label>
                 <label><input type="checkbox" id="perm-delete" style="accent-color:red;"> <span style="color:red;">สิทธิ์ลบข้อมูล</span></label>
                 <label style="grid-column: span 2;"><input type="checkbox" id="perm-waitstaff" style="accent-color:#f39c12;"> <span style="color:#e67e22; font-weight:bold;">โหมดพนักงานเสิร์ฟ (ดูบิลอย่างเดียว)</span></label>
@@ -4007,7 +4008,7 @@ function unlockSystem() {
     
     // Inject master permissions if Admin
     if (currentUser.id === 'admin') {
-        currentUser.permissions = { pos:true, product:true, employee:true, table:true, customer:true, printer:true, report:true, delete:true, advanced_pos:true };
+        currentUser.permissions = { pos:true, product:true, employee:true, table:true, customer:true, printer:true, report:true, delete:true, advanced_pos:true, inventory:true };
     }
     let perms = currentUser.permissions || {};
     
@@ -4188,6 +4189,7 @@ function saveDB(type) {
                   table: document.getElementById('perm-table').checked,
                   customer: document.getElementById('perm-customer').checked,
                   printer: document.getElementById('perm-printer').checked,
+                  inventory: document.getElementById('perm-inventory').checked,
                   report: document.getElementById('perm-report').checked,
                   delete: document.getElementById('perm-delete').checked,
                   waitstaff: document.getElementById('perm-waitstaff').checked,
@@ -4321,6 +4323,7 @@ function editDB(type, id) {
         document.getElementById('perm-table').checked = perms.table || false;
         document.getElementById('perm-customer').checked = perms.customer || false;
         document.getElementById('perm-printer').checked = perms.printer || false;
+        document.getElementById('perm-inventory').checked = perms.inventory || false;
         document.getElementById('perm-report').checked = perms.report || false;
         document.getElementById('perm-delete').checked = perms.delete || false;
         document.getElementById('perm-waitstaff').checked = perms.waitstaff || false;
