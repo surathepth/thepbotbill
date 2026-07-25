@@ -1226,7 +1226,8 @@
                     grandTotalAll = totalSales; // ป้องกันการ trigger "ไม่พบข้อมูล" ด้านล่างถ้ามีบิล 0 บาท
                 }
 
-                if (filteredSales.length === 0 || (type !== 'cashier' && grandTotalAll === 0)) {
+                // 🛠️ [ADDITIVE] ปลดล็อกให้รายงานแคชเชียร์สามารถแสดงยอดเงินตั้งต้นได้ แม้วันนั้นยังไม่มีบิลขายเลยก็ตาม (ยอดขาย 0 บิล)
+                if (type !== 'cashier' && (filteredSales.length === 0 || grandTotalAll === 0)) {
                     html = `<p style="text-align:center; color: #7f8c8d; font-style:italic; padding: 30px;">ไม่พบข้อมูลการขายในช่วงวันที่ที่เลือก หรือข้อมูลเก่าไม่มีการแยกสินค้า (Backward Compatibility)</p>`;
                 }
 
