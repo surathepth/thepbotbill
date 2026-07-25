@@ -965,17 +965,30 @@
 
                 let filteredSales = [];
                 localSales.forEach(row => {
-                    let dateStr = row[0]; // รูปแบบ "YYYY-MM-DD HH:MM:SS" หรือ "YYYY-MM-DD"
+                    let dateStr = row[0]; // รูปแบบ "YYYY-MM-DD HH:MM:SS" หรือ "DD/MM/YYYY HH:MM:SS"
                     if (!dateStr) return;
                     let saleDate = new Date(dateStr.replace(' ', 'T'));
+                    
                     if (isNaN(saleDate)) {
-                        // ลองแปลงแบบไทย DD/MM/YYYY
-                        let parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                        } else {
-                            saleDate = new Date(dateStr);
+                        let dateTimeParts = dateStr.split(' ');
+                        let dPart = dateTimeParts[0]; // "25/07/2026"
+                        let tPart = dateTimeParts[1] || "00:00:00";
+                        
+                        if (dPart.includes('/')) {
+                            let parts = dPart.split('/');
+                            if (parts.length === 3) {
+                                saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${tPart}`);
+                            }
                         }
+                        
+                        if (isNaN(saleDate)) {
+                            saleDate = new Date(dateStr); // Fallback
+                        }
+                    }
+                    
+                    // แปลง พ.ศ. เป็น ค.ศ. เพื่อให้เปรียบเทียบช่วงวันที่ได้ถูกต้อง (กรณีเครื่องบันทึกปีเป็น 2569)
+                    if (!isNaN(saleDate) && saleDate.getFullYear() > 2500) {
+                        saleDate.setFullYear(saleDate.getFullYear() - 543);
                     }
                     
                     if (saleDate >= startObj && saleDate <= endObj) {
@@ -2906,15 +2919,6 @@ function loadActiveBillState() {
             billDetails += `${name} (${price}x${qty}=${total}) | `;
         });
 
-        const payload = {
-            billNumber: billNum,
-            grandTotal: grandTotal,
-            cashInput: cashInput,
-            changeDue: changeDue,
-            billDetails: billDetails,
-            itemsJSON: JSON.stringify(printBillData.items)
-        };
-
         // [Lilin Added] ลบข้อมูลออกจากคลังเมื่อจบบิล เพื่อเตะลูกค้าออก
         if (queueNo && queueNo !== "-") {
             const heldBills = getHeldBills();
@@ -3026,6 +3030,15 @@ function loadActiveBillState() {
                 staffName: staffName
             });
         });
+
+        const payload = {
+            billNumber: billNum,
+            grandTotal: grandTotal,
+            cashInput: cashInput,
+            changeDue: changeDue,
+            billDetails: billDetails,
+            itemsJSON: JSON.stringify(printBillData.items)
+        };
 
         if (!WEB_APP_URL) { // 🔹 Local Standalone: บันทึกยอดลงหน้าต่างแอดมิน
             // สร้างโครงสร้างแถวข้อมูลให้เหมือน Google Sheet: [วันที่, ยอดรวม, รับเงิน, เงินทอน, รายละเอียด]
