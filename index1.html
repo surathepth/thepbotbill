@@ -463,6 +463,7 @@
     <!-- ERP Navigation -->
     <div class="erp-nav">
         <button class="tab-btn active" data-perm="pos" onclick="switchTab('pos')">🛒 หน้าร้าน (POS)</button>
+        <button class="tab-btn" data-perm="ipaq" onclick="switchTab('ipaq')" style="background-color: #2980b9; color: white; border-radius: 8px; margin: 0 5px; font-weight: bold; border: 2px solid #3498db; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📱 IPAQ (iPad)</button>
         <button class="tab-btn" data-perm="product" onclick="switchTab('product')">📦 คลังสินค้า</button>
         <button class="tab-btn" data-perm="employee" onclick="switchTab('employee')">👥 พนักงาน</button>
         <button class="tab-btn" data-perm="table" onclick="switchTab('table')">🪑 โต๊ะ</button>
@@ -1327,7 +1328,267 @@
                                     setTimeout(function() { window.close(); }, 500);
                                 };
                             <\/script>
-                        </body>
+                        
+<script>
+
+// ==========================================
+// IPAQ SYSTEM JAVASCRIPT
+// ==========================================
+let currentIpaqTable = null;
+let ipaqLoggedIn = false;
+let ipaqTableColors = {}; 
+
+function initIpaq() {
+    const userSelect = document.getElementById('ipaq-login-user');
+    userSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>';
+    employees.forEach(emp => {
+        let opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.innerText = `${emp.name} (${emp.role})`;
+        userSelect.appendChild(opt);
+    });
+    
+    tables.forEach(t => {
+        if (!ipaqTableColors[t.id]) {
+            let tOrders = tableOrders.filter(o => o.tableId === t.id && !o.isPaid);
+            if (tOrders.length > 0) {
+                ipaqTableColors[t.id] = 'occupied';
+            } else {
+                ipaqTableColors[t.id] = 'free';
+            }
+        }
+    });
+
+    renderIpaqTables();
+}
+
+function doIpaqLogin() {
+    const userId = document.getElementById('ipaq-login-user').value;
+    const pwd = document.getElementById('ipaq-login-pwd').value;
+    const err = document.getElementById('ipaq-login-err');
+    
+    if (!userId || !pwd) {
+        err.innerText = 'กรุณาเลือกพนักงานและใส่รหัสผ่าน';
+        err.style.display = 'block';
+        return;
+    }
+    
+    const user = employees.find(e => e.id === userId && e.password === pwd);
+    if (user) {
+        ipaqLoggedIn = true;
+        document.getElementById('ipaq-login-overlay').style.display = 'none';
+        initIpaq(); 
+    } else {
+        err.innerText = 'รหัสผ่านไม่ถูกต้อง!';
+        err.style.display = 'block';
+    }
+}
+
+const originalSwitchTab = window.switchTab;
+window.switchTab = function(tabName) {
+    if (tabName === 'ipaq') {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const ipaqTab = document.getElementById('tab-ipaq');
+        if (ipaqTab) ipaqTab.classList.add('active');
+        
+        const ipaqBtn = document.querySelector('.tab-btn[data-perm="ipaq"]');
+        if(ipaqBtn) ipaqBtn.classList.add('active');
+        
+        if (!ipaqLoggedIn) {
+            document.getElementById('ipaq-login-overlay').style.display = 'flex';
+            initIpaq(); 
+        } else {
+            renderIpaqTables();
+        }
+    } else {
+        if(originalSwitchTab) originalSwitchTab(tabName);
+    }
+}
+
+function getIpaqTableClass(status) {
+    if(status === 'occupied') return 'ipaq-table-occupied';
+    if(status === 'pending') return 'ipaq-table-pending';
+    return 'ipaq-table-free';
+}
+
+function renderIpaqTables() {
+    const grid = document.getElementById('ipaq-table-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    tables.forEach(t => {
+        let status = ipaqTableColors[t.id] || 'free';
+        let btnClass = getIpaqTableClass(status);
+        
+        let btn = document.createElement('button');
+        btn.className = `ipaq-table-btn ${btnClass}`;
+        btn.innerText = t.name;
+        btn.onclick = () => selectIpaqTable(t.id);
+        grid.appendChild(btn);
+    });
+}
+
+function selectIpaqTable(tableId) {
+    currentIpaqTable = tables.find(t => t.id === tableId);
+    if (!currentIpaqTable) return;
+    
+    document.getElementById('ipaq-bill-title').innerText = `บิลโต๊ะ: ${currentIpaqTable.name}`;
+    renderIpaqBill();
+    
+    openIpaqMenuModal();
+    
+    if (ipaqTableColors[tableId] === 'free') {
+        ipaqTableColors[tableId] = 'occupied';
+        renderIpaqTables();
+    }
+}
+
+function openIpaqMenuModal() {
+    document.getElementById('ipaq-menu-modal-title').innerText = `สั่งอาหาร - โต๊ะ: ${currentIpaqTable.name}`;
+    const grid = document.getElementById('ipaq-menu-grid');
+    grid.innerHTML = '';
+    
+    products.forEach(p => {
+        let item = document.createElement('div');
+        item.className = 'ipaq-menu-item';
+        item.onclick = () => ipaqAddOrder(p);
+        
+        let imgSrc = p.image || 'https://via.placeholder.com/150?text=No+Image';
+        
+        item.innerHTML = `
+            <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+            <div class="ipaq-menu-item-name">${p.name}</div>
+            <div class="ipaq-menu-item-price">฿${p.price.toFixed(2)}</div>
+        `;
+        grid.appendChild(item);
+    });
+    
+    document.getElementById('ipaq-menu-modal').style.display = 'flex';
+}
+
+function closeIpaqMenuModal() {
+    document.getElementById('ipaq-menu-modal').style.display = 'none';
+}
+
+function ipaqAddOrder(product) {
+    let order = {
+        id: 'O' + Date.now(),
+        tableId: currentIpaqTable.id,
+        productId: product.id,
+        productName: product.name,
+        qty: 1,
+        price: product.price,
+        isPaid: false,
+        timestamp: new Date().toISOString()
+    };
+    tableOrders.push(order);
+    
+    closeIpaqMenuModal();
+    renderIpaqBill();
+    
+    if (typeof activeTable !== 'undefined' && activeTable === currentIpaqTable.id) {
+        if(typeof renderTableOrders === 'function') renderTableOrders();
+    }
+}
+
+function renderIpaqBill() {
+    const list = document.getElementById('ipaq-bill-items');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    if (!currentIpaqTable) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ</div>';
+        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        return;
+    }
+    
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    
+    if (tOrders.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร</div>';
+        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        return;
+    }
+    
+    let grouped = {};
+    let total = 0;
+    tOrders.forEach(o => {
+        if(!grouped[o.productId]) {
+            grouped[o.productId] = { name: o.productName, qty: 0, price: o.price };
+        }
+        grouped[o.productId].qty += o.qty;
+        total += (o.qty * o.price);
+    });
+    
+    for (const pid in grouped) {
+        const item = grouped[pid];
+        let div = document.createElement('div');
+        div.className = 'ipaq-bill-item';
+        div.innerHTML = `
+            <div>${item.name} x${item.qty}</div>
+            <div>฿${(item.qty * item.price).toFixed(2)}</div>
+        `;
+        list.appendChild(div);
+    }
+    
+    document.getElementById('ipaq-bill-total').innerText = `฿ ${total.toFixed(2)}`;
+}
+
+function ipaqPrintBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้เช็คบิล');
+    
+    ipaqTableColors[currentIpaqTable.id] = 'pending';
+    renderIpaqTables();
+    
+    alert('พิมพ์บิลเรียบร้อย กำลังรอรับเงิน (สถานะโต๊ะสีเหลือง)');
+}
+
+function ipaqPayBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้รับเงิน');
+    
+    if (!confirm('ยืนยันรับเงินและจบบิล?')) return;
+    
+    let total = 0;
+    tOrders.forEach(o => {
+        o.isPaid = true;
+        total += (o.qty * o.price);
+        
+        let pIndex = products.findIndex(p => p.id === o.productId);
+        if(pIndex !== -1 && typeof updateProductStock === 'function') {
+           updateProductStock(o.productId, o.qty);
+        }
+    });
+    
+    let saleRecord = {
+        id: 'S' + Date.now(),
+        tableId: currentIpaqTable.id,
+        tableName: currentIpaqTable.name,
+        totalAmount: total,
+        items: tOrders.map(o => ({...o})),
+        timestamp: new Date().toISOString()
+    };
+    sales.push(saleRecord);
+    
+    ipaqTableColors[currentIpaqTable.id] = 'free';
+    renderIpaqTables();
+    renderIpaqBill();
+    
+    alert('รับเงินเรียบร้อย โต๊ะว่างแล้ว (สถานะสีเขียว)');
+    
+    if(typeof renderSales === 'function') renderSales();
+    if(typeof updateDashboard === 'function') updateDashboard();
+    if(typeof updateTableStatus === 'function') updateTableStatus();
+}
+// ==========================================
+
+</script>
+</body>
                     </html>
                 `);
                 printWindow.document.close();
@@ -1336,7 +1597,163 @@
     </div>
 
     <!-- TAB: Product DB (And Inventory) -->
-    <div id="tab-product" class="tab-content">
+    
+    <!-- TAB: IPAQ (iPad POS) -->
+    <div id="tab-ipaq" class="tab-content" style="background-color: #f4f6f8; min-height: 100vh; padding: 0;">
+        <style>
+            #ipaq-login-overlay {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(44, 62, 80, 0.95); z-index: 10000;
+                display: flex; justify-content: center; align-items: center;
+                flex-direction: column;
+            }
+            .ipaq-login-box {
+                background: white; padding: 40px; border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 400px; text-align: center;
+            }
+            .ipaq-login-box select, .ipaq-login-box input {
+                width: 100%; padding: 15px; margin: 10px 0; font-size: 18px;
+                border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box;
+            }
+            .ipaq-login-box button {
+                width: 100%; padding: 15px; font-size: 20px; background-color: #3498db;
+                color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;
+            }
+            .ipaq-login-box button:hover { background-color: #2980b9; }
+
+            .ipaq-container {
+                display: flex; width: 100%; height: calc(100vh - 60px); box-sizing: border-box;
+            }
+            .ipaq-left {
+                width: 65%; padding: 20px; overflow-y: auto; background: #ecf0f1; border-right: 2px solid #bdc3c7;
+            }
+            .ipaq-right {
+                width: 35%; display: flex; flex-direction: column; background: white;
+            }
+            
+            /* Table Grid */
+            .ipaq-table-grid {
+                display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;
+            }
+            .ipaq-table-btn {
+                padding: 30px 10px; font-size: 24px; font-weight: bold; color: white;
+                border: none; border-radius: 12px; cursor: pointer; text-align: center;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s;
+            }
+            .ipaq-table-btn:active { transform: scale(0.95); }
+            .ipaq-table-free { background-color: #2ecc71; } /* Green */
+            .ipaq-table-occupied { background-color: #e74c3c; } /* Red */
+            .ipaq-table-pending { background-color: #f1c40f; color: #2c3e50; } /* Yellow */
+            
+            /* Bill Area */
+            .ipaq-bill-header {
+                background: #2c3e50; color: white; padding: 15px; font-size: 22px; font-weight: bold; text-align: center;
+            }
+            .ipaq-bill-items {
+                flex-grow: 1; padding: 15px; overflow-y: auto;
+            }
+            .ipaq-bill-item {
+                display: flex; justify-content: space-between; font-size: 18px; padding: 10px 0; border-bottom: 1px dashed #ccc;
+            }
+            .ipaq-bill-footer {
+                padding: 20px; background: #fdfdfd; border-top: 2px solid #eee;
+            }
+            .ipaq-total-row {
+                display: flex; justify-content: space-between; font-size: 26px; font-weight: bold; color: #e74c3c; margin-bottom: 20px;
+            }
+            .ipaq-action-btn {
+                width: 100%; padding: 15px; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 10px; color: white;
+            }
+            .btn-print-bill { background-color: #f39c12; }
+            .btn-pay-bill { background-color: #27ae60; }
+            
+            /* Menu Modal */
+            #ipaq-menu-modal {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8); z-index: 9999; display: none;
+                justify-content: center; align-items: center;
+            }
+            .ipaq-menu-content {
+                background: white; width: 90%; height: 90%; border-radius: 15px;
+                display: flex; flex-direction: column; overflow: hidden;
+            }
+            .ipaq-menu-header {
+                background: #2980b9; color: white; padding: 20px; font-size: 24px; display: flex; justify-content: space-between; align-items: center;
+            }
+            .ipaq-menu-grid {
+                padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; overflow-y: auto; flex-grow: 1;
+            }
+            .ipaq-menu-item {
+                border: 1px solid #ddd; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; background: #fafafa;
+            }
+            .ipaq-menu-item img {
+                width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;
+            }
+            .ipaq-menu-item-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+            .ipaq-menu-item-price { font-size: 16px; color: #27ae60; }
+        </style>
+
+        <!-- IPAQ Login Overlay -->
+        <div id="ipaq-login-overlay">
+            <div class="ipaq-login-box">
+                <h2 style="margin-top:0; color:#2c3e50;">📱 เข้าสู่ระบบ IPAQ (POS)</h2>
+                <select id="ipaq-login-user">
+                    <option value="">-- เลือกพนักงาน --</option>
+                </select>
+                <input type="password" id="ipaq-login-pwd" placeholder="รหัสผ่าน">
+                <button onclick="doIpaqLogin()">เข้าสู่ระบบ</button>
+                <p id="ipaq-login-err" style="color:red; display:none; margin-top:10px;">รหัสผ่านไม่ถูกต้อง!</p>
+            </div>
+        </div>
+
+        <!-- IPAQ Main Interface -->
+        <div class="ipaq-container">
+            <!-- Left: Table Grid -->
+            <div class="ipaq-left">
+                <h2 style="margin-top:0; color:#2c3e50;">🪑 เลือกโต๊ะ (Table Map)</h2>
+                <div style="margin-bottom: 15px;">
+                    <span style="display:inline-block; width:15px; height:15px; background:#2ecc71; border-radius:3px; margin-right:5px;"></span> ว่าง 
+                    <span style="display:inline-block; width:15px; height:15px; background:#e74c3c; border-radius:3px; margin-left:15px; margin-right:5px;"></span> เปิดโต๊ะ
+                    <span style="display:inline-block; width:15px; height:15px; background:#f1c40f; border-radius:3px; margin-left:15px; margin-right:5px;"></span> เช็คบิล
+                </div>
+                <div class="ipaq-table-grid" id="ipaq-table-grid">
+                </div>
+            </div>
+
+            <!-- Right: Bill Area -->
+            <div class="ipaq-right">
+                <div class="ipaq-bill-header" id="ipaq-bill-title">
+                    บิลโต๊ะ: ยังไม่ได้เลือก
+                </div>
+                <div class="ipaq-bill-items" id="ipaq-bill-items">
+                    <div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ</div>
+                </div>
+                <div class="ipaq-bill-footer">
+                    <div class="ipaq-total-row">
+                        <span>ยอดรวม:</span>
+                        <span id="ipaq-bill-total">฿ 0.00</span>
+                    </div>
+                    <button class="ipaq-action-btn btn-print-bill" onclick="ipaqPrintBill()">🖨️ พิมพ์บิล (เช็คบิล)</button>
+                    <button class="ipaq-action-btn btn-pay-bill" onclick="ipaqPayBill()">💰 รับเงิน (จบบิล)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IPAQ Menu Selection Modal -->
+        <div id="ipaq-menu-modal">
+            <div class="ipaq-menu-content">
+                <div class="ipaq-menu-header">
+                    <span id="ipaq-menu-modal-title">สั่งอาหาร - โต๊ะ: </span>
+                    <button onclick="closeIpaqMenuModal()" style="background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
+                </div>
+                <div class="ipaq-menu-grid" id="ipaq-menu-grid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<div id="tab-product" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap:wrap; gap:10px; border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px;">
             <h2 style="color:var(--text-main); margin:0;">📦 คลังสินค้า (Inventory)</h2>
             <select id="inventory-mode-select" onchange="switchInventoryMode()" style="padding: 10px 15px; border-radius: 8px; border: 2px solid var(--accent-blue); font-family: 'Prompt', sans-serif; font-size: 15px; font-weight: bold; color: var(--accent-blue); outline: none; background: #fff; cursor: pointer; min-width: 280px;">
@@ -5539,5 +5956,265 @@ function generateInventoryReport() {
 </script>
 
 <div id="receipt-print-area"></div>
+
+<script>
+
+// ==========================================
+// IPAQ SYSTEM JAVASCRIPT
+// ==========================================
+let currentIpaqTable = null;
+let ipaqLoggedIn = false;
+let ipaqTableColors = {}; 
+
+function initIpaq() {
+    const userSelect = document.getElementById('ipaq-login-user');
+    userSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>';
+    employees.forEach(emp => {
+        let opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.innerText = `${emp.name} (${emp.role})`;
+        userSelect.appendChild(opt);
+    });
+    
+    tables.forEach(t => {
+        if (!ipaqTableColors[t.id]) {
+            let tOrders = tableOrders.filter(o => o.tableId === t.id && !o.isPaid);
+            if (tOrders.length > 0) {
+                ipaqTableColors[t.id] = 'occupied';
+            } else {
+                ipaqTableColors[t.id] = 'free';
+            }
+        }
+    });
+
+    renderIpaqTables();
+}
+
+function doIpaqLogin() {
+    const userId = document.getElementById('ipaq-login-user').value;
+    const pwd = document.getElementById('ipaq-login-pwd').value;
+    const err = document.getElementById('ipaq-login-err');
+    
+    if (!userId || !pwd) {
+        err.innerText = 'กรุณาเลือกพนักงานและใส่รหัสผ่าน';
+        err.style.display = 'block';
+        return;
+    }
+    
+    const user = employees.find(e => e.id === userId && e.password === pwd);
+    if (user) {
+        ipaqLoggedIn = true;
+        document.getElementById('ipaq-login-overlay').style.display = 'none';
+        initIpaq(); 
+    } else {
+        err.innerText = 'รหัสผ่านไม่ถูกต้อง!';
+        err.style.display = 'block';
+    }
+}
+
+const originalSwitchTab = window.switchTab;
+window.switchTab = function(tabName) {
+    if (tabName === 'ipaq') {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const ipaqTab = document.getElementById('tab-ipaq');
+        if (ipaqTab) ipaqTab.classList.add('active');
+        
+        const ipaqBtn = document.querySelector('.tab-btn[data-perm="ipaq"]');
+        if(ipaqBtn) ipaqBtn.classList.add('active');
+        
+        if (!ipaqLoggedIn) {
+            document.getElementById('ipaq-login-overlay').style.display = 'flex';
+            initIpaq(); 
+        } else {
+            renderIpaqTables();
+        }
+    } else {
+        if(originalSwitchTab) originalSwitchTab(tabName);
+    }
+}
+
+function getIpaqTableClass(status) {
+    if(status === 'occupied') return 'ipaq-table-occupied';
+    if(status === 'pending') return 'ipaq-table-pending';
+    return 'ipaq-table-free';
+}
+
+function renderIpaqTables() {
+    const grid = document.getElementById('ipaq-table-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    tables.forEach(t => {
+        let status = ipaqTableColors[t.id] || 'free';
+        let btnClass = getIpaqTableClass(status);
+        
+        let btn = document.createElement('button');
+        btn.className = `ipaq-table-btn ${btnClass}`;
+        btn.innerText = t.name;
+        btn.onclick = () => selectIpaqTable(t.id);
+        grid.appendChild(btn);
+    });
+}
+
+function selectIpaqTable(tableId) {
+    currentIpaqTable = tables.find(t => t.id === tableId);
+    if (!currentIpaqTable) return;
+    
+    document.getElementById('ipaq-bill-title').innerText = `บิลโต๊ะ: ${currentIpaqTable.name}`;
+    renderIpaqBill();
+    
+    openIpaqMenuModal();
+    
+    if (ipaqTableColors[tableId] === 'free') {
+        ipaqTableColors[tableId] = 'occupied';
+        renderIpaqTables();
+    }
+}
+
+function openIpaqMenuModal() {
+    document.getElementById('ipaq-menu-modal-title').innerText = `สั่งอาหาร - โต๊ะ: ${currentIpaqTable.name}`;
+    const grid = document.getElementById('ipaq-menu-grid');
+    grid.innerHTML = '';
+    
+    products.forEach(p => {
+        let item = document.createElement('div');
+        item.className = 'ipaq-menu-item';
+        item.onclick = () => ipaqAddOrder(p);
+        
+        let imgSrc = p.image || 'https://via.placeholder.com/150?text=No+Image';
+        
+        item.innerHTML = `
+            <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+            <div class="ipaq-menu-item-name">${p.name}</div>
+            <div class="ipaq-menu-item-price">฿${p.price.toFixed(2)}</div>
+        `;
+        grid.appendChild(item);
+    });
+    
+    document.getElementById('ipaq-menu-modal').style.display = 'flex';
+}
+
+function closeIpaqMenuModal() {
+    document.getElementById('ipaq-menu-modal').style.display = 'none';
+}
+
+function ipaqAddOrder(product) {
+    let order = {
+        id: 'O' + Date.now(),
+        tableId: currentIpaqTable.id,
+        productId: product.id,
+        productName: product.name,
+        qty: 1,
+        price: product.price,
+        isPaid: false,
+        timestamp: new Date().toISOString()
+    };
+    tableOrders.push(order);
+    
+    closeIpaqMenuModal();
+    renderIpaqBill();
+    
+    if (typeof activeTable !== 'undefined' && activeTable === currentIpaqTable.id) {
+        if(typeof renderTableOrders === 'function') renderTableOrders();
+    }
+}
+
+function renderIpaqBill() {
+    const list = document.getElementById('ipaq-bill-items');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    if (!currentIpaqTable) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ</div>';
+        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        return;
+    }
+    
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    
+    if (tOrders.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร</div>';
+        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        return;
+    }
+    
+    let grouped = {};
+    let total = 0;
+    tOrders.forEach(o => {
+        if(!grouped[o.productId]) {
+            grouped[o.productId] = { name: o.productName, qty: 0, price: o.price };
+        }
+        grouped[o.productId].qty += o.qty;
+        total += (o.qty * o.price);
+    });
+    
+    for (const pid in grouped) {
+        const item = grouped[pid];
+        let div = document.createElement('div');
+        div.className = 'ipaq-bill-item';
+        div.innerHTML = `
+            <div>${item.name} x${item.qty}</div>
+            <div>฿${(item.qty * item.price).toFixed(2)}</div>
+        `;
+        list.appendChild(div);
+    }
+    
+    document.getElementById('ipaq-bill-total').innerText = `฿ ${total.toFixed(2)}`;
+}
+
+function ipaqPrintBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้เช็คบิล');
+    
+    ipaqTableColors[currentIpaqTable.id] = 'pending';
+    renderIpaqTables();
+    
+    alert('พิมพ์บิลเรียบร้อย กำลังรอรับเงิน (สถานะโต๊ะสีเหลือง)');
+}
+
+function ipaqPayBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้รับเงิน');
+    
+    if (!confirm('ยืนยันรับเงินและจบบิล?')) return;
+    
+    let total = 0;
+    tOrders.forEach(o => {
+        o.isPaid = true;
+        total += (o.qty * o.price);
+        
+        let pIndex = products.findIndex(p => p.id === o.productId);
+        if(pIndex !== -1 && typeof updateProductStock === 'function') {
+           updateProductStock(o.productId, o.qty);
+        }
+    });
+    
+    let saleRecord = {
+        id: 'S' + Date.now(),
+        tableId: currentIpaqTable.id,
+        tableName: currentIpaqTable.name,
+        totalAmount: total,
+        items: tOrders.map(o => ({...o})),
+        timestamp: new Date().toISOString()
+    };
+    sales.push(saleRecord);
+    
+    ipaqTableColors[currentIpaqTable.id] = 'free';
+    renderIpaqTables();
+    renderIpaqBill();
+    
+    alert('รับเงินเรียบร้อย โต๊ะว่างแล้ว (สถานะสีเขียว)');
+    
+    if(typeof renderSales === 'function') renderSales();
+    if(typeof updateDashboard === 'function') updateDashboard();
+    if(typeof updateTableStatus === 'function') updateTableStatus();
+}
+// ==========================================
+
+</script>
 </body>
 </html>
