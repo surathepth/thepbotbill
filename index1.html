@@ -460,7 +460,6 @@
         <button class="tab-btn" data-perm="table" onclick="switchTab('table')">🪑 โต๊ะ</button>
         <button class="tab-btn" data-perm="customer" onclick="switchTab('customer')">💎 ลูกค้า (CRM)</button>
         <button class="tab-btn" data-perm="printer" onclick="switchTab('printer')">🖨️ เครื่องพิมพ์</button>
-        <button class="tab-btn" data-perm="inventory" onclick="switchTab('inventory')">📦 สต๊อกสินค้า</button>
         <button class="tab-btn" data-perm="report" onclick="switchTab('report')">📊 รายงาน</button>
     </div>
 
@@ -971,54 +970,7 @@
 
     </div> <!-- Close tab-pos -->
 
-    <!-- TAB: Inventory -->
-    <div id="tab-inventory" class="tab-content">
-        <h2 style="color:var(--text-main); margin-top:0;">📦 สต๊อกสินค้า (Inventory)</h2>
-        <div class="db-form-box">
-            <div style="display:flex; gap:10px; margin-bottom: 20px;">
-                <button onclick="openStockInModal()" style="padding:10px; background:var(--accent-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">📥 คีย์สินค้ารับเข้า (ตามบิล)</button>
-                <button onclick="openStockAdjustModal()" style="padding:10px; background:var(--accent-orange); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">⚖️ ปรับยอดสต๊อกด่วน</button>
-            </div>
-            
-            <h3 style="color:var(--text-main); font-size:16px;">📊 รายงานความเคลื่อนไหวสต๊อก</h3>
-            <div class="filter-group" style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap:wrap;">
-                <div style="flex: 1; min-width:200px;">
-                    <label>รูปแบบรายงาน:</label>
-                    <select id="inv-report-type" onchange="generateInventoryReport()">
-                        <option value="balance_cat">4.1 สินค้าคงเหลือ (แยกหมวด)</option>
-                        <option value="balance_name">4.1 สินค้าคงเหลือ (แยกชื่อ)</option>
-                        <option value="move_cat">4.2 ความเคลื่อนไหว (แยกหมวด)</option>
-                        <option value="move_name">4.3 ความเคลื่อนไหว (แยกชื่อ)</option>
-                        <option value="move_detail">4.4 ความเคลื่อนไหว (แบบละเอียด)</option>
-                    </select>
-                </div>
-                <div style="flex: 1; min-width:130px;">
-                    <label>ตั้งแต่วันที่:</label>
-                    <input type="date" id="inv-start-date" onchange="generateInventoryReport()">
-                </div>
-                <div style="flex: 1; min-width:130px;">
-                    <label>ถึงวันที่:</label>
-                    <input type="date" id="inv-end-date" onchange="generateInventoryReport()">
-                </div>
-                <div style="display:flex; align-items:flex-end;">
-                    <button onclick="generateInventoryReport()" style="padding:10px 15px; background:var(--accent-green); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">🔍 ดูรายงาน</button>
-                </div>
-            </div>
-
-            <div class="db-table-wrapper">
-                <table class="db-table" id="inv-report-table">
-                    <thead>
-                        <tr id="inv-report-head" style="background:#f5f7fa;">
-                        </tr>
-                    </thead>
-                    <tbody id="inv-report-body">
-                    </tbody>
-                    <tfoot id="inv-report-foot" style="background:#e8f8f5; font-weight:bold;">
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
+    <!-- (Old tab-inventory deleted, moved to tab-product) -->
 
     <!-- TAB: Report -->
     <div id="tab-report" class="tab-content">
@@ -1375,11 +1327,166 @@
         </script>
     </div>
 
-    <!-- TAB: Product DB -->
+    <!-- TAB: Product DB (And Inventory) -->
     <div id="tab-product" class="tab-content">
-        <h2 style="color:var(--text-main); margin-top:0;">📦 ฐานข้อมูลสินค้า (Products)</h2>
-        <div class="db-form-box">
-            <label>รหัสสินค้า / SKU (อักษรหรือตัวเลข)</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap:wrap; gap:10px; border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px;">
+            <h2 style="color:var(--text-main); margin:0;">📦 คลังสินค้า (Inventory)</h2>
+            <select id="inventory-mode-select" onchange="switchInventoryMode()" style="padding: 10px 15px; border-radius: 8px; border: 2px solid var(--accent-blue); font-family: 'Prompt', sans-serif; font-size: 15px; font-weight: bold; color: var(--accent-blue); outline: none; background: #fff; cursor: pointer; min-width: 280px;">
+                <option value="manage_db">🔧 1. จัดการข้อมูลสินค้าพื้นฐาน</option>
+                <option value="receive_bill">📥 2. คีย์รับสินค้าเข้า (ตามบิลผู้จำหน่าย)</option>
+                <option value="adjust_stock">⚖️ 3. ปรับยอดสต๊อก / เบิก / ยืม / จ่าย</option>
+                <option value="report_stock">📊 4. รายงานความเคลื่อนไหวสต๊อก</option>
+            </select>
+        </div>
+
+        <!-- Mode 2: Receive Bill (New Form) -->
+        <div id="inv-mode-receive_bill" style="display:none;">
+            <div class="db-form-box" style="background: #f8f9fc; border: 1px solid #d1d8e0; margin-bottom:20px;">
+                <h3 style="margin-top:0; color:#2c3e50;">🧾 ฟอร์มรับสินค้าเข้าสต๊อก (ตามบิลอ้างอิง)</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>เลขที่บิล / ใบรับสินค้า</label>
+                        <input type="text" id="bill-no" placeholder="เช่น INV-2023001">
+                    </div>
+                    <div>
+                        <label>วันที่ตามบิล</label>
+                        <input type="date" id="bill-date">
+                    </div>
+                    <div>
+                        <label>ชื่อผู้จำหน่าย / ร้านค้า</label>
+                        <input type="text" id="bill-supplier" placeholder="ชื่อร้านที่ซื้อมา">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label>หมายเหตุ / รายละเอียดเพิ่มเติม</label>
+                    <input type="text" id="bill-note" placeholder="รายละเอียดอื่นๆ...">
+                </div>
+
+                <div style="border-top: 2px dashed #bdc3c7; margin: 20px 0; padding-top: 15px;">
+                    <h4 style="margin-top:0; color:#2c3e50;">รายการสินค้าในบิล</h4>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; flex-wrap:wrap;">
+                        <div style="flex:2; min-width:200px;">
+                            <label>ค้นหาสินค้า (ชื่อหรือรหัส)</label>
+                            <input type="text" id="bill-item-search" list="product-datalist" placeholder="พิมพ์ชื่อเพื่อค้นหา...">
+                        </div>
+                        <div style="flex:1; min-width:100px;">
+                            <label>จำนวนที่รับเข้า</label>
+                            <input type="number" id="bill-item-qty" placeholder="0">
+                        </div>
+                        <div style="flex:1; min-width:120px;">
+                            <label>ต้นทุนรวม (บาท)</label>
+                            <input type="number" id="bill-item-cost" placeholder="0">
+                        </div>
+                        <button onclick="addBillItem()" style="padding:10px 15px; background:var(--accent-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif; height: 42px;">➕ เพิ่มรายการ</button>
+                    </div>
+
+                    <div class="db-table-wrapper" style="margin-top:15px; overflow:visible;">
+                        <table class="db-table">
+                            <thead>
+                                <tr style="background:#e8f8f5;">
+                                    <th>รหัส/ชื่อสินค้า</th>
+                                    <th style="text-align:right;">จำนวนรับเข้า</th>
+                                    <th style="text-align:right;">ราคาต้นทุนรวม</th>
+                                    <th style="text-align:right;">ต้นทุน/หน่วย</th>
+                                    <th style="text-align:center;">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bill-items-body">
+                            </tbody>
+                            <tfoot style="background:#f1f2f6; font-weight:bold;">
+                                <tr>
+                                    <td colspan="2" style="text-align:right;">รวมยอดเงินในบิลทั้งสิ้น:</td>
+                                    <td id="bill-total-cost" style="text-align:right; font-size:16px; color:#27ae60;">0.00</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <button class="btn btn-save" style="width:100%; padding: 15px; font-size:18px; margin-top:15px; background:var(--accent-green);" onclick="saveBillReceipt()">📥 บันทึกรับสินค้าเข้าสต๊อก (ตามบิลนี้ทั้งหมด)</button>
+            </div>
+        </div>
+
+        <!-- Mode 3: Adjust / Borrow / Pay -->
+        <div id="inv-mode-adjust_stock" style="display:none;">
+            <div class="db-form-box" style="background: #fdfefe; border: 1px solid #f1c40f; max-width:600px; margin: 0 auto 20px auto;">
+                <h3 style="margin-top:0; color:#d35400;">⚖️ ปรับยอดสต๊อก / เบิก / ยืม / จ่าย</h3>
+                <div class="modal-input-group">
+                    <label>ค้นหาสินค้า (ชื่อหรือบาร์โค้ด):</label>
+                    <input type="text" id="sa-search-new" list="product-datalist" placeholder="ค้นหา..." onchange="onStockAdjustProductChangeNew()">
+                </div>
+                <div class="modal-input-group">
+                    <label>จำนวนสต๊อกในระบบตอนนี้:</label>
+                    <input type="text" id="sa-current-new" disabled style="background:#f1f2f6; color:#e74c3c; font-weight:bold;">
+                </div>
+                <div class="modal-input-group" id="sa-reason-group-new">
+                    <label>ประเภทรายการ (เฉพาะปรับออก):</label>
+                    <select id="sa-reason-new" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: var(--radius-btn); font-family: 'Prompt', sans-serif;">
+                        <option value="ADJUST">🔄 ปรับยอด</option>
+                        <option value="REQUISITION">🏭 เบิก</option>
+                        <option value="BORROW">🤝 ยืม</option>
+                        <option value="PAY">📤 จ่าย</option>
+                    </select>
+                </div>
+                <div class="modal-input-group">
+                    <label>ยอดปรับ (บวก/ลบ):</label>
+                    <input type="number" id="sa-qty-new" placeholder="เช่น 5 หรือ -2">
+                </div>
+                <button type="button" class="btn btn-save" style="background:#f39c12; width:100%; margin-top:15px;" onclick="saveStockAdjustNew()">⚡ บันทึกการปรับยอด</button>
+            </div>
+        </div>
+
+        <!-- Mode 4: Reports -->
+        <div id="inv-mode-report_stock" style="display:none;">
+            <div class="db-form-box">
+                <h3 style="color:var(--text-main); font-size:16px; margin-top:0;">📊 รายงานความเคลื่อนไหวสต๊อก</h3>
+                <div class="filter-group" style="display:flex; gap:10px; margin-bottom: 15px; flex-wrap:wrap;">
+                    <div style="flex: 1; min-width:200px;">
+                        <label>รูปแบบรายงาน:</label>
+                        <select id="inv-report-type-new" onchange="generateInventoryReport()">
+                            <option value="balance_cat">4.1 สินค้าคงเหลือ (แยกหมวด)</option>
+                            <option value="balance_name">4.1 สินค้าคงเหลือ (แยกชื่อ)</option>
+                            <option value="move_cat">4.2 ความเคลื่อนไหว (แยกหมวด)</option>
+                            <option value="move_name">4.3 ความเคลื่อนไหว (แยกชื่อ)</option>
+                            <option value="move_detail">4.4 ความเคลื่อนไหว (แบบละเอียด)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width:130px;">
+                        <label>ตั้งแต่วันที่:</label>
+                        <input type="date" id="inv-start-date-new" onchange="generateInventoryReport()">
+                    </div>
+                    <div style="flex: 1; min-width:130px;">
+                        <label>ถึงวันที่:</label>
+                        <input type="date" id="inv-end-date-new" onchange="generateInventoryReport()">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button onclick="generateInventoryReport()" style="padding:10px 15px; background:var(--accent-green); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif;">🔍 ดูรายงาน</button>
+                    </div>
+                </div>
+
+                <div class="db-table-wrapper">
+                    <table class="db-table" id="inv-report-table-new">
+                        <thead>
+                            <tr id="inv-report-head-new" style="background:#f5f7fa;">
+                            </tr>
+                        </thead>
+                        <tbody id="inv-report-body-new">
+                        </tbody>
+                        <tfoot id="inv-report-foot-new" style="background:#e8f8f5; font-weight:bold;">
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode 1: Manage DB -->
+        <div id="inv-mode-manage_db">
+            <div class="db-form-box">
+                <label>รหัสสินค้า / SKU (อักษรหรือตัวเลข)</label>
             <input type="text" id="prod-sku" placeholder="เช่น P001">
             <label>ชื่อสินค้า</label>
             <input type="text" id="prod-name" placeholder="เช่น ข้าวผัดกะเพรา">
@@ -1412,7 +1519,8 @@
                 <tbody></tbody>
             </table>
         </div>
-    </div>
+        </div> <!-- Close inv-mode-manage_db -->
+    </div> <!-- Close tab-product -->
 
     <!-- TAB: Employee DB -->
     <div id="tab-employee" class="tab-content">
@@ -4864,14 +4972,231 @@ function saveStockAdjust() {
     generateInventoryReport();
 }
 
-function generateInventoryReport() {
-    const reportType = document.getElementById('inv-report-type').value;
-    const startDateStr = document.getElementById('inv-start-date').value;
-    const endDateStr = document.getElementById('inv-end-date').value;
+// ============================================
+// New Bill Receipt & Inventory Dropdown Logic
+// ============================================
+
+function switchInventoryMode() {
+    const mode = document.getElementById('inventory-mode-select').value;
+    document.getElementById('inv-mode-manage_db').style.display = 'none';
+    document.getElementById('inv-mode-receive_bill').style.display = 'none';
+    document.getElementById('inv-mode-adjust_stock').style.display = 'none';
+    document.getElementById('inv-mode-report_stock').style.display = 'none';
     
-    const thead = document.getElementById('inv-report-head');
-    const tbody = document.getElementById('inv-report-body');
-    const tfoot = document.getElementById('inv-report-foot');
+    document.getElementById('inv-mode-' + mode).style.display = 'block';
+    
+    if (mode === 'receive_bill') {
+        document.getElementById('bill-date').value = new Date().toISOString().split('T')[0];
+    } else if (mode === 'report_stock') {
+        generateInventoryReport();
+    }
+}
+
+function onStockAdjustProductChangeNew() {
+    const searchVal = document.getElementById('sa-search-new').value.trim();
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    if (barcodeToUse) {
+        document.getElementById('sa-current-new').value = (parseFloat(window.productDB[barcodeToUse].stock) || 0) + " ชิ้น";
+    } else {
+        document.getElementById('sa-current-new').value = "-";
+    }
+}
+
+function saveStockAdjustNew() {
+    const searchVal = document.getElementById('sa-search-new').value.trim();
+    const qty = parseFloat(document.getElementById('sa-qty-new').value);
+    
+    if (!searchVal) { alert("⚠️ กรุณาเลือกสินค้า"); return; }
+    if (isNaN(qty) || qty === 0) { alert("⚠️ กรุณาระบุยอดปรับเพิ่มหรือลด (ห้ามเป็น 0)"); return; }
+
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    
+    if (!barcodeToUse) {
+        alert("⚠️ ไม่พบสินค้าในระบบ กรุณาตรวจสอบชื่อหรือบาร์โค้ด"); return;
+    }
+    
+    const prod = window.productDB[barcodeToUse];
+    const oldStock = parseFloat(prod.stock) || 0;
+    const newStock = oldStock + qty;
+    prod.stock = newStock;
+    
+    let type = (qty > 0) ? 'IN_ADJUST' : 'OUT_ADJUST';
+    
+    if (qty < 0) {
+        const reason = document.getElementById('sa-reason-new').value;
+        if (reason === 'REQUISITION') type = 'OUT_REQUISITION';
+        else if (reason === 'BORROW') type = 'OUT_BORROW';
+        else if (reason === 'PAY') type = 'OUT_PAY';
+    }
+    
+    window.stockLedger.push({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        barcode: barcodeToUse,
+        productName: prod.name,
+        category: prod.category || 'ไม่มีหมวดหมู่',
+        type: type,
+        qty: Math.abs(qty),
+        balance: newStock,
+        cost: 0,
+        note: 'ปรับยอดด่วน'
+    });
+    
+    if (typeof database !== 'undefined' && window.shopPhone) {
+        database.ref('erp_db_products/' + window.shopPhone + '/' + barcodeToUse).update({ stock: newStock });
+    }
+    
+    saveStockLedger();
+    alert("✅ บันทึกปรับยอดสำเร็จ สต๊อกใหม่คือ " + newStock + " ชิ้น");
+    
+    document.getElementById('sa-search-new').value = "";
+    document.getElementById('sa-current-new').value = "";
+    document.getElementById('sa-qty-new').value = "";
+}
+
+let currentBillItems = [];
+
+function addBillItem() {
+    const searchVal = document.getElementById('bill-item-search').value.trim();
+    const qty = parseFloat(document.getElementById('bill-item-qty').value);
+    const cost = parseFloat(document.getElementById('bill-item-cost').value);
+    
+    if (!searchVal) { alert("⚠️ กรุณาเลือกสินค้า"); return; }
+    if (isNaN(qty) || qty <= 0) { alert("⚠️ กรุณาระบุจำนวนรับเข้า (ต้องมากกว่า 0)"); return; }
+    if (isNaN(cost) || cost < 0) { alert("⚠️ กรุณาระบุต้นทุน (ถ้าไม่มีให้ใส่ 0)"); return; }
+
+    let barcodeToUse = "";
+    for (let bc in window.productDB) {
+        if (bc === searchVal || window.productDB[bc].name === searchVal) {
+            barcodeToUse = bc; break;
+        }
+    }
+    
+    if (!barcodeToUse) {
+        alert("⚠️ ไม่พบสินค้านี้ในระบบ กรุณาตรวจสอบชื่อหรือสร้างสินค้าก่อนที่เมนูจัดการข้อมูลสินค้า"); return;
+    }
+    
+    const prod = window.productDB[barcodeToUse];
+    
+    currentBillItems.push({
+        barcode: barcodeToUse,
+        name: prod.name,
+        category: prod.category || 'ไม่มีหมวดหมู่',
+        qty: qty,
+        totalCost: cost,
+        unitCost: cost / qty
+    });
+    
+    renderBillItems();
+    
+    document.getElementById('bill-item-search').value = "";
+    document.getElementById('bill-item-qty').value = "";
+    document.getElementById('bill-item-cost').value = "";
+    document.getElementById('bill-item-search').focus();
+}
+
+function removeBillItem(index) {
+    currentBillItems.splice(index, 1);
+    renderBillItems();
+}
+
+function renderBillItems() {
+    const tbody = document.getElementById('bill-items-body');
+    tbody.innerHTML = "";
+    let grandTotal = 0;
+    
+    currentBillItems.forEach((item, index) => {
+        grandTotal += item.totalCost;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.name} <br><small style="color:#7f8c8d;">${item.barcode}</small></td>
+            <td style="text-align:right;">${item.qty}</td>
+            <td style="text-align:right;">${item.totalCost.toFixed(2)}</td>
+            <td style="text-align:right;">${item.unitCost.toFixed(2)}</td>
+            <td style="text-align:center;"><button onclick="removeBillItem(${index})" style="background:var(--accent-red); color:white; border:none; border-radius:4px; padding:5px 10px; cursor:pointer;">❌</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    document.getElementById('bill-total-cost').innerText = grandTotal.toFixed(2);
+}
+
+function saveBillReceipt() {
+    const billNo = document.getElementById('bill-no').value.trim();
+    const billDate = document.getElementById('bill-date').value;
+    const billSupplier = document.getElementById('bill-supplier').value.trim();
+    const billNote = document.getElementById('bill-note').value.trim();
+    
+    if (currentBillItems.length === 0) {
+        alert("⚠️ บิลว่างเปล่า! กรุณาเพิ่มรายการสินค้าก่อนบันทึก"); return;
+    }
+    
+    if (!billNo) {
+        if(!confirm("⚠️ คุณไม่ได้กรอก 'เลขที่บิล' ต้องการบันทึกต่อหรือไม่?")) return;
+    }
+    
+    const timestamp = billDate ? new Date(billDate).toISOString() : new Date().toISOString();
+    let receiptRef = `บิล: ${billNo || 'ไม่ระบุ'}, ร้าน: ${billSupplier || 'ไม่ระบุ'}`;
+    if (billNote) receiptRef += ` (${billNote})`;
+    
+    let dbUpdates = {};
+    
+    currentBillItems.forEach(item => {
+        const prod = window.productDB[item.barcode];
+        const oldStock = parseFloat(prod.stock) || 0;
+        const newStock = oldStock + item.qty;
+        prod.stock = newStock;
+        
+        window.stockLedger.push({
+            id: Date.now().toString() + "_" + Math.random().toString(36).substr(2, 5),
+            timestamp: timestamp,
+            barcode: item.barcode,
+            productName: item.name,
+            category: item.category,
+            type: 'IN_RECEIPT',
+            qty: item.qty,
+            balance: newStock,
+            cost: item.totalCost,
+            note: receiptRef
+        });
+        
+        dbUpdates[item.barcode + '/stock'] = newStock;
+    });
+    
+    if (typeof database !== 'undefined' && window.shopPhone) {
+        database.ref('erp_db_products/' + window.shopPhone).update(dbUpdates);
+    }
+    
+    saveStockLedger();
+    
+    alert("✅ บันทึกบิลรับเข้าเรียบร้อย! สต๊อกสินค้าอัปเดตแล้ว");
+    
+    // Clear Form
+    document.getElementById('bill-no').value = "";
+    document.getElementById('bill-supplier').value = "";
+    document.getElementById('bill-note').value = "";
+    currentBillItems = [];
+    renderBillItems();
+}
+
+function generateInventoryReport() {
+    const reportType = document.getElementById('inv-report-type-new').value;
+    const startDateStr = document.getElementById('inv-start-date-new').value;
+    const endDateStr = document.getElementById('inv-end-date-new').value;
+    
+    const thead = document.getElementById('inv-report-head-new');
+    const tbody = document.getElementById('inv-report-body-new');
+    const tfoot = document.getElementById('inv-report-foot-new');
     
     thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = '';
 
