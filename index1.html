@@ -5221,15 +5221,19 @@ function generateInventoryReport() {
         tfoot.innerHTML = `<tr><td>รวมทั้งสิ้น</td><td>${total.toLocaleString()} ชิ้น</td></tr>`;
     } 
     else if (reportType === 'move_cat' || reportType === 'move_name') {
-        thead.innerHTML = `<th>${reportType === 'move_cat' ? 'หมวดหมู่' : 'ชื่อสินค้า'}</th><th>รับเข้า (+ปรับ)</th><th>ขายออก (-ปรับ)</th><th>คงเหลือสะสมในกรอบเวลา</th>`;
+        thead.innerHTML = `<th>${reportType === 'move_cat' ? 'หมวดหมู่' : 'ชื่อสินค้า'}</th><th>รับเข้า (+ปรับ)</th><th>จ่ายออก (-ปรับ)</th><th>คงเหลือสะสมในกรอบเวลา</th>`;
         let agg = {};
         window.stockLedger.forEach(txn => {
-            let d = new Date(txn.date);
+            let d = new Date(txn.timestamp || txn.date);
             if(d >= start && d <= end) {
-                let key = reportType === 'move_cat' ? (txn.category || 'ทั่วไป') : txn.name;
+                let key = reportType === 'move_cat' ? (txn.category || 'ทั่วไป') : (txn.productName || txn.name || 'ไม่ระบุ');
                 if(!agg[key]) agg[key] = { in: 0, out: 0 };
-                if (txn.qty > 0) agg[key].in += txn.qty;
-                else agg[key].out += Math.abs(txn.qty);
+                let isIn = (txn.type && txn.type.startsWith('IN_')) || txn.qty > 0;
+                let isOut = (txn.type && txn.type.startsWith('OUT_')) || txn.qty < 0;
+                
+                let absQty = Math.abs(txn.qty || 0);
+                if (isIn && !isOut) agg[key].in += absQty;
+                else if (isOut) agg[key].out += absQty;
             }
         });
         
@@ -5242,62 +5246,80 @@ function generateInventoryReport() {
         tfoot.innerHTML = `<tr><td>รวมทั้งสิ้น</td><td><span style="color:green;">+${tIn.toLocaleString()}</span></td><td><span style="color:red;">-${tOut.toLocaleString()}</span></td><td><b>${tBal.toLocaleString()} ชิ้น</b></td></tr>`;
     }
     else if (reportType === 'move_detail') {
-        thead.innerHTML = `<th>วัน/เวลา</th><th>ประเภท</th><th>เอกสาร</th><th>รายการ</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>คงเหลือ</th><th>มูลค่าคงเหลือ</th>`;
+        thead.innerHTML = `
+            <th>วัน/เดือน/ปี</th>
+            <th>เลขที่เอกสาร</th>
+            <th>รายการสินค้า</th>
+            <th>รับเข้า/ซื้อ/ปรับ (+)</th>
+            <th>ขาย/เบิก/ยืม/ลด (-)</th>
+            <th>จำนวน/หน่วย</th>
+            <th>ราคา/หน่วย</th>
+            <th>จำนวนคงเหลือ</th>
+            <th>มูลค่ารวมคงเหลือ</th>
+        `;
         let filtered = window.stockLedger.filter(txn => {
-            let d = new Date(txn.date);
+            let d = new Date(txn.timestamp || txn.date);
             return d >= start && d <= end;
         });
         
         // Sort descending (newest first)
-        filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+        filtered.sort((a,b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
 
-        filtered.forEach(txn => {
-            let d = new Date(txn.date).toLocaleString('th-TH');
-            let color = txn.qty > 0 ? 'green' : 'red';
-            let sign = txn.qty > 0 ? '+' : '';
-            let val = (txn.valueAfter || 0);
-            
-            let typeLabel = "ไม่ทราบ";
-            if(txn.type==="IN_BILL") typeLabel = "รับเข้า(บิล)";
-            if(txn.type==="IN_ADJUST") typeLabel = "ปรับเข้า";
-            if(txn.type==="OUT_ADJUST") typeLabel = "ปรับออก";
-            if(txn.type==="OUT_REQUISITION") typeLabel = "เบิกออก";
-            if(txn.type==="OUT_BORROW") typeLabel = "ยืมออก";
-            if(txn.type==="OUT_PAY") typeLabel = "จ่ายออก";
-            if(txn.type==="OUT_SELL") typeLabel = "ขายออก";
-
-            tbody.innerHTML += `<tr>
-                <td>${d}</td>
-                <td><span style="background:#f1f2f6; padding:2px 6px; border-radius:4px; font-size:11px;">${typeLabel}</span></td>
-                <td>${txn.docNo || '-'}</td>
-                <td>${txn.name}</td>
-                <td style="color:${color}; font-weight:bold;">${sign}${txn.qty.toLocaleString()}</td>
-                <td>${txn.pricePerUnit.toLocaleString()}</td>
-                <td>${txn.balanceAfter.toLocaleString()}</td>
-                <td>${val.toLocaleString()}</td>
-            </tr>`;
-        });
-        
         let sumIn = 0, sumOut = 0;
         let valIn = 0, valOut = 0;
+
         filtered.forEach(txn => {
-            if(txn.qty > 0) {
-                sumIn += txn.qty;
-                valIn += (txn.qty * txn.pricePerUnit);
+            let d = new Date(txn.timestamp || txn.date).toLocaleString('th-TH');
+            
+            let isIn = (txn.type && txn.type.startsWith('IN_'));
+            let isOut = (txn.type && txn.type.startsWith('OUT_'));
+            if (!txn.type) {
+                if (txn.qty > 0) isIn = true;
+                if (txn.qty < 0) isOut = true;
             }
-            else {
-                sumOut += Math.abs(txn.qty);
-                valOut += (Math.abs(txn.qty) * txn.pricePerUnit);
+            
+            let absQty = Math.abs(txn.qty || 0);
+            let inStr = isIn ? `<span style="color:green; font-weight:bold;">+${absQty.toLocaleString()}</span>` : "-";
+            let outStr = isOut ? `<span style="color:red; font-weight:bold;">-${absQty.toLocaleString()}</span>` : "-";
+            
+            let pName = txn.productName || txn.name || '-';
+            let docNo = txn.note || txn.docNo || '-';
+            
+            let pricePerUnit = txn.pricePerUnit || (txn.cost && absQty > 0 ? txn.cost / absQty : 0) || 0;
+            let bal = txn.balance || txn.balanceAfter || 0;
+            let val = txn.valueAfter || (bal * pricePerUnit) || 0;
+            
+            tbody.innerHTML += `<tr>
+                <td>${d}</td>
+                <td>${docNo}</td>
+                <td>${pName}</td>
+                <td style="text-align:center;">${inStr}</td>
+                <td style="text-align:center;">${outStr}</td>
+                <td style="text-align:center;">${absQty.toLocaleString()}</td>
+                <td style="text-align:right;">${pricePerUnit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                <td style="text-align:center; font-weight:bold;">${bal.toLocaleString()}</td>
+                <td style="text-align:right; font-weight:bold;">${val.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            </tr>`;
+            
+            if(isIn) {
+                sumIn += absQty;
+                valIn += (absQty * pricePerUnit);
+            }
+            if(isOut) {
+                sumOut += absQty;
+                valOut += (absQty * pricePerUnit);
             }
         });
+        
         let netQty = sumIn - sumOut;
         let netVal = valIn - valOut;
         
         tfoot.innerHTML = `<tr>
-            <td colspan="4" style="text-align:right; font-weight:bold;">รวมยอดเคลื่อนไหว (Grand Total):</td>
-            <td style="font-weight:bold; color:${netQty >= 0 ? 'green' : 'red'};">${netQty >= 0 ? '+' : ''}${netQty.toLocaleString()}</td>
-            <td colspan="2"></td>
-            <td style="font-weight:bold; color:${netVal >= 0 ? 'green' : 'red'};">${netVal >= 0 ? '+' : ''}${netVal.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td colspan="3" style="text-align:right; font-weight:bold;">รวมยอดทั้งหมด (Grand Total):</td>
+            <td style="color:green; font-weight:bold; text-align:center;">+${sumIn.toLocaleString()}</td>
+            <td style="color:red; font-weight:bold; text-align:center;">-${sumOut.toLocaleString()}</td>
+            <td colspan="3"></td>
+            <td style="font-weight:bold; color:${netVal >= 0 ? 'green' : 'red'}; text-align:right;">${netVal >= 0 ? '+' : ''}${netVal.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
         </tr>`;
     }
 }
