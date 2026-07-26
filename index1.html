@@ -233,6 +233,14 @@
         
         #reader video { border-radius: var(--radius-main); }
 
+        /* [Lilin Additive] Autocomplete Custom Dropdown Styles */
+        .autocomplete-dropdown { position: absolute; background: #fff; border: 1px solid #bdc3c7; border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: 100%; min-width: 250px; top: calc(100% + 4px); left: 0; }
+        .autocomplete-item { padding: 10px 12px; border-bottom: 1px solid #f1f2f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .autocomplete-item:hover { background: #e8f4fd; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .ac-name { font-weight: 700; color: #2c3e50; font-size: 14px; margin-bottom: 2px; }
+        .ac-detail { color: #7f8c8d; font-size: 11px; }
+
         /* ERP Tab Navigation */
         .erp-nav {
             display: flex;
@@ -1858,6 +1866,11 @@
         const nameInput = newRow.querySelector('.name-val');
         const priceInput = newRow.querySelector('.price-val');
 
+        // [Lilin Additive] Attach the smart autocomplete to new POS rows
+        if (typeof attachProductAutocomplete === 'function') {
+            attachProductAutocomplete(nameInput);
+        }
+
         // ตรวจจับการพิมพ์หรือสแกนบาร์โค้ด
         nameInput.addEventListener('input', function() {
             const val = this.value.trim();
@@ -1922,6 +1935,82 @@
     function getProductDB() {
         return (window.erpData && window.erpData['product']) ? window.erpData['product'] : {};
     }
+
+    // [Lilin Additive] ระบบค้นหาสินค้าอัจฉริยะ (Instant Search Autocomplete) โชว์รายละเอียดเต็ม ค้นหาได้ทันที
+    function attachProductAutocomplete(inputEl, onSelectCallback) {
+        if (!inputEl || inputEl.dataset.acAttached) return;
+        inputEl.dataset.acAttached = 'true';
+        
+        inputEl.removeAttribute('list');
+        inputEl.setAttribute('autocomplete', 'off');
+
+        let dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-dropdown';
+        dropdown.style.display = 'none';
+        
+        let parent = inputEl.parentNode;
+        if (window.getComputedStyle(parent).position === 'static') {
+            parent.style.position = 'relative';
+        }
+        parent.insertBefore(dropdown, inputEl.nextSibling);
+
+        inputEl.addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            dropdown.innerHTML = '';
+            if (!val) { dropdown.style.display = 'none'; return; }
+
+            let db = getProductDB();
+            let matches = [];
+            for (let key in db) {
+                let p = db[key];
+                let searchStr = `${key} ${p.name || ''} ${p.sku || ''} ${p.category || ''}`.toLowerCase();
+                if (searchStr.includes(val)) {
+                    matches.push({ barcode: key, name: p.name || 'ไม่มีชื่อ', price: parseFloat(p.price) || 0, stock: parseFloat(p.stock) || 0, category: p.category || 'ทั่วไป' });
+                }
+            }
+
+            if (matches.length > 0) {
+                matches.slice(0, 20).forEach(item => {
+                    let div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.innerHTML = `
+                        <div style="flex:1;">
+                            <div class="ac-name">${item.name}</div>
+                            <div class="ac-detail">รหัส: ${item.barcode} | หมวด: ${item.category}</div>
+                        </div>
+                        <div style="text-align:right; min-width:80px;">
+                            <div style="color:var(--accent-blue); font-weight:bold;">฿${fmt(item.price, true)}</div>
+                            <div class="ac-detail">สต๊อก: <span style="color:${item.stock > 0 ? '#27ae60' : '#e74c3c'}; font-weight:bold;">${item.stock}</span></div>
+                        </div>
+                    `;
+                    div.addEventListener('mousedown', e => e.preventDefault());
+                    div.addEventListener('click', () => {
+                        inputEl.value = inputEl.id === 'prod-sku' ? item.barcode : item.name;
+                        dropdown.style.display = 'none';
+                        inputEl.dispatchEvent(new Event('change'));
+                        inputEl.dispatchEvent(new Event('input'));
+                        if (typeof onSelectCallback === 'function') onSelectCallback(item, inputEl);
+                    });
+                    dropdown.appendChild(div);
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        });
+        
+        inputEl.addEventListener('focus', function() { if (this.value.trim()) this.dispatchEvent(new Event('input', { bubbles: true })); });
+        inputEl.addEventListener('blur', function() { setTimeout(() => { dropdown.style.display = 'none'; }, 200); });
+    }
+
+    function initAllAutocompletes() {
+        ['si-search', 'sa-search', 'sa-search-new', 'bill-item-search', 'prod-sku'].forEach(id => {
+            let el = document.getElementById(id);
+            if (el) attachProductAutocomplete(el);
+        });
+        document.querySelectorAll('.name-val').forEach(el => attachProductAutocomplete(el));
+    }
+    setTimeout(initAllAutocompletes, 1000);
 
     function updateProductDatalist() {
         const datalist = document.getElementById('product-list-options');
