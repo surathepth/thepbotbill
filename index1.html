@@ -2145,6 +2145,50 @@
             commissionValue: commissionValue
         };
         localStorage.setItem('thep_product_db', JSON.stringify(targetDB));
+        
+        // [Lilin Additive] Sync new product to both Main DB and Inventory DB in Firebase to fully link them!
+        if (typeof database !== 'undefined') {
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            let createdTime = now.toISOString().slice(0,16); 
+            
+            // Sync to Main Product DB (For POS/Sales)
+            let mainDbData = {
+                sku: barcode,
+                name: name,
+                category: category || 'ทั่วไป',
+                commissionType: commissionType || 'none',
+                commissionValue: commissionValue || 0,
+                createdAt: createdTime,
+                unit: 'ชิ้น',
+                price: price,
+                stock: stock
+            };
+            database.ref('erp_db_product/' + barcode).update(mainDbData);
+            window.erpData = window.erpData || {};
+            window.erpData['product'] = window.erpData['product'] || {};
+            window.erpData['product'][barcode] = mainDbData;
+            
+            // Sync to Inventory DB (For Stock Reports)
+            const infoStr = localStorage.getItem('thep_shop_info');
+            if (infoStr) {
+                const shopInfo = JSON.parse(infoStr);
+                const shopPhone = shopInfo ? shopInfo.phone1 : null;
+                if (shopPhone) {
+                    let invData = {
+                        barcode: barcode,
+                        name: name,
+                        category: category || 'ทั่วไป',
+                        price: price,
+                        cost: 0,
+                        stock: stock,
+                        img: ""
+                    };
+                    database.ref('erp_db_products/' + shopPhone + '/' + barcode).update(invData);
+                }
+            }
+        }
+        
         updateProductDatalist();
 
         addProductToBill(name, price);
@@ -4346,6 +4390,29 @@ function saveDB(type) {
     
     // Write to Firebase
     database.ref('erp_db_' + type + '/' + id).set(data).then(() => {
+        // [Lilin Additive] Sync Product Manage DB to Inventory DB to link everything seamlessly!
+        if (type === 'product') {
+            const infoStr = localStorage.getItem('thep_shop_info');
+            if (infoStr && typeof database !== 'undefined') {
+                const shopInfo = JSON.parse(infoStr);
+                const shopPhone = shopInfo ? shopInfo.phone1 : null;
+                if (shopPhone) {
+                    let invData = {
+                        barcode: id,
+                        name: data.name,
+                        category: data.category || 'ทั่วไป',
+                        price: data.price,
+                        cost: 0, // default if not provided
+                        stock: data.stock,
+                        img: ""
+                    };
+                    database.ref('erp_db_products/' + shopPhone + '/' + id).update(invData);
+                    window.productDB = window.productDB || {};
+                    window.productDB[id] = invData;
+                    localStorage.setItem('thep_product_db', JSON.stringify(window.productDB));
+                }
+            }
+        }
         alert('✅ บันทึกข้อมูลขึ้นระบบคลาวด์เรียบร้อย!');
         document.querySelectorAll('#tab-' + type + ' input[type=\"text\"], #tab-' + type + ' input[type=\"number\"], #tab-' + type + ' input[type=\"email\"]').forEach(inp => inp.value = ''); document.querySelectorAll('#tab-' + type + ' input[type=\"checkbox\"]').forEach(inp => inp.checked = false);
     }).catch((error) => {
@@ -5182,6 +5249,29 @@ function saveBillReceipt() {
                 img: ""
             };
             dbUpdates[item.barcode] = window.productDB[item.barcode];
+            
+            // [Lilin Additive] Sync new product back to Main Product DB (For Manage Products/POS linkage)
+            if (typeof database !== 'undefined') {
+                let now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                let createdTime = now.toISOString().slice(0,16); 
+                
+                let mainDbData = {
+                    sku: item.barcode,
+                    name: item.name,
+                    category: item.category || 'ทั่วไป',
+                    commissionType: 'none',
+                    commissionValue: 0,
+                    createdAt: createdTime,
+                    unit: 'ชิ้น',
+                    price: item.price,
+                    stock: item.qty
+                };
+                database.ref('erp_db_product/' + item.barcode).update(mainDbData);
+                window.erpData = window.erpData || {};
+                window.erpData['product'] = window.erpData['product'] || {};
+                window.erpData['product'][item.barcode] = mainDbData;
+            }
         } else {
             const prod = window.productDB[item.barcode];
             const oldStock = parseFloat(prod.stock) || 0;
