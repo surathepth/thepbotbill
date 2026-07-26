@@ -1949,9 +1949,7 @@
         dropdown.style.display = 'none';
         
         let parent = inputEl.parentNode;
-        if (window.getComputedStyle(parent).position === 'static') {
-            parent.style.position = 'relative';
-        }
+        parent.style.position = 'relative'; // บังคับให้เป็น relative เสมอ เพื่อแก้ปัญหาเวลาแท็บถูกซ่อนอยู่
         parent.insertBefore(dropdown, inputEl.nextSibling);
 
         inputEl.addEventListener('input', function() {
