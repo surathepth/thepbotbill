@@ -1369,15 +1369,19 @@
                     <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; flex-wrap:wrap;">
                         <div style="flex:2; min-width:200px;">
                             <label>ค้นหาสินค้า (ชื่อหรือรหัส)</label>
-                            <input type="text" id="bill-item-search" list="product-datalist" placeholder="พิมพ์ชื่อเพื่อค้นหา...">
+                            <input type="text" id="bill-item-search" list="product-datalist" placeholder="พิมพ์ชื่อเพื่อค้นหา หรือพิมพ์ชื่อสินค้าใหม่...">
                         </div>
-                        <div style="flex:1; min-width:100px;">
-                            <label>จำนวนที่รับเข้า</label>
+                        <div style="flex:1; min-width:80px;">
+                            <label>จำนวน</label>
                             <input type="number" id="bill-item-qty" placeholder="0">
                         </div>
-                        <div style="flex:1; min-width:120px;">
-                            <label>ต้นทุนรวม (บาท)</label>
-                            <input type="number" id="bill-item-cost" placeholder="0">
+                        <div style="flex:1; min-width:100px;">
+                            <label>ราคา/หน่วย</label>
+                            <input type="number" id="bill-item-price" placeholder="0">
+                        </div>
+                        <div style="flex:1; min-width:100px;">
+                            <label>ส่วนลด (บาท)</label>
+                            <input type="number" id="bill-item-discount" placeholder="0">
                         </div>
                         <button onclick="addBillItem()" style="padding:10px 15px; background:var(--accent-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family:'Prompt',sans-serif; height: 42px;">➕ เพิ่มรายการ</button>
                     </div>
@@ -1386,10 +1390,11 @@
                         <table class="db-table">
                             <thead>
                                 <tr style="background:#e8f8f5;">
-                                    <th>รหัส/ชื่อสินค้า</th>
-                                    <th style="text-align:right;">จำนวนรับเข้า</th>
-                                    <th style="text-align:right;">ราคาต้นทุนรวม</th>
-                                    <th style="text-align:right;">ต้นทุน/หน่วย</th>
+                                    <th>ชื่อสินค้า (รหัส)</th>
+                                    <th style="text-align:right;">จำนวน</th>
+                                    <th style="text-align:right;">ราคา/หน่วย</th>
+                                    <th style="text-align:right;">ส่วนลด</th>
+                                    <th style="text-align:right;">ราคารวม</th>
                                     <th style="text-align:center;">ลบ</th>
                                 </tr>
                             </thead>
@@ -5069,39 +5074,50 @@ let currentBillItems = [];
 function addBillItem() {
     const searchVal = document.getElementById('bill-item-search').value.trim();
     const qty = parseFloat(document.getElementById('bill-item-qty').value);
-    const cost = parseFloat(document.getElementById('bill-item-cost').value);
+    const price = parseFloat(document.getElementById('bill-item-price').value) || 0;
+    const discount = parseFloat(document.getElementById('bill-item-discount').value) || 0;
     
-    if (!searchVal) { alert("⚠️ กรุณาเลือกสินค้า"); return; }
-    if (isNaN(qty) || qty <= 0) { alert("⚠️ กรุณาระบุจำนวนรับเข้า (ต้องมากกว่า 0)"); return; }
-    if (isNaN(cost) || cost < 0) { alert("⚠️ กรุณาระบุต้นทุน (ถ้าไม่มีให้ใส่ 0)"); return; }
+    if (!searchVal) { alert("⚠️ กรุณาเลือกหรือพิมพ์ชื่อสินค้า"); return; }
+    if (isNaN(qty) || qty <= 0) { alert("⚠️ กรุณาระบุจำนวน (ต้องมากกว่า 0)"); return; }
+    if (price < 0) { alert("⚠️ ราคาต่อหน่วยห้ามติดลบ"); return; }
 
     let barcodeToUse = "";
+    let isNew = false;
+    let prodName = searchVal;
+    
     for (let bc in window.productDB) {
         if (bc === searchVal || window.productDB[bc].name === searchVal) {
-            barcodeToUse = bc; break;
+            barcodeToUse = bc;
+            prodName = window.productDB[bc].name;
+            break;
         }
     }
     
     if (!barcodeToUse) {
-        alert("⚠️ ไม่พบสินค้านี้ในระบบ กรุณาตรวจสอบชื่อหรือสร้างสินค้าก่อนที่เมนูจัดการข้อมูลสินค้า"); return;
+        barcodeToUse = "NEW_" + Date.now() + Math.floor(Math.random()*1000);
+        isNew = true;
     }
     
-    const prod = window.productDB[barcodeToUse];
+    const totalCost = (qty * price) - discount;
     
     currentBillItems.push({
         barcode: barcodeToUse,
-        name: prod.name,
-        category: prod.category || 'ไม่มีหมวดหมู่',
+        name: prodName,
+        category: isNew ? 'ทั่วไป' : (window.productDB[barcodeToUse].category || 'ไม่มีหมวดหมู่'),
         qty: qty,
-        totalCost: cost,
-        unitCost: cost / qty
+        price: price,
+        discount: discount,
+        totalCost: totalCost < 0 ? 0 : totalCost,
+        unitCost: (totalCost < 0 ? 0 : totalCost) / qty,
+        isNew: isNew
     });
     
     renderBillItems();
     
     document.getElementById('bill-item-search').value = "";
     document.getElementById('bill-item-qty').value = "";
-    document.getElementById('bill-item-cost').value = "";
+    document.getElementById('bill-item-price').value = "";
+    document.getElementById('bill-item-discount').value = "";
     document.getElementById('bill-item-search').focus();
 }
 
@@ -5119,16 +5135,17 @@ function renderBillItems() {
         grandTotal += item.totalCost;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${item.name} <br><small style="color:#7f8c8d;">${item.barcode}</small></td>
-            <td style="text-align:right;">${item.qty}</td>
-            <td style="text-align:right;">${item.totalCost.toFixed(2)}</td>
-            <td style="text-align:right;">${item.unitCost.toFixed(2)}</td>
+            <td>${item.name} <br><small style="color:#7f8c8d;">${item.isNew ? '(สร้างสินค้าใหม่)' : item.barcode}</small></td>
+            <td style="text-align:right;">${item.qty.toLocaleString()}</td>
+            <td style="text-align:right;">${item.price.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+            <td style="text-align:right; color:#e74c3c;">${item.discount > 0 ? '-' + item.discount.toLocaleString() : '-'}</td>
+            <td style="text-align:right; font-weight:bold;">${item.totalCost.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
             <td style="text-align:center;"><button onclick="removeBillItem(${index})" style="background:var(--accent-red); color:white; border:none; border-radius:4px; padding:5px 10px; cursor:pointer;">❌</button></td>
         `;
         tbody.appendChild(tr);
     });
     
-    document.getElementById('bill-total-cost').innerText = grandTotal.toFixed(2);
+    document.getElementById('bill-total-cost').innerText = grandTotal.toLocaleString(undefined, {minimumFractionDigits:2});
 }
 
 function saveBillReceipt() {
@@ -5152,10 +5169,27 @@ function saveBillReceipt() {
     let dbUpdates = {};
     
     currentBillItems.forEach(item => {
-        const prod = window.productDB[item.barcode];
-        const oldStock = parseFloat(prod.stock) || 0;
-        const newStock = oldStock + item.qty;
-        prod.stock = newStock;
+        let newStock = item.qty;
+        
+        if (item.isNew) {
+            window.productDB[item.barcode] = {
+                barcode: item.barcode,
+                name: item.name,
+                category: item.category,
+                price: item.price, 
+                cost: item.unitCost,
+                stock: item.qty,
+                img: ""
+            };
+            dbUpdates[item.barcode] = window.productDB[item.barcode];
+        } else {
+            const prod = window.productDB[item.barcode];
+            const oldStock = parseFloat(prod.stock) || 0;
+            newStock = oldStock + item.qty;
+            prod.stock = newStock;
+            // Update average cost optionally, but let's keep it simple and just update stock
+            dbUpdates[item.barcode + '/stock'] = newStock;
+        }
         
         window.stockLedger.push({
             id: Date.now().toString() + "_" + Math.random().toString(36).substr(2, 5),
@@ -5166,12 +5200,14 @@ function saveBillReceipt() {
             type: 'IN_RECEIPT',
             qty: item.qty,
             balance: newStock,
+            pricePerUnit: item.price,
             cost: item.totalCost,
             note: receiptRef
         });
-        
-        dbUpdates[item.barcode + '/stock'] = newStock;
     });
+    
+    localStorage.setItem('thep_product_db', JSON.stringify(window.productDB));
+    if (typeof updateProductDatalist === 'function') updateProductDatalist();
     
     if (typeof database !== 'undefined' && window.shopPhone) {
         database.ref('erp_db_products/' + window.shopPhone).update(dbUpdates);
