@@ -696,6 +696,15 @@
                 <label>จำนวนสต๊อกในระบบตอนนี้:</label>
                 <input type="text" id="sa-current" disabled style="background:#f1f2f6; color:#e74c3c; font-weight:bold;">
             </div>
+            <div class="modal-input-group" id="sa-reason-group">
+                <label>ประเภทรายการ (เฉพาะปรับออก):</label>
+                <select id="sa-reason" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Prompt', sans-serif;">
+                    <option value="ADJUST">🔄 ปรับยอด</option>
+                    <option value="REQUISITION">🏭 เบิก</option>
+                    <option value="BORROW">🤝 ยืม</option>
+                    <option value="PAY">📤 จ่าย</option>
+                </select>
+            </div>
             <div class="modal-input-group">
                 <label>ยอดปรับ (บวก/ลบ):</label>
                 <input type="number" id="sa-qty" placeholder="เช่น 5 หรือ -2">
@@ -4232,6 +4241,27 @@ function saveDB(type) {
 }
 
 function loadDB(type) {
+    if (type === 'inventory') {
+        const infoStr = localStorage.getItem('thep_shop_info');
+        if (infoStr && typeof database !== 'undefined') {
+            const shopPhone = JSON.parse(infoStr).phone1;
+            database.ref('erp_db_stock_ledger/' + shopPhone).on('value', (snapshot) => {
+                window.stockLedger = snapshot.val() || [];
+                localStorage.setItem('thep_stock_ledger', JSON.stringify(window.stockLedger));
+                if(document.getElementById('tab-inventory').classList.contains('active')) {
+                    if (typeof generateInventoryReport === 'function') generateInventoryReport();
+                }
+            });
+            database.ref('erp_db_products/' + shopPhone).on('value', (snapshot) => {
+                window.productDB = snapshot.val() || {};
+                if(document.getElementById('tab-inventory').classList.contains('active')) {
+                    if (typeof generateInventoryReport === 'function') generateInventoryReport();
+                }
+            });
+        }
+        return;
+    }
+
     let tbody = document.querySelector('#table-' + type + ' tbody');
     if(!tbody) return;
     
@@ -4806,10 +4836,18 @@ function saveStockAdjust() {
     localStorage.setItem('thep_product_db', JSON.stringify(window.productDB));
     if (typeof updateProductDatalist === 'function') updateProductDatalist();
 
+    let ledgerType = qty > 0 ? "IN_ADJUST" : "OUT_ADJUST";
+    const reasonCode = document.getElementById('sa-reason') ? document.getElementById('sa-reason').value : "ADJUST";
+    if (qty < 0) {
+        if (reasonCode === 'REQUISITION') ledgerType = 'OUT_REQUISITION';
+        if (reasonCode === 'BORROW') ledgerType = 'OUT_BORROW';
+        if (reasonCode === 'PAY') ledgerType = 'OUT_PAY';
+    }
+
     window.stockLedger.push({
         id: "ADJ_" + new Date().getTime(),
         date: new Date().toISOString(),
-        type: qty > 0 ? "IN_ADJUST" : "OUT_ADJUST",
+        type: ledgerType,
         docNo: "ปรับยอดด่วน",
         barcode: barcodeToUse,
         name: prod.name,
@@ -4898,6 +4936,9 @@ function generateInventoryReport() {
             if(txn.type==="IN_BILL") typeLabel = "รับเข้า(บิล)";
             if(txn.type==="IN_ADJUST") typeLabel = "ปรับเข้า";
             if(txn.type==="OUT_ADJUST") typeLabel = "ปรับออก";
+            if(txn.type==="OUT_REQUISITION") typeLabel = "เบิกออก";
+            if(txn.type==="OUT_BORROW") typeLabel = "ยืมออก";
+            if(txn.type==="OUT_PAY") typeLabel = "จ่ายออก";
             if(txn.type==="OUT_SELL") typeLabel = "ขายออก";
 
             tbody.innerHTML += `<tr>
@@ -4911,7 +4952,28 @@ function generateInventoryReport() {
                 <td>${val.toLocaleString()}</td>
             </tr>`;
         });
-        tfoot.innerHTML = `<tr><td colspan="8" style="text-align:right;">(แสดงเฉพาะรายการเคลื่อนไหวในกรอบเวลา)</td></tr>`;
+        
+        let sumIn = 0, sumOut = 0;
+        let valIn = 0, valOut = 0;
+        filtered.forEach(txn => {
+            if(txn.qty > 0) {
+                sumIn += txn.qty;
+                valIn += (txn.qty * txn.pricePerUnit);
+            }
+            else {
+                sumOut += Math.abs(txn.qty);
+                valOut += (Math.abs(txn.qty) * txn.pricePerUnit);
+            }
+        });
+        let netQty = sumIn - sumOut;
+        let netVal = valIn - valOut;
+        
+        tfoot.innerHTML = `<tr>
+            <td colspan="4" style="text-align:right; font-weight:bold;">รวมยอดเคลื่อนไหว (Grand Total):</td>
+            <td style="font-weight:bold; color:${netQty >= 0 ? 'green' : 'red'};">${netQty >= 0 ? '+' : ''}${netQty.toLocaleString()}</td>
+            <td colspan="2"></td>
+            <td style="font-weight:bold; color:${netVal >= 0 ? 'green' : 'red'};">${netVal >= 0 ? '+' : ''}${netVal.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+        </tr>`;
     }
 }
 </script>
