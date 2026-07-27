@@ -463,7 +463,7 @@
     <!-- ERP Navigation -->
     <div class="erp-nav">
         <button class="tab-btn active" data-perm="pos" onclick="switchTab('pos')">🛒 หน้าร้าน (POS)</button>
-        <button class="tab-btn" data-perm="ipaq" onclick="switchTab('ipaq')" style="background-color: #2980b9; color: white; border-radius: 8px; margin: 0 5px; font-weight: bold; border: 2px solid #3498db; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📱 IPAQ (iPad)</button>
+        <button class="tab-btn" data-perm="ipaq" onclick="switchTab('ipaq')" style="background-color: #2980b9; color: white;">📱 IPAQ</button>
         <button class="tab-btn" data-perm="product" onclick="switchTab('product')">📦 คลังสินค้า</button>
         <button class="tab-btn" data-perm="employee" onclick="switchTab('employee')">👥 พนักงาน</button>
         <button class="tab-btn" data-perm="table" onclick="switchTab('table')">🪑 โต๊ะ</button>
@@ -825,6 +825,7 @@
     <div id="print-slip-template">
         <div class="print-header">
             <h3 id="p-slip-shop-name">ขายดีร่ำรวย มั่นคง รุ่งเรือง</h3>
+            <h4 style="margin:5px 0;">ใบเสร็จรับเงิน</h4>
             <p id="p-slip-shop-address">69/96 ม.9 ต.ลาดยางดี อ.เก้าเก้า<br>จ.เก้าเก้า 99999 โทร 099-999-9999</p>
         </div>
         <div class="print-detail-row"><span>เลขที่บิล:</span><strong id="p-slip-bill-number"></strong></div>
@@ -1473,6 +1474,15 @@
                     <div class="ipaq-total-row">
                         <span>ยอดรวม:</span>
                         <span id="ipaq-bill-total">฿ 0.00</span>
+                    </div>
+                    <!-- New Cash Input mimicking POS mobile -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 10px;">
+                        <span style="font-size: 16px; font-weight: bold; color: #2c3e50;">รับเงินมา:</span>
+                        <input type="number" id="ipaq-cash-input" class="input-money" placeholder="0" style="width: 140px; font-size: 18px; padding: 5px; text-align: right;" oninput="calcIpaqChange()">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: #27ae60; font-weight: bold;">
+                        <span style="font-size: 16px;">เงินทอน:</span>
+                        <span id="ipaq-change-due" style="font-size: 20px;">0.00</span>
                     </div>
                     <button class="ipaq-action-btn btn-print-bill" onclick="ipaqPrintBill()">🖨️ พิมพ์บิล (เช็คบิล)</button>
                     <button class="ipaq-action-btn btn-pay-bill" onclick="ipaqPayBill()">💰 รับเงิน (จบบิล)</button>
@@ -3946,6 +3956,7 @@ function loadActiveBillState() {
         <div id="slip-print-content" style="padding: 10px; background: #fff; width: 384px; box-sizing: border-box; color: #000; font-family: 'Segoe UI', Tahoma, sans-serif;">
             <div class="print-header">
                 <h3>${shopName}</h3>
+                <h4 style="margin:5px 0;">ใบเสร็จรับเงิน</h4>
                 <p>${shopAddress}</p>
             </div>
             
@@ -5699,24 +5710,59 @@ function generateInventoryReport() {
 </script>
 
 <div id="receipt-print-area"></div>
-
 <script>
 
 // ==========================================
 // IPAQ SYSTEM JAVASCRIPT
 // ==========================================
+let tables = [];
+let products = [];
+let tableOrders = [];
+let sales = [];
+
+function syncIpaqDataFromFirebase() {
+    tables = [];
+    let dbTables = (window.erpData && window.erpData['table']) ? window.erpData['table'] : {};
+    for (let id in dbTables) {
+        let t = dbTables[id];
+        tables.push({id: id, name: t.name});
+    }
+    
+    products = [];
+    let dbProducts = (window.erpData && window.erpData['product']) ? window.erpData['product'] : (window.productDB || {});
+    for (let pId in dbProducts) {
+        let p = dbProducts[pId];
+        products.push({
+            id: pId,
+            name: p.name || p.productName || 'Unknown',
+            price: parseFloat(p.price || p.salePrice || 0),
+            image: p.image || 'https://via.placeholder.com/150?text=No+Image'
+        });
+    }
+}
+
 let currentIpaqTable = null;
 let ipaqLoggedIn = false;
 let ipaqTableColors = {}; 
 
 function initIpaq() {
+    syncIpaqDataFromFirebase();
     const userSelect = document.getElementById('ipaq-login-user');
     userSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>';
-    employees.forEach(emp => {
-        let opt = document.createElement('option');
-        opt.value = emp.id;
-        opt.innerText = `${emp.name} (${emp.role})`;
-        userSelect.appendChild(opt);
+    userSelect.innerHTML += '<option value="admin" style="font-weight:bold; color:blue;">Master Admin (ผู้ดูแลระบบ)</option>';
+    
+    // [Lilin Fixed] Fetch employees from Firebase instead of using undefined global variable
+    database.ref('erp_db_employee').once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            let emps = snapshot.val();
+            for (let k in emps) {
+                let emp = emps[k];
+                let opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.innerText = `${emp.name} (${emp.role})`;
+                userSelect.appendChild(opt);
+            }
+        }
     });
     
     tables.forEach(t => {
@@ -5744,15 +5790,39 @@ function doIpaqLogin() {
         return;
     }
     
-    const user = employees.find(e => e.id === userId && e.password === pwd);
-    if (user) {
+    if (userId === 'admin') {
+        if (pwd !== '123' && pwd !== '1234' && pwd !== 'admin') {
+            err.innerText = 'รหัสผ่าน Admin ไม่ถูกต้อง!';
+            err.style.display = 'block';
+            return;
+        }
         ipaqLoggedIn = true;
         document.getElementById('ipaq-login-overlay').style.display = 'none';
-        initIpaq(); 
-    } else {
-        err.innerText = 'รหัสผ่านไม่ถูกต้อง!';
-        err.style.display = 'block';
+        initIpaq();
+        return;
     }
+    
+    // [Lilin Fixed] Fetch employee password from Firebase
+    database.ref('erp_db_employee/' + userId).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            let user = snapshot.val();
+            // อนุโลมให้เข้าได้ถ้ารหัสตรงกัน หรือ เป็นพนักงานเก่าที่ไม่มีรหัสผ่าน (ใช้ 1234 แทน)
+            if (user.password === pwd || (!user.password && pwd === '1234')) {
+                ipaqLoggedIn = true;
+                document.getElementById('ipaq-login-overlay').style.display = 'none';
+                initIpaq();
+            } else {
+                err.innerText = 'รหัสผ่านไม่ถูกต้อง!';
+                err.style.display = 'block';
+            }
+        } else {
+            err.innerText = 'ไม่พบพนักงานในระบบ!';
+            err.style.display = 'block';
+        }
+    }).catch(e => {
+        err.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล';
+        err.style.display = 'block';
+    });
 }
 
 const originalSwitchTab = window.switchTab;
@@ -5910,12 +5980,43 @@ function renderIpaqBill() {
 function ipaqPrintBill() {
     if (!currentIpaqTable) return;
     let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
-    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้เช็คบิล');
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้พิมพ์');
     
     ipaqTableColors[currentIpaqTable.id] = 'pending';
     renderIpaqTables();
     
-    alert('พิมพ์บิลเรียบร้อย กำลังรอรับเงิน (สถานะโต๊ะสีเหลือง)');
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    const printBillData = {
+        isCheckBill: true, // FLAG สำหรับเช็คบิล
+        billNumber: 'IPAQ-' + Date.now().toString().slice(-6),
+        queueNo: currentIpaqTable.name,
+        grandTotal: total,
+        cashInput: total,
+        changeDue: 0,
+        items: tOrders.map(o => ({name: o.productName, qty: o.qty, price: o.price})),
+        transferInput: 0,
+        customerName: ""
+    };
+    
+    if(typeof printReceipt === 'function') {
+        let templateEl = document.getElementById('print-slip-template');
+        if (templateEl) {
+            let oldHtml = templateEl.innerHTML;
+            templateEl.innerHTML = templateEl.innerHTML.replace('ใบเสร็จรับเงิน', 'ใบแจ้งรายการอาหารและเครื่องดื่ม')
+                                                       .replace('<span>รับเงิน</span>', '<span style="display:none;">รับเงิน</span>')
+                                                       .replace('<span>เงินทอน</span>', '<span style="display:none;">เงินทอน</span>')
+                                                       .replace('<span>${fmt(billData.cashInput, true)}</span>', '<span style="display:none;">${fmt(billData.cashInput, true)}</span>')
+                                                       .replace('<span>${fmt(billData.changeDue, true)}</span>', '<span style="display:none;">${fmt(billData.changeDue, true)}</span>');
+            printReceipt(printBillData);
+            setTimeout(() => { templateEl.innerHTML = oldHtml; }, 1000);
+        } else {
+            printReceipt(printBillData);
+        }
+    }
+    
+    alert('พิมพ์บิลเรียบร้อย รอเช็คบิล (สถานะสีเหลือง)');
 }
 
 function ipaqPayBill() {
@@ -5958,169 +6059,73 @@ function ipaqPayBill() {
 }
 // ==========================================
 
-</script>
-<script>
 
-// ==========================================
-// IPAQ SYSTEM JAVASCRIPT
-// ==========================================
-let currentIpaqTable = null;
-let ipaqLoggedIn = false;
-let ipaqTableColors = {}; 
-
-function initIpaq() {
-    const userSelect = document.getElementById('ipaq-login-user');
-    userSelect.innerHTML = '<option value="">-- เลือกพนักงาน --</option>';
-    employees.forEach(emp => {
-        let opt = document.createElement('option');
-        opt.value = emp.id;
-        opt.innerText = `${emp.name} (${emp.role})`;
-        userSelect.appendChild(opt);
-    });
-    
-    tables.forEach(t => {
-        if (!ipaqTableColors[t.id]) {
-            let tOrders = tableOrders.filter(o => o.tableId === t.id && !o.isPaid);
-            if (tOrders.length > 0) {
-                ipaqTableColors[t.id] = 'occupied';
-            } else {
-                ipaqTableColors[t.id] = 'free';
-            }
-        }
-    });
-
-    renderIpaqTables();
+// --- IPAQ OVERRIDE PATCH (2026-07-27) ---
+function calcIpaqChange() {
+    let totalText = document.getElementById('ipaq-bill-total').innerText.replace(/[^0-9.-]+/g,"");
+    let total = parseFloat(totalText) || 0;
+    let cashEl = document.getElementById('ipaq-cash-input');
+    let cash = cashEl ? parseFloat(cashEl.value) || 0 : 0;
+    let change = cash - total;
+    if (change < 0 || total === 0) change = 0;
+    let changeEl = document.getElementById('ipaq-change-due');
+    if (changeEl) changeEl.innerText = change.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
-function doIpaqLogin() {
-    const userId = document.getElementById('ipaq-login-user').value;
-    const pwd = document.getElementById('ipaq-login-pwd').value;
-    const err = document.getElementById('ipaq-login-err');
+function ipaqPayBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการรับเงิน');
     
-    if (!userId || !pwd) {
-        err.innerText = 'กรุณาเลือกพนักงานและใส่รหัสผ่าน';
-        err.style.display = 'block';
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let cashEl = document.getElementById('ipaq-cash-input');
+    const cashInput = cashEl ? (parseFloat(cashEl.value) || 0) : total; // fallback if input not found
+    if (cashInput < total && total > 0) {
+        alert('⚠️ กรุณาใส่จำนวน "รับเงินมา" ให้ครบถ้วนก่อนจบบิลค่ะ');
         return;
     }
     
-    const user = employees.find(e => e.id === userId && e.password === pwd);
-    if (user) {
-        ipaqLoggedIn = true;
-        document.getElementById('ipaq-login-overlay').style.display = 'none';
-        initIpaq(); 
-    } else {
-        err.innerText = 'รหัสผ่านไม่ถูกต้อง!';
-        err.style.display = 'block';
-    }
-}
-
-const originalSwitchTab = window.switchTab;
-window.switchTab = function(tabName) {
-    if (tabName === 'ipaq') {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
-        const ipaqTab = document.getElementById('tab-ipaq');
-        if (ipaqTab) ipaqTab.classList.add('active');
-        
-        const ipaqBtn = document.querySelector('.tab-btn[data-perm="ipaq"]');
-        if(ipaqBtn) ipaqBtn.classList.add('active');
-        
-        if (!ipaqLoggedIn) {
-            document.getElementById('ipaq-login-overlay').style.display = 'flex';
-            initIpaq(); 
-        } else {
-            renderIpaqTables();
+    if (!confirm('ยืนยันรับเงินและจบบิลโต๊ะนี้ใช่หรือไม่?')) return;
+    
+    tOrders.forEach(o => {
+        o.isPaid = true;
+        let pIndex = products.findIndex(p => p.id === o.productId);
+        if(pIndex !== -1 && typeof updateProductStock === 'function') {
+            updateProductStock(pIndex, o.qty);
         }
-    } else {
-        if(originalSwitchTab) originalSwitchTab(tabName);
-    }
-}
-
-function getIpaqTableClass(status) {
-    if(status === 'occupied') return 'ipaq-table-occupied';
-    if(status === 'pending') return 'ipaq-table-pending';
-    return 'ipaq-table-free';
-}
-
-function renderIpaqTables() {
-    const grid = document.getElementById('ipaq-table-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
-    tables.forEach(t => {
-        let status = ipaqTableColors[t.id] || 'free';
-        let btnClass = getIpaqTableClass(status);
-        
-        let btn = document.createElement('button');
-        btn.className = `ipaq-table-btn ${btnClass}`;
-        btn.innerText = t.name;
-        btn.onclick = () => selectIpaqTable(t.id);
-        grid.appendChild(btn);
-    });
-}
-
-function selectIpaqTable(tableId) {
-    currentIpaqTable = tables.find(t => t.id === tableId);
-    if (!currentIpaqTable) return;
-    
-    document.getElementById('ipaq-bill-title').innerText = `บิลโต๊ะ: ${currentIpaqTable.name}`;
-    renderIpaqBill();
-    
-    openIpaqMenuModal();
-    
-    if (ipaqTableColors[tableId] === 'free') {
-        ipaqTableColors[tableId] = 'occupied';
-        renderIpaqTables();
-    }
-}
-
-function openIpaqMenuModal() {
-    document.getElementById('ipaq-menu-modal-title').innerText = `สั่งอาหาร - โต๊ะ: ${currentIpaqTable.name}`;
-    const grid = document.getElementById('ipaq-menu-grid');
-    grid.innerHTML = '';
-    
-    products.forEach(p => {
-        let item = document.createElement('div');
-        item.className = 'ipaq-menu-item';
-        item.onclick = () => ipaqAddOrder(p);
-        
-        let imgSrc = p.image || 'https://via.placeholder.com/150?text=No+Image';
-        
-        item.innerHTML = `
-            <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
-            <div class="ipaq-menu-item-name">${p.name}</div>
-            <div class="ipaq-menu-item-price">฿${p.price.toFixed(2)}</div>
-        `;
-        grid.appendChild(item);
     });
     
-    document.getElementById('ipaq-menu-modal').style.display = 'flex';
-}
-
-function closeIpaqMenuModal() {
-    document.getElementById('ipaq-menu-modal').style.display = 'none';
-}
-
-function ipaqAddOrder(product) {
-    let order = {
-        id: 'O' + Date.now(),
-        tableId: currentIpaqTable.id,
-        productId: product.id,
-        productName: product.name,
-        qty: 1,
-        price: product.price,
-        isPaid: false,
-        timestamp: new Date().toISOString()
+    let saleRecord = {
+        date: new Date().toLocaleDateString('th-TH'),
+        time: new Date().toLocaleTimeString('th-TH'),
+        amount: total,
+        table: currentIpaqTable.name,
+        type: 'ipaq',
+        cash: cashInput,
+        change: cashInput - total
     };
-    tableOrders.push(order);
+    if(typeof sales !== 'undefined') sales.push(saleRecord);
     
-    closeIpaqMenuModal();
-    renderIpaqBill();
-    
-    if (typeof activeTable !== 'undefined' && activeTable === currentIpaqTable.id) {
-        if(typeof renderTableOrders === 'function') renderTableOrders();
+    // อัพเดทสถานะโต๊ะ
+    let tIndex = tables.findIndex(t => t.id === currentIpaqTable.id);
+    if(tIndex !== -1) {
+        tables[tIndex].status = 'free';
+        tables[tIndex].orders = 0;
     }
+    
+    if(typeof saveToFirebase === 'function') saveToFirebase();
+    
+    currentIpaqTable = null;
+    document.getElementById('ipaq-bill-title').innerText = 'บิลโต๊ะ: ยังไม่ได้เลือก';
+    document.getElementById('ipaq-bill-items').innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ</div>';
+    document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+    if(document.getElementById('ipaq-cash-input')) document.getElementById('ipaq-cash-input').value = '';
+    if(document.getElementById('ipaq-change-due')) document.getElementById('ipaq-change-due').innerText = '0.00';
+    
+    renderIpaqTables();
+    alert('รับเงินสำเร็จ จบบิลเรียบร้อย!');
 }
 
 function renderIpaqBill() {
@@ -6135,10 +6140,219 @@ function renderIpaqBill() {
     }
     
     let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร</div>';
+        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        return;
+    }
+    
+    let html = '';
+    let total = 0;
+    tOrders.forEach(o => {
+        total += (o.qty * o.price);
+        html += `<div class="ipaq-bill-item" style="display:flex; flex-direction:column; margin-bottom:10px; border-bottom:1px dashed #ccc; padding-bottom:10px;">
+                    <div style="font-size:18px; font-weight:bold; margin-bottom:5px;">${o.productName}</div>
+                    <div style="display:flex; justify-content:space-between; font-size:16px;">
+                        <span style="color:#555;">จำนวน: ${o.qty} &times; ฿${o.price.toFixed(2)}</span>
+                        <span style="font-weight:bold; color:#d9534f;">฿${(o.qty * o.price).toFixed(2)}</span>
+                    </div>
+                 </div>`;
+    });
+    list.innerHTML = html;
+    document.getElementById('ipaq-bill-total').innerText = '฿ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    calcIpaqChange();
+}
+// --- END IPAQ OVERRIDE PATCH ---
+
+// --- IPAQ MENU OVERRIDE PATCH (2026-07-27) ---
+function changeIpaqTempQty(pid, delta) {
+    let el = document.getElementById('ipaq-temp-qty-' + pid);
+    if(el) {
+        let val = parseInt(el.value) || 1;
+        val += delta;
+        if(val < 1) val = 1;
+        el.value = val;
+    }
+}
+
+function ipaqAddOrderById(pid, btn) {
+    let product = products.find(p => p.id === pid);
+    if(!product) return;
+    
+    let qtyEl = document.getElementById('ipaq-temp-qty-' + pid);
+    let qtyToAdd = qtyEl ? (parseInt(qtyEl.value) || 1) : 1;
+    
+    // Check if exists in tableOrders
+    let existing = tableOrders.find(o => o.tableId === currentIpaqTable.id && o.productId === product.id && !o.isPaid);
+    if(existing) {
+        existing.qty += qtyToAdd;
+    } else {
+        let order = {
+            id: 'O' + Date.now() + Math.floor(Math.random()*1000),
+            tableId: currentIpaqTable.id,
+            productId: product.id,
+            productName: product.name,
+            qty: qtyToAdd,
+            price: product.price,
+            isPaid: false,
+            timestamp: new Date().toISOString()
+        };
+        tableOrders.push(order);
+    }
+    
+    // Reset temp qty
+    if(qtyEl) qtyEl.value = 1;
+    
+    renderIpaqBill();
+    if (typeof activeTable !== 'undefined' && activeTable === currentIpaqTable.id) {
+        if(typeof renderTableOrders === 'function') renderTableOrders();
+    }
+    
+    // Visual feedback on button
+    if(btn) {
+        let originalText = btn.innerHTML;
+        let originalBg = btn.style.background;
+        btn.innerHTML = '✅ เพิ่มแล้ว!';
+        btn.style.background = '#27ae60';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = originalBg;
+        }, 1000);
+    }
+}
+
+function openIpaqMenuModal() {
+    document.getElementById('ipaq-menu-modal-title').innerText = `สั่งอาหาร - โต๊ะ: ${currentIpaqTable.name}`;
+    const grid = document.getElementById('ipaq-menu-grid');
+    grid.innerHTML = '';
+    
+    products.forEach(p => {
+        let item = document.createElement('div');
+        item.className = 'ipaq-menu-item';
+        // We remove the onclick from the whole card to prevent accidental clicks when adjusting qty
+        
+        let imgSrc = p.image || 'https://via.placeholder.com/150?text=No+Image';
+        
+        item.innerHTML = `
+            <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" style="width:100%; height:120px; object-fit:cover; border-radius:5px;">
+            <div class="ipaq-menu-item-name" style="margin-top:10px; font-weight:bold; font-size:16px;">${p.name}</div>
+            <div class="ipaq-menu-item-price" style="color:#27ae60; font-weight:bold; margin-bottom:10px;">฿${p.price.toFixed(2)}</div>
+            
+            <div class="ipaq-qty-control" style="display:flex; justify-content:center; align-items:center; margin-bottom:10px;">
+                <button onclick="changeIpaqTempQty('${p.id}', -1)" style="width:35px;height:35px;font-size:20px;border-radius:5px;border:none;background:#e74c3c;color:white;cursor:pointer;">-</button>
+                <input type="number" id="ipaq-temp-qty-${p.id}" value="1" min="1" style="width:50px;height:35px;text-align:center;margin:0 10px;border:1px solid #ccc;border-radius:5px;font-size:18px;font-weight:bold;">
+                <button onclick="changeIpaqTempQty('${p.id}', 1)" style="width:35px;height:35px;font-size:20px;border-radius:5px;border:none;background:#2ecc71;color:white;cursor:pointer;">+</button>
+            </div>
+            
+            <button onclick="ipaqAddOrderById('${p.id}', this)" style="width:100%;padding:10px;background:#3498db;color:white;border:none;border-radius:5px;font-size:16px;cursor:pointer;font-weight:bold;transition: background 0.3s;">✅ เพิ่มลงบิล</button>
+        `;
+        grid.appendChild(item);
+    });
+    
+    document.getElementById('ipaq-menu-modal').style.display = 'flex';
+}
+// --- END IPAQ MENU OVERRIDE PATCH ---
+
+// --- IPAQ MEGA UPDATE OVERRIDE PATCH (2026-07-27) ---
+// Fixes for: 1. Checkbill header & no unit price, 2. Trash icon to remove orders, 3. Print receipt after pay & fix yellow color, 4. Add CRM/Transfer to pay panel, 5. Fix red table color on pure select
+
+function selectIpaqTable(tableId) {
+    currentIpaqTable = tables.find(t => t.id === tableId);
+    if (!currentIpaqTable) return;
+    
+    let titleEl = document.getElementById('ipaq-bill-title');
+    if(titleEl) titleEl.innerText = `บิลโต๊ะ: ${currentIpaqTable.name}`;
+    
+    renderIpaqBill();
+    openIpaqMenuModal();
+    // Do NOT change color to occupied here. Wait until an order is actually added.
+}
+
+function ipaqAddOrderById(pid, btn) {
+    let product = products.find(p => p.id === pid);
+    if(!product) return;
+    
+    let qtyEl = document.getElementById('ipaq-temp-qty-' + pid);
+    let qtyToAdd = qtyEl ? (parseInt(qtyEl.value) || 1) : 1;
+    
+    let existing = tableOrders.find(o => o.tableId === currentIpaqTable.id && o.productId === product.id && !o.isPaid);
+    if(existing) {
+        existing.qty += qtyToAdd;
+    } else {
+        let order = {
+            id: 'O' + Date.now() + Math.floor(Math.random()*1000),
+            tableId: currentIpaqTable.id,
+            productId: product.id,
+            productName: product.name,
+            qty: qtyToAdd,
+            price: product.price,
+            isPaid: false,
+            timestamp: new Date().toISOString()
+        };
+        tableOrders.push(order);
+    }
+    
+    if(qtyEl) qtyEl.value = 1;
+    
+    // Set table to occupied ONLY when order is added
+    if (ipaqTableColors[currentIpaqTable.id] === 'free' || !ipaqTableColors[currentIpaqTable.id]) {
+        ipaqTableColors[currentIpaqTable.id] = 'occupied';
+        renderIpaqTables();
+    }
+    
+    renderIpaqBill();
+    if (typeof activeTable !== 'undefined' && activeTable === currentIpaqTable.id) {
+        if(typeof renderTableOrders === 'function') renderTableOrders();
+    }
+    
+    if(btn) {
+        let originalText = btn.innerHTML;
+        let originalBg = btn.style.background;
+        btn.innerHTML = '✅ เพิ่มแล้ว!';
+        btn.style.background = '#27ae60';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = originalBg;
+        }, 1000);
+    }
+}
+
+function ipaqRemoveOrder(pid) {
+    if(!currentIpaqTable) return;
+    let orderIndex = tableOrders.findIndex(o => o.tableId === currentIpaqTable.id && o.productId === pid && !o.isPaid);
+    if(orderIndex !== -1) {
+        if(confirm('ยืนยันลบรายการนี้?')) {
+            tableOrders.splice(orderIndex, 1);
+            renderIpaqBill();
+            
+            // Re-evaluate table status
+            let remaining = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+            if(remaining.length === 0) {
+                ipaqTableColors[currentIpaqTable.id] = 'free';
+                renderIpaqTables();
+            }
+        }
+    }
+}
+
+function renderIpaqBill() {
+    const list = document.getElementById('ipaq-bill-items');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    if (!currentIpaqTable) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ</div>';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
+        return;
+    }
+    
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
     
     if (tOrders.length === 0) {
         list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร</div>';
-        document.getElementById('ipaq-bill-total').innerText = '฿ 0.00';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
         return;
     }
     
@@ -6156,25 +6370,128 @@ function renderIpaqBill() {
         const item = grouped[pid];
         let div = document.createElement('div');
         div.className = 'ipaq-bill-item';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.padding = '10px 0';
+        div.style.borderBottom = '1px dashed #ccc';
         div.innerHTML = `
-            <div>${item.name} x${item.qty}</div>
-            <div>฿${(item.qty * item.price).toFixed(2)}</div>
+            <div style="flex:1; font-size:16px;">
+                <span style="cursor:pointer; color:#e74c3c; margin-right:8px; font-size:18px;" onclick="ipaqRemoveOrder('${pid}')" title="ลบรายการ">🗑️</span>
+                ${item.name} 
+                <span style="color:#7f8c8d; font-size:14px; margin-left:5px;">(฿${item.price.toFixed(2)})</span>
+            </div>
+            <div style="width:60px; text-align:center; font-size:16px;">x${item.qty}</div>
+            <div style="width:90px; text-align:right; font-weight:bold; color:#27ae60; font-size:16px;">฿${(item.qty * item.price).toFixed(2)}</div>
         `;
         list.appendChild(div);
     }
     
-    document.getElementById('ipaq-bill-total').innerText = `฿ ${total.toFixed(2)}`;
+    let footer = document.querySelector('.ipaq-bill-footer');
+    if(footer) {
+        footer.innerHTML = `
+            <div class="ipaq-total-row" style="font-size: 22px; margin-bottom:15px; display:flex; justify-content:space-between; font-weight:bold;">
+                <span>ยอดรวมทั้งสิ้น:</span>
+                <span id="ipaq-bill-total" style="color: #e74c3c;">฿ ${total.toFixed(2)}</span>
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:10px; background:#f9f9f9; padding:8px; border-radius:5px; border:1px solid #ddd;">
+                <span style="width:140px; color:#2980b9; font-weight:bold;">💎 สมาชิกร้าน:</span>
+                <input type="text" id="ipaq-crm-input" placeholder="เบอร์โทร/รหัส..." style="flex:1; padding:6px; border:1px solid #ccc; border-radius:3px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+                <span style="width:140px; color:#34495e; font-weight:bold;">รับเงินมา (เงินสด):</span>
+                <input type="number" id="ipaq-cash-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:6px; font-size:18px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+                <span style="width:140px; color:#34495e; font-weight:bold;">ยอดโอน (สแกนจ่าย):</span>
+                <input type="number" id="ipaq-transfer-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:6px; font-size:18px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+                <span style="width:140px; color:#34495e; font-weight:bold;">ธนาคารผู้รับโอน:</span>
+                <input type="text" id="ipaq-bank-input" placeholder="ชื่อธนาคาร..." style="flex:1; padding:6px; border:1px solid #ccc; border-radius:3px; outline:none;">
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 20px; font-weight: bold; color: #27ae60; padding-top:10px; border-top:1px dashed #ccc;">
+                <span>เงินทอน:</span>
+                <span id="ipaq-change-due">0.00</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="ipaq-print-btn" onclick="ipaqPrintBill()" style="flex:1; font-size:16px; padding:12px; background:#f39c12; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">🖨️ พิมพ์บิล (เช็คบิล)</button>
+                <button class="ipaq-pay-btn" onclick="ipaqPayBill()" style="flex:1; font-size:16px; padding:12px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">💰 รับเงิน (จบบิล)</button>
+            </div>
+        `;
+    }
+}
+
+function calcIpaqChange() {
+    let tOrders = tableOrders.filter(o => currentIpaqTable && o.tableId === currentIpaqTable.id && !o.isPaid);
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let cashEl = document.getElementById('ipaq-cash-input');
+    let transferEl = document.getElementById('ipaq-transfer-input');
+    
+    let cash = cashEl ? parseFloat(cashEl.value) || 0 : 0;
+    let transfer = transferEl ? parseFloat(transferEl.value) || 0 : 0;
+    let change = (cash + transfer) - total;
+    if (change < 0) change = 0;
+    
+    let changeEl = document.getElementById('ipaq-change-due');
+    if (changeEl) {
+        changeEl.innerText = change.toFixed(2);
+    }
 }
 
 function ipaqPrintBill() {
     if (!currentIpaqTable) return;
     let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
-    if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้เช็คบิล');
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้พิมพ์');
     
     ipaqTableColors[currentIpaqTable.id] = 'pending';
     renderIpaqTables();
     
-    alert('พิมพ์บิลเรียบร้อย กำลังรอรับเงิน (สถานะโต๊ะสีเหลือง)');
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    // Clean checkbill template (no unit price)
+    let checkBillHtml = `
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 70mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0; font-weight: bold;">ใบแจ้งรายการอาหารและเครื่องดื่ม</div>
+            <div style="margin: 5px 0;">โต๊ะ: ${currentIpaqTable.name}</div>
+            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString('th-TH')}</div>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px;">
+                ${tOrders.map(o => `
+                    <tr>
+                        <td style="padding: 2px 0;">${o.productName}</td>
+                        <td style="text-align: center; padding: 2px 0;">x${o.qty}</td>
+                        <td style="text-align: right; padding: 2px 0;">${(o.qty * o.price).toFixed(2)}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                <span>ยอดรวม</span>
+                <span>${total.toFixed(2)}</span>
+            </div>
+            <hr style="border-top: 1px dashed black;">
+            <div style="margin-top: 10px; font-size:12px;">กรุณาตรวจสอบรายการก่อนชำระเงิน</div>
+            <div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>
+            <img src="https://promptpay.io/0812345678/${total}.png" style="width: 150px; margin-top: 10px;">
+        </div>
+    `;
+    
+    let printWindow = window.open('', '', 'width=350,height=600');
+    printWindow.document.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+    printWindow.document.write(checkBillHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+    
+    alert('พิมพ์บิลแจ้งรายการเรียบร้อย โต๊ะเปลี่ยนเป็นสถานะรอเช็คบิล (สีเหลือง)');
 }
 
 function ipaqPayBill() {
@@ -6182,13 +6499,26 @@ function ipaqPayBill() {
     let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
     if(tOrders.length === 0) return alert('ไม่มีรายการอาหารให้รับเงิน');
     
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let cashEl = document.getElementById('ipaq-cash-input');
+    let transferEl = document.getElementById('ipaq-transfer-input');
+    let bankEl = document.getElementById('ipaq-bank-input');
+    let crmEl = document.getElementById('ipaq-crm-input');
+    
+    let cash = cashEl ? parseFloat(cashEl.value) || 0 : 0;
+    let transfer = transferEl ? parseFloat(transferEl.value) || 0 : 0;
+    let totalInput = cash + transfer;
+    
+    if(totalInput < total) {
+        return alert('จำนวนเงินที่รับมาน้อยกว่ายอดบิล กรุณาตรวจสอบ!');
+    }
+    
     if (!confirm('ยืนยันรับเงินและจบบิล?')) return;
     
-    let total = 0;
     tOrders.forEach(o => {
         o.isPaid = true;
-        total += (o.qty * o.price);
-        
         let pIndex = products.findIndex(p => p.id === o.productId);
         if(pIndex !== -1 && typeof updateProductStock === 'function') {
            updateProductStock(o.productId, o.qty);
@@ -6200,22 +6530,1004 @@ function ipaqPayBill() {
         tableId: currentIpaqTable.id,
         tableName: currentIpaqTable.name,
         totalAmount: total,
+        cashAmount: cash,
+        transferAmount: transfer,
+        bankName: bankEl ? bankEl.value : '',
+        customerCrm: crmEl ? crmEl.value : '',
         items: tOrders.map(o => ({...o})),
         timestamp: new Date().toISOString()
     };
     sales.push(saleRecord);
     
-    ipaqTableColors[currentIpaqTable.id] = 'free';
-    renderIpaqTables();
-    renderIpaqBill();
+    // Automatically print standard receipt
+    const printBillData = {
+        isCheckBill: false,
+        billNumber: 'IPAQ-' + Date.now().toString().slice(-6),
+        queueNo: currentIpaqTable.name,
+        grandTotal: total,
+        cashInput: cash,
+        changeDue: totalInput - total,
+        items: tOrders.map(o => ({name: o.productName, qty: o.qty, price: o.price})),
+        transferInput: transfer,
+        customerName: crmEl ? crmEl.value : ""
+    };
     
-    alert('รับเงินเรียบร้อย โต๊ะว่างแล้ว (สถานะสีเขียว)');
+    if(typeof printReceipt === 'function') {
+        printReceipt(printBillData);
+    }
+    
+    // COMPLETELY RESET TABLE STATUS
+    ipaqTableColors[currentIpaqTable.id] = 'free';
+    // Deep clear if needed in other variables
+    let tIndex = tables.findIndex(t => t.id === currentIpaqTable.id);
+    if(tIndex !== -1) {
+        tables[tIndex].status = 'free';
+        tables[tIndex].orders = 0;
+    }
+    
+    renderIpaqTables();
+    renderIpaqBill(); // This will show "ยังไม่มีรายการอาหาร"
+    
+    alert('รับเงินเรียบร้อย พิมพ์ใบเสร็จสำเร็จ โต๊ะว่างแล้ว (สีเขียว)');
     
     if(typeof renderSales === 'function') renderSales();
     if(typeof updateDashboard === 'function') updateDashboard();
     if(typeof updateTableStatus === 'function') updateTableStatus();
 }
-// ==========================================
+// --- END IPAQ MEGA UPDATE OVERRIDE PATCH ---
+
+// --- IPAQ UI & CLICK UPDATE PATCH (2026-07-27) ---
+// Fixes for: 1. Maximize bill items height & minimize footer, 2. Single click to select table, double click to order.
+
+function selectIpaqTable(tableId) {
+    currentIpaqTable = tables.find(t => t.id === tableId);
+    if (!currentIpaqTable) return;
+    
+    let titleEl = document.getElementById('ipaq-bill-title');
+    if(titleEl) titleEl.innerText = `บิลโต๊ะ: ${currentIpaqTable.name}`;
+    
+    // อัปเดตรายการฝั่งขวา (แสดงรายการอาหารทันที)
+    renderIpaqBill();
+    
+    // ลบการเปิด openIpaqMenuModal() ออก เพื่อให้คลิก 1 ครั้งแค่ดูบิล
+    // โต๊ะจะเปลี่ยนเป็นสีแดง (occupied) ก็ต่อเมื่อมีการสั่งอาหารแล้วจริงๆ ในฟังก์ชัน ipaqAddOrderById
+}
+
+function renderIpaqTables() {
+    const grid = document.getElementById('ipaq-table-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    tables.forEach(t => {
+        let status = ipaqTableColors[t.id] || 'free';
+        let btnClass = getIpaqTableClass(status);
+        
+        let btn = document.createElement('button');
+        btn.className = `ipaq-table-btn ${btnClass}`;
+        btn.innerText = t.name;
+        
+        // คลิก 1 ครั้ง: โชว์บิลขวามือ
+        btn.onclick = () => selectIpaqTable(t.id);
+        
+        // คลิก 2 ครั้ง (Double Click): โชว์บิลขวามือ และเด้งเปิดหน้าต่างสั่งอาหาร
+        btn.ondblclick = () => {
+            selectIpaqTable(t.id);
+            openIpaqMenuModal();
+        };
+        
+        // สำหรับหน้าจอมือถือ (IPAQ) บางรุ่นอาจจะจับ Double Click ยาก 
+        // เราสามารถเสริมระบบจับเวลาคลิกซ้ำได้ แต่ให้ทดลอง ondblclick ดูก่อน
+        grid.appendChild(btn);
+    });
+}
+
+function renderIpaqBill() {
+    const list = document.getElementById('ipaq-bill-items');
+    if(!list) return;
+    
+    // ปรับ list ให้กินพื้นที่สูงสุดและเลื่อนได้
+    list.style.flex = "1";
+    list.style.overflowY = "auto";
+    list.style.paddingRight = "5px";
+    
+    list.innerHTML = '';
+    
+    if (!currentIpaqTable) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ (คลิก 2 ครั้งเพื่อสั่งอาหาร)</div>';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
+        return;
+    }
+    
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    
+    if (tOrders.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร (ดับเบิ้ลคลิกที่โต๊ะเพื่อสั่ง)</div>';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
+        return;
+    }
+    
+    let grouped = {};
+    let total = 0;
+    tOrders.forEach(o => {
+        if(!grouped[o.productId]) {
+            grouped[o.productId] = { name: o.productName, qty: 0, price: o.price };
+        }
+        grouped[o.productId].qty += o.qty;
+        total += (o.qty * o.price);
+    });
+    
+    for (const pid in grouped) {
+        const item = grouped[pid];
+        let div = document.createElement('div');
+        div.className = 'ipaq-bill-item';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        // ลด padding บนล่างเพื่อให้แสดงรายการได้เยอะขึ้น
+        div.style.padding = '5px 0';
+        div.style.borderBottom = '1px dashed #ccc';
+        div.innerHTML = `
+            <div style="flex:1; font-size:15px; line-height:1.2;">
+                <span style="cursor:pointer; color:#e74c3c; margin-right:5px; font-size:16px;" onclick="ipaqRemoveOrder('${pid}')" title="ลบรายการ">🗑️</span>
+                ${item.name} 
+                <div style="color:#7f8c8d; font-size:12px; margin-left:25px;">(฿${item.price.toFixed(2)}/หน่วย)</div>
+            </div>
+            <div style="width:50px; text-align:center; font-size:15px; font-weight:bold;">x${item.qty}</div>
+            <div style="width:80px; text-align:right; font-weight:bold; color:#27ae60; font-size:15px;">฿${(item.qty * item.price).toFixed(2)}</div>
+        `;
+        list.appendChild(div);
+    }
+    
+    let footer = document.querySelector('.ipaq-bill-footer');
+    if(footer) {
+        // ลด padding, margin และขนาด font ลงเพื่อให้กะทัดรัด
+        footer.style.padding = "5px 10px";
+        footer.innerHTML = `
+            <div class="ipaq-total-row" style="font-size: 18px; margin-bottom:5px; display:flex; justify-content:space-between; font-weight:bold;">
+                <span>ยอดรวมทั้งสิ้น:</span>
+                <span id="ipaq-bill-total" style="color: #e74c3c;">฿ ${total.toFixed(2)}</span>
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px; background:#f9f9f9; padding:4px; border-radius:5px; border:1px solid #ddd;">
+                <span style="width:110px; color:#2980b9; font-size:13px; font-weight:bold;">💎 สมาชิกร้าน:</span>
+                <input type="text" id="ipaq-crm-input" placeholder="รหัส..." style="flex:1; padding:2px 4px; font-size:13px; border:1px solid #ccc; border-radius:3px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="width:110px; color:#34495e; font-size:13px; font-weight:bold;">รับเงินสด:</span>
+                <input type="number" id="ipaq-cash-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="width:110px; color:#34495e; font-size:13px; font-weight:bold;">ยอดสแกนจ่าย:</span>
+                <input type="number" id="ipaq-transfer-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <!-- เอาช่องธนาคารผู้รับโอนออกตามที่บอสสั่ง เพื่อประหยัดพื้นที่ -->
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 16px; font-weight: bold; color: #27ae60; padding-top:5px; border-top:1px dashed #ccc;">
+                <span>เงินทอน:</span>
+                <span id="ipaq-change-due">0.00</span>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button class="ipaq-print-btn" onclick="ipaqPrintBill()" style="flex:1; font-size:14px; padding:8px; background:#f39c12; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">🖨️ เช็คบิล</button>
+                <button class="ipaq-pay-btn" onclick="ipaqPayBill()" style="flex:1; font-size:14px; padding:8px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">💰 รับเงิน</button>
+            </div>
+        `;
+    }
+}
+// --- END IPAQ UI & CLICK UPDATE PATCH ---
+
+// --- UNIT PRICE UPDATE PATCH (2026-07-27) ---
+// Fixes for: 1. Add unit price to check bill, 2. Make unit price bold & remove ฿ on right panel, 3. Add unit price to receipt.
+
+function renderIpaqBill() {
+    const list = document.getElementById('ipaq-bill-items');
+    if(!list) return;
+    
+    list.style.flex = "1";
+    list.style.overflowY = "auto";
+    list.style.paddingRight = "5px";
+    
+    list.innerHTML = '';
+    
+    if (!currentIpaqTable) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">กรุณาเลือกโต๊ะทางซ้ายมือ (คลิก 2 ครั้งเพื่อสั่งอาหาร)</div>';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
+        return;
+    }
+    
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    
+    if (tOrders.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#95a5a6; margin-top:50px;">ยังไม่มีรายการอาหาร (ดับเบิ้ลคลิกที่โต๊ะเพื่อสั่ง)</div>';
+        let footer = document.querySelector('.ipaq-bill-footer');
+        if(footer) footer.innerHTML = '';
+        return;
+    }
+    
+    let grouped = {};
+    let total = 0;
+    tOrders.forEach(o => {
+        if(!grouped[o.productId]) {
+            grouped[o.productId] = { name: o.productName, qty: 0, price: o.price };
+        }
+        grouped[o.productId].qty += o.qty;
+        total += (o.qty * o.price);
+    });
+    
+    for (const pid in grouped) {
+        const item = grouped[pid];
+        let div = document.createElement('div');
+        div.className = 'ipaq-bill-item';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.padding = '5px 0';
+        div.style.borderBottom = '1px dashed #ccc';
+        div.innerHTML = `
+            <div style="flex:1; font-size:15px; line-height:1.2;">
+                <span style="cursor:pointer; color:#e74c3c; margin-right:5px; font-size:16px;" onclick="ipaqRemoveOrder('${pid}')" title="ลบรายการ">🗑️</span>
+                ${item.name} 
+                <div style="color:#2c3e50; font-size:14px; font-weight:bold; margin-left:25px;">(${item.price.toLocaleString('en-US', {minimumFractionDigits: 2})}/หน่วย)</div>
+            </div>
+            <div style="width:50px; text-align:center; font-size:15px; font-weight:bold;">x${item.qty}</div>
+            <div style="width:80px; text-align:right; font-weight:bold; color:#27ae60; font-size:15px;">฿${(item.qty * item.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+        `;
+        list.appendChild(div);
+    }
+    
+    let footer = document.querySelector('.ipaq-bill-footer');
+    if(footer) {
+        footer.style.padding = "5px 10px";
+        footer.innerHTML = `
+            <div class="ipaq-total-row" style="font-size: 18px; margin-bottom:5px; display:flex; justify-content:space-between; font-weight:bold;">
+                <span>ยอดรวมทั้งสิ้น:</span>
+                <span id="ipaq-bill-total" style="color: #e74c3c;">฿ ${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px; background:#f9f9f9; padding:4px; border-radius:5px; border:1px solid #ddd;">
+                <span style="width:110px; color:#2980b9; font-size:13px; font-weight:bold;">💎 สมาชิกร้าน:</span>
+                <input type="text" id="ipaq-crm-input" placeholder="รหัส..." style="flex:1; padding:2px 4px; font-size:13px; border:1px solid #ccc; border-radius:3px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="width:110px; color:#34495e; font-size:13px; font-weight:bold;">รับเงินสด:</span>
+                <input type="number" id="ipaq-cash-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="width:110px; color:#34495e; font-size:13px; font-weight:bold;">ยอดสแกนจ่าย:</span>
+                <input type="number" id="ipaq-transfer-input" value="0" min="0" oninput="calcIpaqChange()" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 16px; font-weight: bold; color: #27ae60; padding-top:5px; border-top:1px dashed #ccc;">
+                <span>เงินทอน:</span>
+                <span id="ipaq-change-due">0.00</span>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button class="ipaq-print-btn" onclick="ipaqPrintBill()" style="flex:1; font-size:14px; padding:8px; background:#f39c12; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">🖨️ เช็คบิล</button>
+                <button class="ipaq-pay-btn" onclick="ipaqPayBill()" style="flex:1; font-size:14px; padding:8px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">💰 รับเงิน</button>
+            </div>
+        `;
+    }
+}
+
+function ipaqPrintBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้พิมพ์');
+    
+    ipaqTableColors[currentIpaqTable.id] = 'pending';
+    renderIpaqTables();
+    
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let checkBillHtml = `
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 70mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0; font-weight: bold;">ใบแจ้งรายการอาหารและเครื่องดื่ม</div>
+            <div style="margin: 5px 0;">โต๊ะ: ${currentIpaqTable.name}</div>
+            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString('th-TH')}</div>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px;">
+                ${tOrders.map(o => `
+                    <tr>
+                        <td style="padding: 2px 0;">${o.productName}</td>
+                        <td style="text-align: center; padding: 2px 0;">${o.qty}x${o.price}</td>
+                        <td style="text-align: right; padding: 2px 0;">${(o.qty * o.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                <span>ยอดรวม</span>
+                <span>${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            </div>
+            <hr style="border-top: 1px dashed black;">
+            <div style="margin-top: 10px; font-size:12px;">กรุณาตรวจสอบรายการก่อนชำระเงิน</div>
+            <div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>
+            <img src="https://promptpay.io/0812345678/${total}.png" style="width: 150px; margin-top: 10px;">
+        </div>
+    `;
+    
+    let printWindow = window.open('', '', 'width=350,height=600');
+    printWindow.document.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+    printWindow.document.write(checkBillHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+    
+    alert('พิมพ์บิลแจ้งรายการเรียบร้อย โต๊ะเปลี่ยนเป็นสถานะรอเช็คบิล (สีเหลือง)');
+}
+
+function printReceipt(billData) {
+    let receiptHtml = `
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 70mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0;">ใบเสร็จรับเงิน</div>
+            <div style="margin: 5px 0;">NO. ${billData.billNumber}</div>
+            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString('th-TH')}</div>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px;">
+                ${billData.items.map(item => `
+                    <tr>
+                        <td style="padding: 2px 0;">${item.name}</td>
+                        <td style="text-align: right; padding: 2px 0;">${item.qty}x${item.price}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px; font-weight:bold;">
+                <tr>
+                    <td>ยอดรวม</td>
+                    <td style="text-align: right;">${billData.grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>รับเงิน</td>
+                    <td style="text-align: right;">${(billData.cashInput + (billData.transferInput || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>เงินทอน</td>
+                    <td style="text-align: right;">${billData.changeDue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            ${(billData.transferInput > 0 && billData.cashInput === 0) ? '<div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>' : ''}
+            <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
+        </div>
+    `;
+    let printWindow = window.open('', '', 'width=350,height=600');
+    printWindow.document.write('<html><head><title>Print Receipt</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+    printWindow.document.write(receiptHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+}
+// --- END UNIT PRICE UPDATE PATCH ---
+
+// --- FINAL BILL AND REPORT UPDATE PATCH (2026-07-27) ---
+// 1. Add Bank/PromptPay Name under QR in Check Bill
+// 2. Add Auto Run Bill Number (DDMMYYYY-XXXXX) in Check Bill and clean "โต๊ะ" prefix
+// 3. Add Auto Run Bill Number in Receipt and add Item Total Column (ราคาต่อหน่วย)
+// 4. Fix Cashier Report Cash Sales calculation
+
+// Helper to generate Auto Run Bill Number
+function generateAutoBillNumber() {
+    let d = new Date();
+    let yyyy = d.getFullYear();
+    let thYear = yyyy > 2500 ? yyyy : yyyy + 543;
+    let dStr = String(d.getDate()).padStart(2, '0') + String(d.getMonth()+1).padStart(2, '0') + thYear;
+    let seq = parseInt(localStorage.getItem('bill_seq_' + dStr) || "0") + 1;
+    localStorage.setItem('bill_seq_' + dStr, seq);
+    return dStr + "-" + String(seq).padStart(5, '0');
+}
+
+// Override ipaqPrintBill
+function ipaqPrintBill() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้พิมพ์');
+    
+    ipaqTableColors[currentIpaqTable.id] = 'pending';
+    renderIpaqTables();
+    
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let billNumber = generateAutoBillNumber();
+    let ppName = (window.erpData && window.erpData.settings && window.erpData.settings.promptpayName) ? window.erpData.settings.promptpayName : "น.ส. จิระภา พ่อไชยราช";
+    let tableName = currentIpaqTable.name.replace(/^โต๊ะ\s*/, '').replace(/^Table\s*/i, '');
+    
+    let checkBillHtml = `
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 70mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0; font-weight: bold;">ใบแจ้งรายการอาหารและเครื่องดื่ม</div>
+            <div style="margin: 5px 0;">NO. ${billNumber}</div>
+            <div style="margin: 5px 0;">โต๊ะ: ${tableName}</div>
+            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString('th-TH')}</div>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px;">
+                ${tOrders.map(o => `
+                    <tr>
+                        <td style="padding: 2px 0;">${o.productName}</td>
+                        <td style="text-align: center; padding: 2px 0;">${o.qty}x${o.price}</td>
+                        <td style="text-align: right; padding: 2px 0;">${(o.qty * o.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                <span>ยอดรวม</span>
+                <span>${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            </div>
+            <hr style="border-top: 1px dashed black;">
+            <div style="margin-top: 10px; font-size:12px;">กรุณาตรวจสอบรายการก่อนชำระเงิน</div>
+            <div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>
+            <img src="https://promptpay.io/0812345678/${total}.png" style="width: 150px; margin-top: 10px;">
+            <div style="margin-top: 5px; font-weight:bold; font-size: 12px;">ชื่อบัญชี: ${ppName}</div>
+        </div>
+    `;
+    
+    let printWindow = window.open('', '', 'width=350,height=600');
+    printWindow.document.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+    printWindow.document.write(checkBillHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+    
+    alert('พิมพ์บิลแจ้งรายการเรียบร้อย โต๊ะเปลี่ยนเป็นสถานะรอเช็คบิล (สีเหลือง)');
+}
+
+// Override printReceipt to add 3 columns and use the billData.billNumber
+function printReceipt(billData) {
+    let receiptHtml = `
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 70mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0;">ใบเสร็จรับเงิน</div>
+            <div style="margin: 5px 0;">NO. ${billData.billNumber}</div>
+            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString('th-TH')}</div>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px;">
+                ${billData.items.map(item => `
+                    <tr>
+                        <td style="padding: 2px 0;">${item.name}</td>
+                        <td style="text-align: center; padding: 2px 0;">${item.qty}x${item.price}</td>
+                        <td style="text-align: right; padding: 2px 0;">${(item.qty * item.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            <table style="width: 100%; text-align: left; font-size: 14px; font-weight:bold;">
+                <tr>
+                    <td>ยอดรวม</td>
+                    <td style="text-align: right;">${billData.grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>รับเงิน</td>
+                    <td style="text-align: right;">${(billData.cashInput + (billData.transferInput || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>เงินทอน</td>
+                    <td style="text-align: right;">${billData.changeDue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>
+            </table>
+            <hr style="border-top: 1px dashed black;">
+            ${(billData.transferInput > 0 && billData.cashInput === 0) ? '<div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>' : ''}
+            <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
+        </div>
+    `;
+    let printWindow = window.open('', '', 'width=350,height=600');
+    printWindow.document.write('<html><head><title>Print Receipt</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+    printWindow.document.write(receiptHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+}
+
+// Override ipaqPayBill to inject auto generated bill number
+const originalIpaqPayBill_ForBills = ipaqPayBill;
+ipaqPayBill = function() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้รับเงิน');
+    
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let cashEl = document.getElementById('ipaq-cash-input');
+    let transferEl = document.getElementById('ipaq-transfer-input');
+    let bankEl = document.getElementById('ipaq-bank-input');
+    let crmEl = document.getElementById('ipaq-crm-input');
+    
+    let cash = cashEl ? parseFloat(cashEl.value) || 0 : 0;
+    let transfer = transferEl ? parseFloat(transferEl.value) || 0 : 0;
+    let totalInput = cash + transfer;
+    
+    if(totalInput < total) {
+        return alert('จำนวนเงินที่รับมาน้อยกว่ายอดบิล กรุณาตรวจสอบ!');
+    }
+    
+    if (!confirm('ยืนยันรับเงินและจบบิล?')) return;
+    
+    tOrders.forEach(o => {
+        o.isPaid = true;
+        let pIndex = products.findIndex(p => p.id === o.productId);
+        if(pIndex !== -1 && typeof updateProductStock === 'function') {
+           updateProductStock(o.productId, o.qty);
+        }
+    });
+    
+    let autoBillNumber = generateAutoBillNumber();
+    
+    let saleRecord = {
+        id: 'S' + Date.now(),
+        tableId: currentIpaqTable.id,
+        tableName: currentIpaqTable.name,
+        totalAmount: total,
+        cashAmount: cash,
+        transferAmount: transfer,
+        bankName: bankEl ? bankEl.value : '',
+        customerCrm: crmEl ? crmEl.value : '',
+        items: tOrders.map(o => ({...o})),
+        timestamp: new Date().toISOString()
+    };
+    sales.push(saleRecord);
+    
+    // Automatically print standard receipt
+    const printBillData = {
+        isCheckBill: false,
+        billNumber: autoBillNumber,
+        queueNo: currentIpaqTable.name,
+        grandTotal: total,
+        cashInput: cash,
+        changeDue: totalInput - total,
+        items: tOrders.map(o => ({name: o.productName, qty: o.qty, price: o.price})),
+        transferInput: transfer,
+        customerName: crmEl ? crmEl.value : ""
+    };
+    
+    if(typeof printReceipt === 'function') {
+        printReceipt(printBillData);
+    }
+    
+    ipaqTableColors[currentIpaqTable.id] = 'free';
+    let tIndex = tables.findIndex(t => t.id === currentIpaqTable.id);
+    if(tIndex !== -1) {
+        tables[tIndex].status = 'free';
+        tables[tIndex].orders = 0;
+    }
+    
+    renderIpaqTables();
+    renderIpaqBill();
+    
+    alert('รับเงินเรียบร้อย พิมพ์ใบเสร็จสำเร็จ โต๊ะว่างแล้ว (สีเขียว)');
+    
+    if(typeof renderSales === 'function') renderSales();
+    if(typeof updateDashboard === 'function') updateDashboard();
+    if(typeof updateTableStatus === 'function') updateTableStatus();
+}
+
+// In generateReport('cashier'), we need to fix totalCashInput calculation
+const originalGenerateReport_ForCashier = generateReport;
+generateReport = function(type) {
+    if (type !== 'cashier') {
+        return originalGenerateReport_ForCashier(type);
+    }
+    
+    const startDateStr = document.getElementById('report-start-date').value;
+    const endDateStr = document.getElementById('report-end-date').value;
+    
+    if (!startDateStr || !endDateStr) {
+        alert("⚠️ กรุณาเลือกช่วงวันที่ให้ครบถ้วนค่ะ");
+        return;
+    }
+    
+    const startObj = new Date(startDateStr);
+    startObj.setHours(0,0,0,0);
+    const endObj = new Date(endDateStr);
+    endObj.setHours(23,59,59,999);
+
+    let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+    
+    if (window.erpData && window.erpData['sales']) {
+        const fbSales = window.erpData['sales'];
+        for(let key in fbSales) {
+            localSales.push([
+                fbSales[key].date,
+                fbSales[key].grandTotal,
+                fbSales[key].cashInput,
+                fbSales[key].changeDue,
+                fbSales[key].details,
+                fbSales[key].itemsJSON || "[]",
+                fbSales[key].transferInput || 0
+            ]);
+        }
+    }
+
+    let seen = new Set();
+    let uniqueSales = localSales.filter(row => {
+        let uniqueKey = row[0] + "_" + row[1];
+        if(seen.has(uniqueKey)) return false;
+        seen.add(uniqueKey);
+        return true;
+    });
+
+    let filteredSales = [];
+    uniqueSales.forEach(row => {
+        let dateStr = row[0]; 
+        if (!dateStr) return;
+        let saleDate = new Date(dateStr.replace(' ', 'T'));
+        
+        if (isNaN(saleDate)) {
+            let dateTimeParts = dateStr.split(' ');
+            let dPart = dateTimeParts[0];
+            let tPart = dateTimeParts[1] || "00:00:00";
+            if (dPart.includes('/')) {
+                let parts = dPart.split('/');
+                if (parts.length === 3) {
+                    saleDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${tPart}`);
+                }
+            }
+            if (isNaN(saleDate)) {
+                saleDate = new Date(dateStr);
+            }
+        }
+        
+        if (!isNaN(saleDate) && saleDate.getFullYear() > 2500) {
+            saleDate.setFullYear(saleDate.getFullYear() - 543);
+        }
+        
+        if (saleDate >= startObj && saleDate <= endObj) {
+            filteredSales.push(row);
+        }
+    });
+
+    let totalBills = filteredSales.length;
+    let totalSales = 0;
+    let totalCashInput = 0; // ยอดรวมเงินสดที่รับมา
+    let totalChangeDue = 0;
+    let totalTransfer = 0;
+
+    filteredSales.forEach(row => {
+        let gt = parseFloat(String(row[1]).replace(/,/g, '')) || 0;
+        let ci = parseFloat(String(row[2]).replace(/,/g, '')) || 0;
+        let cd = parseFloat(String(row[3]).replace(/,/g, '')) || 0;
+        let tr = parseFloat(String(row[6]).replace(/,/g, '')) || 0;
+        
+        totalSales += gt;
+        totalCashInput += ci;
+        totalChangeDue += cd;
+        totalTransfer += tr;
+    });
+    
+    let searchDate = startDateStr;
+    let dateParts = startDateStr.split('-');
+    if (dateParts.length === 3 && parseInt(dateParts[0]) > 2500) {
+        dateParts[0] = (parseInt(dateParts[0]) - 543).toString();
+        searchDate = dateParts.join('-');
+    }
+    
+    let startingCash = 0;
+    if (window.erpData && window.erpData['drawer_cash'] && window.erpData['drawer_cash'][searchDate]) {
+        startingCash = parseFloat(window.erpData['drawer_cash'][searchDate].amount) || 0;
+    } else {
+        let startingCashStr = localStorage.getItem('thep_starting_cash_' + searchDate);
+        startingCash = startingCashStr ? parseFloat(startingCashStr) : 0;
+    }
+    
+    let netCashToSubmit = totalSales - totalTransfer; // ยอดเงินสดสุทธิ
+    let totalCashInDrawer = netCashToSubmit + startingCash;
+
+    let html = "";
+    html += `<h3 style="text-align:center; color: #e74c3c;">รายงานยอดเงินแคชเชียร์</h3>`;
+    html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+    
+    html += `<div style="background-color: #fdfefe; border: 1px solid #d5dbdb; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: 'Prompt', sans-serif;">`;
+    html += `<table style="width:100%; border-collapse:collapse; font-size:15px; line-height: 2;">`;
+    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>1. ยอดจำนวนบิลรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalBills.toLocaleString()} บิล</td></tr>`;
+    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>2. ยอดเงินรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #2980b9; font-weight: bold;">${totalSales.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    // แก้ไขข้อ 4 ให้แสดงยอด netCashToSubmit (เงินสดสุทธิ) แทน totalCashInput (รับเงินมา)
+    html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>5. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+    html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>7. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, {minimumFractionDigits:2})} บาท</td></tr>`;
+    html += `</table>`;
+    html += `</div>`;
+
+    document.getElementById('report-result-content').innerHTML = html;
+    document.getElementById('report-result-wrapper').style.display = "block";
+}
+
+// --- END FINAL BILL AND REPORT UPDATE PATCH ---
+
+
+// --- IPAQ REPORT AND INVENTORY SYNC UPDATE (2026-07-27 Part 2) ---
+// Override ipaqPayBill to add full sync (Local Storage, Firebase, and Stock Ledger)
+ipaqPayBill = function() {
+    if (!currentIpaqTable) return;
+    let tOrders = tableOrders.filter(o => o.tableId === currentIpaqTable.id && !o.isPaid);
+    if(tOrders.length === 0) return alert('ไม่มีรายการให้รับเงิน');
+    
+    let total = 0;
+    tOrders.forEach(o => total += (o.qty * o.price));
+    
+    let cashEl = document.getElementById('ipaq-cash-input');
+    let transferEl = document.getElementById('ipaq-transfer-input');
+    let bankEl = document.getElementById('ipaq-bank-input');
+    let crmEl = document.getElementById('ipaq-crm-input');
+    
+    let cash = cashEl ? parseFloat(cashEl.value) || 0 : 0;
+    let transfer = transferEl ? parseFloat(transferEl.value) || 0 : 0;
+    let totalInput = cash + transfer;
+    
+    if(totalInput < total) {
+        return alert('จำนวนเงินที่รับมาน้อยกว่ายอดบิล กรุณาตรวจสอบ!');
+    }
+    
+    if (!confirm('ยืนยันรับเงินและจบบิล?')) return;
+    
+    // 1. Generate Bill Number and Data
+    let autoBillNumber = typeof generateAutoBillNumber === 'function' ? generateAutoBillNumber() : ('IPAQ-' + Date.now());
+    let changeDue = totalInput - total;
+    let staffName = document.getElementById('staff-name') ? document.getElementById('staff-name').value : "IPAQ Staff";
+    let currentProductDB = window.productDB || {};
+    
+    // Print/Save items array mapping
+    let printBillItems = [];
+    let billDetails = `NO: ${currentIpaqTable.name} | `;
+    
+    tOrders.forEach(o => {
+        let pName = o.productName || "สินค้าไม่มีชื่อ";
+        let pPrice = parseFloat(o.price) || 0;
+        let pQty = parseInt(o.qty) || 1;
+        let pTotal = pPrice * pQty;
+        billDetails += `${pName} (${pPrice}x${pQty}=${pTotal}) | `;
+        
+        let pCat = "ทั่วไป";
+        let cType = "none";
+        let cVal = 0;
+        let barcodeToUse = "";
+        
+        // Find in productDB
+        for (let barcode in currentProductDB) {
+            if (currentProductDB[barcode].name === pName) {
+                pCat = currentProductDB[barcode].category || "ทั่วไป";
+                cType = currentProductDB[barcode].commissionType || "none";
+                cVal = parseFloat(currentProductDB[barcode].commissionValue) || 0;
+                barcodeToUse = barcode;
+                break;
+            }
+        }
+        
+        // 2. Inventory Sync (Stock Ledger) - Only if barcode found
+        if (barcodeToUse) {
+            const prod = currentProductDB[barcodeToUse];
+            const currentStock = parseFloat(prod.stock) || 0;
+            prod.stock = currentStock - pQty;
+            
+            window.stockLedger = window.stockLedger || JSON.parse(localStorage.getItem('thep_stock_ledger') || "[]");
+            window.stockLedger.push({
+                id: "SALE_" + new Date().getTime() + "_" + Math.floor(Math.random()*1000),
+                date: new Date().toISOString(),
+                type: "OUT_SELL",
+                docNo: autoBillNumber,
+                barcode: barcodeToUse,
+                name: prod.name,
+                category: prod.category || "ทั่วไป",
+                qty: -pQty,
+                pricePerUnit: pPrice,
+                balanceAfter: prod.stock,
+                valueAfter: prod.stock * (parseFloat(prod.price) || 0)
+            });
+            // Also call original stock update if it exists for backward compatibility
+            if (typeof updateProductStock === 'function') {
+                updateProductStock(o.productId, o.qty);
+            }
+        }
+        
+        // Calculate commission
+        let calcComm = 0;
+        if (cType === 'percent') {
+            calcComm = (pPrice * pQty) * (cVal / 100);
+        } else if (cType === 'baht') {
+            calcComm = cVal * pQty;
+        }
+        
+        printBillItems.push({
+            name: pName,
+            price: pPrice,
+            qty: pQty,
+            category: pCat,
+            commissionType: cType,
+            commissionValue: cVal,
+            calculatedCommission: calcComm,
+            staffName: staffName
+        });
+        
+        o.isPaid = true;
+    });
+    
+    // Save stock ledger array back to localStorage
+    localStorage.setItem('thep_stock_ledger', JSON.stringify(window.stockLedger || []));
+    
+    // 3. Prepare Common Data
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    let itemsJSON = JSON.stringify(printBillItems);
+    
+    // 4. Firebase Sync (erp_db_sales)
+    if (typeof database !== 'undefined') {
+        const saleId = 'SALE_' + Date.now();
+        const firebaseSaleData = {
+            date: dateStr,
+            grandTotal: total.toString(),
+            cashInput: cash.toString(),
+            transferInput: transfer.toString(),
+            transferBank: bankEl ? bankEl.value : '',
+            changeDue: changeDue.toString(),
+            details: billDetails,
+            itemsJSON: itemsJSON
+        };
+        database.ref('erp_db_sales/' + saleId).set(firebaseSaleData).catch(err => console.error("Firebase Sync Error:", err));
+    }
+    
+    // 5. Local Storage Sync (thep_local_sales_history)
+    const newRow = [
+        dateStr, 
+        total.toString(), 
+        cash.toString(), 
+        changeDue.toString(), 
+        billDetails,
+        itemsJSON,
+        transfer.toString()
+    ];
+    let localSales = JSON.parse(localStorage.getItem('thep_local_sales_history') || "[]");
+    localSales.push(newRow);
+    localStorage.setItem('thep_local_sales_history', JSON.stringify(localSales));
+    
+    // Also push to standard `sales` array for IPAQ memory
+    let saleRecord = {
+        id: 'S' + Date.now(),
+        tableId: currentIpaqTable.id,
+        tableName: currentIpaqTable.name,
+        totalAmount: total,
+        cashAmount: cash,
+        transferAmount: transfer,
+        bankName: bankEl ? bankEl.value : '',
+        customerCrm: crmEl ? crmEl.value : '',
+        items: tOrders.map(o => ({...o})),
+        timestamp: now.toISOString()
+    };
+    if (typeof sales !== 'undefined' && Array.isArray(sales)) {
+        sales.push(saleRecord);
+    }
+    
+    // Automatically print standard receipt
+    const printBillData = {
+        isCheckBill: false,
+        billNumber: autoBillNumber,
+        queueNo: currentIpaqTable.name,
+        grandTotal: total,
+        cashInput: cash,
+        changeDue: changeDue,
+        items: printBillItems,
+        transferInput: transfer,
+        customerName: crmEl ? crmEl.value : ""
+    };
+    
+    if(typeof printReceipt === 'function') {
+        printReceipt(printBillData);
+    }
+    
+    ipaqTableColors[currentIpaqTable.id] = 'free';
+    let tIndex = tables.findIndex(t => t.id === currentIpaqTable.id);
+    if(tIndex !== -1) {
+        tables[tIndex].status = 'free';
+        tables[tIndex].orders = 0;
+    }
+    
+    renderIpaqTables();
+    renderIpaqBill();
+    
+    alert('รับเงินเรียบร้อย พิมพ์ใบเสร็จสำเร็จ และอัปเดตข้อมูลรายงาน+สต๊อกเรียบร้อย (โต๊ะว่างแล้ว)');
+    
+    if(typeof renderSales === 'function') renderSales();
+    if(typeof updateDashboard === 'function') updateDashboard();
+    if(typeof updateTableStatus === 'function') updateTableStatus();
+    if(typeof fetchLiveSheetData === 'function') fetchLiveSheetData();
+}
+// --- END IPAQ REPORT AND INVENTORY SYNC UPDATE ---
+
+
+// --- IPAQ QR CODE SYNC PATCH (2026-07-27) ---
+// Add a parallel listener for IPAQ syncing to keep it additive and avoid altering the original listener
+if (typeof database !== 'undefined') {
+    database.ref('erp_db_orders').on('value', snapshot => {
+        let data = snapshot.val() || {};
+        let shouldRenderIpaq = false;
+        
+        for (let tableKey in data) {
+            let order = data[tableKey];
+            
+            // Only process if there are new items
+            if (order.hasNewItems && order.items && order.items.length > 0) {
+                let addedAny = false;
+                
+                order.items.forEach((item, index) => {
+                    // Only sync items that are actually new
+                    if (item.isNewItem) {
+                        if (typeof tableOrders !== 'undefined') {
+                            // Find table ID. tableKey might be 'T1' or 'โต๊ะ 1'
+                            let resolvedTableId = tableKey;
+                            if (typeof tables !== 'undefined') {
+                                let tObj = tables.find(t => t.name === tableKey || t.id === tableKey);
+                                if (tObj) resolvedTableId = tObj.id;
+                            }
+                            
+                            let ipaqOrder = {
+                                id: 'O_QR_' + Date.now() + '_' + Math.floor(Math.random()*10000) + '_' + index,
+                                tableId: resolvedTableId,
+                                productId: item.id || "QR",
+                                productName: item.name,
+                                qty: Number(item.qty) || 1,
+                                price: Number(item.price) || 0,
+                                isPaid: false,
+                                timestamp: new Date().toISOString()
+                            };
+                            tableOrders.push(ipaqOrder);
+                        }
+                        addedAny = true;
+                    }
+                });
+                
+                if (addedAny) {
+                    let resolvedTableId = tableKey;
+                    if (typeof tables !== 'undefined') {
+                        let tObj = tables.find(t => t.name === tableKey || t.id === tableKey);
+                        if (tObj) resolvedTableId = tObj.id;
+                    }
+                    
+                    if (typeof ipaqTableColors !== 'undefined') {
+                        if (ipaqTableColors[resolvedTableId] !== 'occupied') {
+                            ipaqTableColors[resolvedTableId] = 'occupied';
+                            shouldRenderIpaq = true;
+                        }
+                    }
+                    
+                    if (typeof tables !== 'undefined' && Array.isArray(tables)) {
+                        let tIndex = tables.findIndex(t => t.id === resolvedTableId);
+                        if (tIndex !== -1 && tables[tIndex].status !== 'occupied') {
+                            tables[tIndex].status = 'occupied';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update IPAQ UI if needed
+        if (shouldRenderIpaq && typeof renderIpaqTables === 'function') {
+            renderIpaqTables();
+            // If the IPAQ is currently viewing a table, refresh the bill just in case
+            if (typeof currentIpaqTable !== 'undefined' && currentIpaqTable && typeof renderIpaqBill === 'function') {
+                renderIpaqBill();
+            }
+        }
+    });
+}
+// --- END IPAQ QR CODE SYNC PATCH ---
 
 </script>
 </body>
