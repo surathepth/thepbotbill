@@ -460,6 +460,19 @@
     </div>
 
 
+    <!-- Master POS Switcher -->
+    <div style="background: #f1c40f; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-bottom: 2px solid #f39c12;">
+        <div style="font-weight: bold; color: #d35400; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">🎛️</span>
+            ระบบรับออเดอร์ (QR Code) หลัก:
+        </div>
+        <select id="master-pos-switcher" onchange="changeMasterPos(this.value)" style="padding: 8px 12px; font-family: 'Prompt', sans-serif; font-weight: bold; border-radius: 6px; border: 2px solid #e67e22; background: white; color: #c0392b; cursor: pointer; font-size: 14px;">
+            <option value="both">🔄 รับทุกระบบ (ค่าเริ่มต้น)</option>
+            <option value="pos">🛒 ใช้ POS เก่า (ล็อค IPAQ)</option>
+            <option value="ipaq">📱 ใช้ POS ใหม่ IPAQ (ล็อค POS เก่า)</option>
+        </select>
+    </div>
+
     <!-- ERP Navigation -->
     <div class="erp-nav">
         <button class="tab-btn active" data-perm="pos" onclick="switchTab('pos')">🛒 หน้าร้าน (POS)</button>
@@ -4552,6 +4565,18 @@ function unlockSystem() {
 }
 
 function switchTab(tabId) {
+    let mode = localStorage.getItem('thep_master_pos') || 'both';
+    if (mode === 'pos' && tabId === 'ipaq') {
+        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'ไม่อนุญาต', text: 'ระบบถูกล็อค กรุณาเปลี่ยนระบบ POS หลักเป็น IPAQ ก่อนใช้งานแท็บนี้' });
+        else alert('ระบบถูกล็อค กรุณาเปลี่ยนระบบ POS หลักเป็น IPAQ ก่อนใช้งานแท็บนี้');
+        return;
+    }
+    if (mode === 'ipaq' && tabId === 'pos') {
+        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'ไม่อนุญาต', text: 'ระบบถูกล็อค กรุณาเปลี่ยนระบบ POS หลักเป็น POS เก่า ก่อนใช้งานแท็บนี้' });
+        else alert('ระบบถูกล็อค กรุณาเปลี่ยนระบบ POS หลักเป็น POS เก่า ก่อนใช้งานแท็บนี้');
+        return;
+    }
+
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + tabId).classList.add('active');
@@ -4560,6 +4585,44 @@ function switchTab(tabId) {
     if(activeBtn) activeBtn.classList.add('active');
 
     if(tabId !== 'pos') loadDB(tabId);
+}
+
+function changeMasterPos(value) {
+    localStorage.setItem('thep_master_pos', value);
+    applyMasterPosLock();
+    if(typeof Swal !== 'undefined') {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'เปลี่ยนระบบรับออเดอร์หลักแล้ว', showConfirmButton: false, timer: 2000 });
+    } else {
+        alert('เปลี่ยนระบบรับออเดอร์หลักแล้ว');
+    }
+}
+
+function applyMasterPosLock() {
+    let mode = localStorage.getItem('thep_master_pos') || 'both';
+    let switcher = document.getElementById('master-pos-switcher');
+    if (switcher) switcher.value = mode;
+    
+    const posTab = document.querySelector('.tab-btn[data-perm="pos"]');
+    const ipaqTab = document.querySelector('.tab-btn[data-perm="ipaq"]');
+    
+    if (mode === 'ipaq') {
+        if(posTab) { posTab.style.opacity = '0.4'; posTab.innerHTML = '🔒 POS (ล็อค)'; }
+        if(ipaqTab) { ipaqTab.style.opacity = '1'; ipaqTab.innerHTML = '📱 IPAQ (หลัก)'; }
+        
+        let activeContent = document.querySelector('.tab-content.active');
+        if (activeContent && activeContent.id === 'tab-pos') switchTab('ipaq');
+
+    } else if (mode === 'pos') {
+        if(ipaqTab) { ipaqTab.style.opacity = '0.4'; ipaqTab.innerHTML = '🔒 IPAQ (ล็อค)'; }
+        if(posTab) { posTab.style.opacity = '1'; posTab.innerHTML = '🛒 หน้าร้าน POS (หลัก)'; }
+        
+        let activeContent = document.querySelector('.tab-content.active');
+        if (activeContent && activeContent.id === 'tab-ipaq') switchTab('pos');
+        
+    } else {
+        if(posTab) { posTab.style.opacity = '1'; posTab.innerHTML = '🛒 หน้าร้าน (POS)'; }
+        if(ipaqTab) { ipaqTab.style.opacity = '1'; ipaqTab.innerHTML = '📱 IPAQ'; }
+    }
 }
 
 // Firebase DB Logic
@@ -4829,6 +4892,7 @@ function deleteDB(type, id) {
 
 // Initialize essential data on page load for POS
 document.addEventListener('DOMContentLoaded', () => {
+    applyMasterPosLock();
     loadDB('table');
     loadDB('product');
     loadDB('employee');
@@ -4904,18 +4968,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // --------------------------------
 
-            if (typeof renderHeldBills === 'function') {
-                renderHeldBills();
-            }
-            
-            // Update button count
-            let retrieveBtn = document.getElementById('btn-retrieve-bill');
-            if (retrieveBtn) {
-                let count = Object.keys(data).length;
-                if (count > 0) {
-                    retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br><span style="color:#f1c40f;">(${count} โต๊ะ)</span>`;
-                } else {
-                    retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br>(พักบิล)`;
+            let mode = localStorage.getItem('thep_master_pos') || 'both';
+            if (mode !== 'ipaq') {
+                if (typeof renderHeldBills === 'function') {
+                    renderHeldBills();
+                }
+                
+                // Update button count
+                let retrieveBtn = document.getElementById('btn-retrieve-bill');
+                if (retrieveBtn) {
+                    let count = Object.keys(data).length;
+                    if (count > 0) {
+                        retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br><span style="color:#f1c40f;">(${count} โต๊ะ)</span>`;
+                    } else {
+                        retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br>(พักบิล)`;
+                    }
+                }
+            } else {
+                // If IPAQ is master, clear the hold bill button count for old POS
+                let retrieveBtn = document.getElementById('btn-retrieve-bill');
+                if (retrieveBtn) {
+                    retrieveBtn.innerHTML = `📋 ดึงบิลคืน<br>(ถูกจัดการโดย IPAQ)`;
                 }
             }
         });
@@ -7496,6 +7569,9 @@ ipaqPayBill = function() {
 // Add a parallel listener for IPAQ syncing to keep it additive and avoid altering the original listener
 if (typeof database !== 'undefined') {
     database.ref('erp_db_orders').on('value', snapshot => {
+        let mode = localStorage.getItem('thep_master_pos') || 'both';
+        if (mode === 'pos') return; // Do not process IPAQ tables if POS Old is master
+        
         let data = snapshot.val() || {};
         let shouldRenderIpaq = false;
         
