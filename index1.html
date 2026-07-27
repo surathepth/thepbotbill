@@ -7466,17 +7466,40 @@ if (typeof database !== 'undefined') {
             if (order.hasNewItems && order.items && order.items.length > 0) {
                 let addedAny = false;
                 
+                // --- 1. Robust Table ID Mapping ---
+                let resolvedTableId = tableKey;
+                if (typeof tables !== 'undefined') {
+                    // Try exact match
+                    let tObj = tables.find(t => t.name === tableKey || t.id === tableKey);
+                    
+                    // Try parsing T0005 -> 5
+                    if (!tObj && tableKey.startsWith('T')) {
+                        let numericId = parseInt(tableKey.replace(/^T0*/, ''), 10).toString();
+                        tObj = tables.find(t => t.id === numericId || t.id === tableKey);
+                    }
+                    
+                    // Try fallback using name contains (e.g. "โต๊ะ:5" or "โต๊ะ 5")
+                    if (!tObj && tableKey.startsWith('T')) {
+                        let numericId = parseInt(tableKey.replace(/^T0*/, ''), 10).toString();
+                        tObj = tables.find(t => t.name && (t.name.includes(':'+numericId) || t.name.includes(' '+numericId) || t.name.endsWith(numericId)));
+                    }
+                    
+                    // Try fallback using queueNo (e.g. "05" -> "5")
+                    if (!tObj && order.queueNo) {
+                        let numericId = parseInt(order.queueNo, 10).toString();
+                        tObj = tables.find(t => t.id === numericId);
+                    }
+                    
+                    if (tObj) {
+                        resolvedTableId = tObj.id;
+                    }
+                }
+                
+                // --- 2. Sync Items to IPAQ ---
                 order.items.forEach((item, index) => {
                     // Only sync items that are actually new
                     if (item.isNewItem) {
                         if (typeof tableOrders !== 'undefined') {
-                            // Find table ID. tableKey might be 'T1' or 'โต๊ะ 1'
-                            let resolvedTableId = tableKey;
-                            if (typeof tables !== 'undefined') {
-                                let tObj = tables.find(t => t.name === tableKey || t.id === tableKey);
-                                if (tObj) resolvedTableId = tObj.id;
-                            }
-                            
                             let ipaqOrder = {
                                 id: 'O_QR_' + Date.now() + '_' + Math.floor(Math.random()*10000) + '_' + index,
                                 tableId: resolvedTableId,
@@ -7493,13 +7516,8 @@ if (typeof database !== 'undefined') {
                     }
                 });
                 
+                // --- 3. Update IPAQ Table Status ---
                 if (addedAny) {
-                    let resolvedTableId = tableKey;
-                    if (typeof tables !== 'undefined') {
-                        let tObj = tables.find(t => t.name === tableKey || t.id === tableKey);
-                        if (tObj) resolvedTableId = tObj.id;
-                    }
-                    
                     if (typeof ipaqTableColors !== 'undefined') {
                         if (ipaqTableColors[resolvedTableId] !== 'occupied') {
                             ipaqTableColors[resolvedTableId] = 'occupied';
@@ -7517,18 +7535,13 @@ if (typeof database !== 'undefined') {
             }
         }
         
-        // Update IPAQ UI if needed
+        // --- 4. Render IPAQ if needed ---
         if (shouldRenderIpaq && typeof renderIpaqTables === 'function') {
             renderIpaqTables();
-            // If the IPAQ is currently viewing a table, refresh the bill just in case
             if (typeof currentIpaqTable !== 'undefined' && currentIpaqTable && typeof renderIpaqBill === 'function') {
+                // If we are currently viewing the table that got updated, refresh the bill
                 renderIpaqBill();
             }
         }
     });
 }
-// --- END IPAQ QR CODE SYNC PATCH ---
-
-</script>
-</body>
-</html>
