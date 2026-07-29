@@ -7050,26 +7050,29 @@ function printReceipt(billData) {
             <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
         </div>
     `;
-    let printWindow = window.open('', '', 'width=400,height=600');
-    if (printWindow) {
-        try {
-            let baseUrl = window.location.href.split('?')[0];
-            baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-            printWindow.document.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
-            printWindow.document.write(receiptHtml);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 500);
-        } catch(e) {
-            console.error("Popup blocked exception:", e);
-            alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์ใบเสร็จได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
-        }
-    } else {
-        alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์ใบเสร็จได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
+    let iframe = document.getElementById('print-iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+    try {
+        let baseUrl = window.location.href.split('?')[0];
+        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+        let doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
+        doc.write(receiptHtml);
+        doc.write('</body></html>');
+        doc.close();
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+        }, 500);
+    } catch(e) {
+        console.error("Iframe print exception:", e);
+        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์ใบเสร็จ");
     }
 }
 // --- END UNIT PRICE UPDATE PATCH ---
@@ -7137,25 +7140,27 @@ function ipaqPrintBill() {
         </div>
     `;
     
-    let printWindow = window.open('', '', 'width=400,height=600');
-    if (printWindow) {
-        try {
-            printWindow.document.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
-            printWindow.document.write(checkBillHtml);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 500);
-        } catch(e) {
-            console.error("Popup blocked exception:", e);
-            alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์บิลได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
-        }
-    } else {
-        console.warn("Popup blocked, could not print check bill.");
-        alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์บิลได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
+    let iframe = document.getElementById('print-iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+    try {
+        let doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
+        doc.write(checkBillHtml);
+        doc.write('</body></html>');
+        doc.close();
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+        }, 500);
+    } catch(e) {
+        console.error("Iframe print exception:", e);
+        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์บิล");
     }
     
     alert('ระบบบันทึกบิลแจ้งรายการเรียบร้อย โต๊ะเปลี่ยนเป็นสถานะรอเช็คบิล (สีเหลือง)');
@@ -7199,27 +7204,29 @@ function printReceipt(billData) {
             <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
         </div>
     `;
-    let printWindow = window.open('', '', 'width=400,height=600');
-    if (printWindow) {
-        try {
-            let baseUrl = window.location.href.split('?')[0];
-            baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-            printWindow.document.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
-            printWindow.document.write(receiptHtml);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 500);
-        } catch(e) {
-            console.error("Popup blocked exception:", e);
-            alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์ใบเสร็จได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
-        }
-    } else {
-        console.warn("Popup blocked, could not print receipt.");
-        alert("⚠️ ไม่สามารถเปิดหน้าต่างพิมพ์ใบเสร็จได้ กรุณาปิดตัวบล็อก Pop-up (Allow Pop-ups)");
+    let iframe = document.getElementById('print-iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+    try {
+        let baseUrl = window.location.href.split('?')[0];
+        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+        let doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
+        doc.write(receiptHtml);
+        doc.write('</body></html>');
+        doc.close();
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+        }, 500);
+    } catch(e) {
+        console.error("Iframe print exception:", e);
+        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์ใบเสร็จ");
     }
 }
 
