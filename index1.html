@@ -439,6 +439,7 @@
 
         gtag('config', 'G-J2SMCM0YK3');
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -7050,6 +7051,77 @@ function printReceipt(billData) {
             <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
         </div>
     `;
+    sunmiSilentPrint(receiptHtml);
+}
+// --- END UNIT PRICE UPDATE PATCH ---
+
+// --- FINAL BILL AND REPORT UPDATE PATCH (2026-07-27) ---
+// 1. Add Bank/PromptPay Name under QR in Check Bill
+// 2. Add Auto Run Bill Number (DDMMYYYY-XXXXX) in Check Bill and clean "โต๊ะ" prefix
+// 3. Add Auto Run Bill Number in Receipt and add Item Total Column (ราคาต่อหน่วย)
+// 4. Fix Cashier Report Cash Sales calculation
+
+// Helper to generate Auto Run Bill Number
+
+// --- SUNMI SILENT PRINT LOGIC ---
+function sunmiSilentPrint(htmlContent) {
+    let container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '80mm'; // Force 80mm width
+    container.style.backgroundColor = 'white';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+        if (typeof html2canvas === 'undefined') {
+            console.error('html2canvas not loaded!');
+            document.body.removeChild(container);
+            fallbackIframePrint(htmlContent);
+            return;
+        }
+        
+        html2canvas(container, {
+            scale: 2, 
+            useCORS: true,
+            logging: false
+        }).then(canvas => {
+            let b64Data = canvas.toDataURL('image/png').split(',')[1];
+            
+            let ws = new WebSocket("ws://127.0.0.1:40000");
+            let printSuccess = false;
+
+            ws.onopen = function() {
+                // Sent base64 image
+                ws.send(JSON.stringify({ cmd: "printBitmap", image: b64Data }));
+                // Feed paper and cut
+                ws.send(JSON.stringify({ cmd: "printText", text: "\\n\\n\\n" }));
+                ws.send(JSON.stringify({ cmd: "cutPaper" }));
+                printSuccess = true;
+                setTimeout(() => { ws.close(); }, 500);
+            };
+            
+            ws.onclose = function() {
+                document.body.removeChild(container);
+                if (!printSuccess) {
+                    fallbackIframePrint(htmlContent);
+                }
+            };
+            
+            ws.onerror = function(e) {
+                console.error("Sunmi WebSocket Error:", e);
+                // The onerror will eventually trigger onclose, which handles fallback.
+            };
+        }).catch(err => {
+            console.error("html2canvas error:", err);
+            document.body.removeChild(container);
+            fallbackIframePrint(htmlContent);
+        });
+    }, 500);
+}
+
+function fallbackIframePrint(htmlContent) {
     let iframe = document.getElementById('print-iframe');
     if (!iframe) {
         iframe = document.createElement('iframe');
@@ -7062,8 +7134,8 @@ function printReceipt(billData) {
         baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
         let doc = iframe.contentWindow.document;
         doc.open();
-        doc.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
-        doc.write(receiptHtml);
+        doc.write('<html><head><title>Print</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
+        doc.write(htmlContent);
         doc.write('</body></html>');
         doc.close();
         iframe.contentWindow.focus();
@@ -7072,18 +7144,11 @@ function printReceipt(billData) {
         }, 500);
     } catch(e) {
         console.error("Iframe print exception:", e);
-        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์ใบเสร็จ");
+        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์");
     }
 }
-// --- END UNIT PRICE UPDATE PATCH ---
+// --------------------------------
 
-// --- FINAL BILL AND REPORT UPDATE PATCH (2026-07-27) ---
-// 1. Add Bank/PromptPay Name under QR in Check Bill
-// 2. Add Auto Run Bill Number (DDMMYYYY-XXXXX) in Check Bill and clean "โต๊ะ" prefix
-// 3. Add Auto Run Bill Number in Receipt and add Item Total Column (ราคาต่อหน่วย)
-// 4. Fix Cashier Report Cash Sales calculation
-
-// Helper to generate Auto Run Bill Number
 function generateAutoBillNumber() {
     let d = new Date();
     let yyyy = d.getFullYear();
@@ -7140,28 +7205,7 @@ function ipaqPrintBill() {
         </div>
     `;
     
-    let iframe = document.getElementById('print-iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
-    try {
-        let doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write('<html><head><title>Print Check Bill</title><meta charset="utf-8"></head><body style="margin:0; padding:10px;">');
-        doc.write(checkBillHtml);
-        doc.write('</body></html>');
-        doc.close();
-        iframe.contentWindow.focus();
-        setTimeout(() => {
-            iframe.contentWindow.print();
-        }, 500);
-    } catch(e) {
-        console.error("Iframe print exception:", e);
-        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์บิล");
-    }
+    sunmiSilentPrint(checkBillHtml);
     
     alert('ระบบบันทึกบิลแจ้งรายการเรียบร้อย โต๊ะเปลี่ยนเป็นสถานะรอเช็คบิล (สีเหลือง)');
 }
@@ -7204,30 +7248,7 @@ function printReceipt(billData) {
             <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
         </div>
     `;
-    let iframe = document.getElementById('print-iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
-    try {
-        let baseUrl = window.location.href.split('?')[0];
-        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-        let doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write('<html><head><title>Print Receipt</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
-        doc.write(receiptHtml);
-        doc.write('</body></html>');
-        doc.close();
-        iframe.contentWindow.focus();
-        setTimeout(() => {
-            iframe.contentWindow.print();
-        }, 500);
-    } catch(e) {
-        console.error("Iframe print exception:", e);
-        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์ใบเสร็จ");
-    }
+    sunmiSilentPrint(receiptHtml);
 }
 
 // Override ipaqPayBill to inject auto generated bill number
