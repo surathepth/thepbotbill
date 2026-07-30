@@ -10573,6 +10573,7 @@
         // 1. ลองเจาะลึกผ่าน Sunmi JS Bridge (แกนกลางฮาร์ดแวร์โดยตรง พิมพ์เงียบ + เด้งลิ้นชัก)
         if (window.sunmi && typeof window.sunmi.printHtml === 'function') {
             try {
+                alert("🎉 สำเร็จ! พบระบบ Sunmi Bridge 100% กำลังส่งคำสั่งพิมพ์เงียบและเปิดลิ้นชัก...");
                 window.sunmi.printHtml(htmlContent);
                 if (typeof window.sunmi.openCashBox === 'function') {
                     window.sunmi.openCashBox(); // สั่งเด้งลิ้นชัก
@@ -10580,12 +10581,14 @@
                 return; // จบการทำงาน ไม่ต้องเปิดหน้าต่าง Print ของ Android
             } catch (e) {
                 console.error("Sunmi JS Bridge Error:", e);
+                alert("❌ เกิดข้อผิดพลาดใน Sunmi Bridge: " + e.message);
             }
         }
         
         // 2. ลองผ่าน Android Wrapper Interface (ถ้าใช้แอปครอบ)
         if (window.Android && typeof window.Android.printHtml === 'function') {
             try {
+                alert("🎉 พบระบบ Android Wrapper กำลังส่งคำสั่งพิมพ์...");
                 window.Android.printHtml(htmlContent);
                 return;
             } catch(e) {
@@ -10594,6 +10597,8 @@
         }
 
         // 3. Fallback กลับมาใช้ระบบมาตรฐาน (เบราว์เซอร์ปกติ เช่น ES Explorer ที่ไม่มี Bridge)
+        alert("⚠️ แจ้งเตือนจากลิลิน:\nแอป ES Explorer บล็อกการเชื่อมต่อเครื่องพิมพ์ค่ะ (ไม่พบ window.sunmi)\n\nระบบจะบังคับเปิดหน้าต่าง Print สีขาวแบบปกติแทนนะคะ (พิมพ์ช้า/ไม่เงียบ)");
+        
         let printContainer = document.getElementById("receipt-print-area");
         if (!printContainer) {
           printContainer = document.createElement("div");
