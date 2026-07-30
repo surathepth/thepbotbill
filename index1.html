@@ -3448,26 +3448,6 @@
           <h2 style="margin-top: 0; color: #2c3e50">
             🪑 เลือกโต๊ะ (Table Map)
             <button
-              onclick="
-                document.getElementById('tab-ipaq').classList.remove('active');
-                document.getElementById('tab-pos').classList.add('active');
-              "
-              style="
-                font-size: 14px;
-                padding: 5px 10px;
-                background: #34495e;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                float: right;
-                margin-left: 10px;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-              "
-            >
-              ⬅️ ออก (สำหรับผู้จัดการ)
-            </button>
-            <button
               onclick="repairDatabase()"
               style="
                 font-size: 14px;
@@ -3484,6 +3464,30 @@
               🛠️ ซ่อมฐานข้อมูล (ล้างโต๊ะค้าง)
             </button>
           </h2>
+
+          <!-- ปุ่มออก (สำหรับผู้จัดการ) -->
+          <div style="margin-bottom: 10px;">
+            <button
+              onclick="
+                document.getElementById('tab-ipaq').classList.remove('active');
+                document.getElementById('tab-pos').classList.add('active');
+              "
+              style="
+                font-size: 14px;
+                padding: 8px 15px;
+                background: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                display: inline-block;
+              "
+            >
+              ⬅️ ออก (สำหรับผู้จัดการ)
+            </button>
+          </div>
+
           <div style="margin-bottom: 15px">
             <span
               style="
