@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#3498db">
     <!-- คำสั่งป้องกันมือถือจำหน้าเว็บเก่า (Anti-Cache) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -56,6 +56,9 @@
             padding-bottom: 80px; /* เพิ่มพื้นที่ด้านล่างเพื่อไม่ให้ปุ่มลอยบัง */
             color: var(--text-main); 
             -webkit-font-smoothing: antialiased;
+            touch-action: pan-y; /* Lock zoom, allow vertical scroll only */
+            user-select: none;
+            -webkit-user-select: none;
         }
         .container { 
             max-width: 400px; 
@@ -491,10 +494,52 @@
 
 
 <div class="container">
-    <div style="text-align: right; margin-bottom: -15px;">
+    <div style="text-align: right; margin-bottom: -15px; display: flex; justify-content: flex-end; gap: 15px;">
+        <button type="button" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(e=>console.log(e));}else{document.exitFullscreen();}" style="background: none; border: none; color: #3498db; font-size: 13px; font-weight: bold; width: auto; padding: 0; cursor: pointer; text-decoration: underline;">📺 ขยายเต็มจอ</button>
         <button type="button" id="btn-edit-shop" style="background: none; border: none; color: #7f8c8d; font-size: 13px; font-weight: bold; width: auto; padding: 0; cursor: pointer; text-decoration: underline;">⚙️ ตั้งค่าร้านค้า</button>
     </div>
     <h2 id="main-shop-name">ThepAgentBill<br><span class="shop-phone">ระบบจัดการร้านค้าอัจฉริยะ</span></h2>
+
+    <!-- TEST BUTTONS -->
+    <div style="text-align:center; padding:10px; background:#f9ca24; margin:10px; border-radius:8px;">
+        <strong>ทดสอบการเจาะระบบเครื่องพิมพ์ (กรณีโดนล็อก)</strong><br><br>
+        <button onclick="testWebBluetooth()" style="padding:10px; background:#3498db; color:white; border:none; border-radius:5px; margin:5px; font-weight:bold;">1. ทดสอบ Web Bluetooth</button>
+        <button onclick="testSunmiBridge()" style="padding:10px; background:#e67e22; color:white; border:none; border-radius:5px; margin:5px; font-weight:bold;">2. ทดสอบ Sunmi Bridge</button>
+    </div>
+    <script>
+    async function testWebBluetooth() {
+        try {
+            if (!navigator.bluetooth) {
+                alert("บราวเซอร์นี้ไม่รองรับ Web Bluetooth (ต้องใช้ Chrome รุ่นใหม่ หรือมันถูกบล็อก)");
+                return;
+            }
+            alert("กำลังเปิดหน้าต่างค้นหาปริ้นเตอร์... กรุณาเลือก InnerPrinter");
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '00001101-0000-1000-8000-00805f9b34fb']
+            }).catch(e => {
+                return navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+            });
+            if(device) {
+                alert("สุดยอด! เชื่อมต่อบลูทูธได้สำเร็จ ชื่อ: " + device.name + " (สามารถเขียนโค้ดสั่งปริ้นได้!)");
+            }
+        } catch (e) {
+            alert("การเชื่อมต่อ Web Bluetooth ล้มเหลว หรือเป็นบลูทูธ SPP รุ่นเก่า: " + e.message);
+        }
+    }
+    function testSunmiBridge() {
+        if (window.sunmiInnerPrinter) {
+            alert("พบระบบ Sunmi InnerPrinter JS Bridge! (สามารถเขียนโค้ดสั่งปริ้นได้!)");
+        } else if (window.sunmi) {
+            alert("พบระบบ Sunmi JS Bridge! (สามารถเขียนโค้ดสั่งปริ้นได้!)");
+        } else if (window.Android && window.Android.printText) {
+            alert("พบระบบ Android JS Bridge! (สามารถเขียนโค้ดสั่งปริ้นได้!)");
+        } else {
+            alert("ล้มเหลว: ไม่พบ JS Bridge ใดๆ เลยในบราวเซอร์นี้");
+        }
+    }
+    </script>
+    <!-- END TEST BUTTONS -->
 
     <div class="camera-box" id="camera-container">
         <span id="camera-status">กล้องพร้อมสแกนบาร์โค้ด</span>
@@ -7122,29 +7167,25 @@ function sunmiSilentPrint(htmlContent) {
 }
 
 function fallbackIframePrint(htmlContent) {
-    let iframe = document.getElementById('print-iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
+    let printContainer = document.getElementById('print-container-main');
+    if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'print-container-main';
+        document.body.appendChild(printContainer);
+        
+        let style = document.createElement('style');
+        style.innerHTML = `@media print { body > *:not(#print-container-main) { display: none !important; } #print-container-main { display: block !important; width: 80mm; margin: 0 auto; padding: 0; text-align: center; } @page { margin: 0; size: 80mm auto; } }`;
+        document.head.appendChild(style);
     }
+    
+    printContainer.innerHTML = htmlContent;
+    
     try {
-        let baseUrl = window.location.href.split('?')[0];
-        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-        let doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write('<html><head><title>Print</title><meta charset="utf-8"><base href="' + baseUrl + '"></head><body style="margin:0; padding:10px;">');
-        doc.write(htmlContent);
-        doc.write('</body></html>');
-        doc.close();
-        iframe.contentWindow.focus();
         setTimeout(() => {
-            iframe.contentWindow.print();
+            window.print();
         }, 500);
     } catch(e) {
-        console.error("Iframe print exception:", e);
-        alert("⚠️ เกิดข้อผิดพลาดในการพิมพ์");
+        console.error("Print exception:", e);
     }
 }
 // --------------------------------
@@ -7687,6 +7728,18 @@ ipaqPayBill = function() {
             tableOrders = tableOrders.filter(o => o.tableId !== tableId);
         }
     }
+
+    // [Lilin Fix] ล้างค่า Input และคืนค่าโต๊ะว่าง เพื่อแก้หน้าจอค้างหลังรับเงิน
+    if(cashEl) cashEl.value = '';
+    if(transferEl) transferEl.value = '';
+    if(bankEl) bankEl.value = '';
+    if(crmEl) crmEl.value = '';
+    let changeDueEl = document.getElementById('ipaq-change-due');
+    if(changeDueEl) changeDueEl.innerText = '0.00';
+    
+    currentIpaqTable = null;
+    let billTitleEl = document.getElementById('ipaq-bill-title');
+    if(billTitleEl) billTitleEl.innerText = 'โต๊ะ: ยังไม่เลือก';
 
     renderIpaqTables();
     renderIpaqBill();
