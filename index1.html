@@ -3194,28 +3194,6 @@
       class="tab-content"
       style="background-color: #f4f6f8; min-height: 100vh; padding: 0"
     >
-      <button
-        onclick="
-          document.getElementById('tab-ipaq').classList.remove('active');
-          document.getElementById('tab-pos').classList.add('active');
-        "
-        style="
-          position: fixed;
-          top: 10px;
-          right: 10px;
-          z-index: 100000;
-          padding: 10px;
-          background: #e74c3c;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: bold;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-          font-size: 16px;
-        "
-      >
-        ⬅️ ออก (สำหรับผู้จัดการ)
-      </button>
       <style>
         /* ล็อกหน้าจอ IPAQ ให้เต็มจอซ่อนเมนูอื่นเสมอ */
         .tab-content.active#tab-ipaq {
@@ -3469,6 +3447,26 @@
         <div class="ipaq-left">
           <h2 style="margin-top: 0; color: #2c3e50">
             🪑 เลือกโต๊ะ (Table Map)
+            <button
+              onclick="
+                document.getElementById('tab-ipaq').classList.remove('active');
+                document.getElementById('tab-pos').classList.add('active');
+              "
+              style="
+                font-size: 14px;
+                padding: 5px 10px;
+                background: #34495e;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                float: right;
+                margin-left: 10px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+              "
+            >
+              ⬅️ ออก (สำหรับผู้จัดการ)
+            </button>
             <button
               onclick="repairDatabase()"
               style="
