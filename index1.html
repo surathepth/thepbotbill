@@ -6756,6 +6756,7 @@
               tableName = tableObj.name;
             }
           }
+          tableName = tableName.replace(/^โต๊ะ\s*/, "").replace(/^Table\s*/i, "");
 
           if (items.length === 0) {
             alert("⚠️ ไม่มีรายการสินค้าที่จะพิมพ์ค่ะ");
@@ -6766,33 +6767,6 @@
           let shopName = "My Shop";
           let shopAddress =
             "69/96 ม.9 ต.ลาดบางตี อ.เก้าเค้า<br>จ.เก้าเค้า 99999 โทร 099-999-9999";
-          // [Lilin Added] บันทึกสต๊อกที่ถูกตัดออกไป และอัปเดต Firebase ทันที
-          localStorage.setItem(
-            "thep_product_db",
-            JSON.stringify(currentProductDB),
-          );
-          localStorage.setItem(
-            "thep_stock_ledger",
-            JSON.stringify(window.stockLedger || []),
-          );
-          if (typeof database !== "undefined") {
-            const infoStr = localStorage.getItem("thep_shop_info");
-            if (infoStr) {
-              const info = JSON.parse(infoStr);
-              const shopPhone = info.phone1;
-              if (shopPhone) {
-                database
-                  .ref("erp_db_stock_ledger/" + shopPhone)
-                  .set(window.stockLedger || [])
-                  .catch((e) => console.log(e));
-                database
-                  .ref("erp_db_products/" + shopPhone)
-                  .set(currentProductDB)
-                  .catch((e) => console.log(e));
-              }
-            }
-          }
-
           const shopInfoStr = localStorage.getItem("thep_shop_info");
           if (shopInfoStr) {
             try {
@@ -6828,10 +6802,13 @@
             subtotal += parseFloat(total.replace(/,/g, "")) || 0;
 
             itemsHtml += `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px; font-size:14px;">
-                    <div style="flex:1; padding-right:5px; word-break:break-all;">${name}</div>
-                    <div style="white-space:nowrap; text-align:right;">${qty}x${price}</div>
-                </div>
+                <table style="width: 100%; text-align: left; font-size: 14px; table-layout: fixed; border-collapse: collapse; margin-bottom: 2px;">
+                    <tr>
+                        <td style="width: 53%; padding: 0; word-break: break-word; white-space: normal; vertical-align: top;">${name}</td>
+                        <td style="width: 22%; padding: 0; text-align: center; vertical-align: top; color: #555; font-size: 12px;">${qty}x${price}</td>
+                        <td style="width: 25%; padding: 0; text-align: right; vertical-align: top; font-weight: bold; font-size: 15px;">${total}</td>
+                    </tr>
+                </table>
             `;
           });
 
@@ -6881,11 +6858,12 @@
           }
 
           let printHtml = `
-        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 58mm; margin: 0 auto; box-sizing: border-box; color: #000; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px;">
+        <div id="slip-print-content" style="padding: 0; background: #fff; width: 58mm; margin: 0 auto; box-sizing: border-box; color: #000; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px;">
             <div class="print-header" style="text-align: center;">
                 <h3 style="margin:0; font-size: 20px; font-weight:bold;">${shopName}</h3>
-                <h4 style="margin:5px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบแสดงรายการอาหารและเครื่องดื่ม</h4>
-                <p style="font-size: 12px; margin-bottom: 10px;">${shopAddress}</p>
+                <p style="font-size: 12px; margin-bottom: 5px;">${shopAddress}</p>
+                <br>
+                <h4 style="margin:5px 0 10px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบแสดงรายการอาหารและเครื่องดื่ม</h4>
             </div>
             
             <div style="margin: 3px 0;">NO. ${billNum}</div>
@@ -6962,18 +6940,21 @@
                     "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
                   window.location.href = intentUrl;
                   printArea.innerHTML = "";
+                  printArea.style.display = "none";
                 })
                 .catch((e) => {
                   console.error("html2canvas error:", e);
                   window.print();
                   setTimeout(() => {
                     printArea.innerHTML = "";
+                    printArea.style.display = "none";
                   }, 3000);
                 });
             } else {
               window.print();
               setTimeout(() => {
                 printArea.innerHTML = "";
+                printArea.style.display = "none";
               }, 3000);
             }
           }, 800);
@@ -10628,8 +10609,8 @@
             }
         }
 
-        // 3. Fallback กลับมาใช้ระบบมาตรฐาน (เบราว์เซอร์ปกติ เช่น ES Explorer ที่ไม่มี Bridge)
-        alert("⚠️ แจ้งเตือนจากลิลิน:\nแอป ES Explorer บล็อกการเชื่อมต่อเครื่องพิมพ์ค่ะ (ไม่พบ window.sunmi)\n\nระบบจะบังคับเปิดหน้าต่าง Print สีขาวแบบปกติแทนนะคะ (พิมพ์ช้า/ไม่เงียบ)");
+        // 3. Fallback กลับมาใช้ระบบมาตรฐาน (เบราว์เซอร์ปกติ หรือ ES Explorer ที่ไม่มี Bridge)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         let printContainer = document.getElementById("receipt-print-area");
         if (!printContainer) {
@@ -10637,14 +10618,38 @@
           printContainer.id = "receipt-print-area";
           document.body.appendChild(printContainer);
         }
-        printContainer.innerHTML = htmlContent;
-        try {
-          setTimeout(() => {
-            window.print(); // นี่คือตัวที่ทำให้ช้าและอาจเด้งหน้าต่าง
-          }, 500);
-        } catch (e) {
-          console.error("Print exception:", e);
-        }
+        
+        // ห่อหุ้มด้วย div id="slip-print-content-sunmi" เพื่อให้ html2canvas จับภาพได้ง่ายและมีพื้นหลังสีขาว
+        printContainer.innerHTML = `<div id="slip-print-content-sunmi" style="padding: 10px; background: #fff; width: 58mm; margin: 0 auto; box-sizing: border-box; color: #000;">${htmlContent}</div>`;
+        printContainer.style.display = "block";
+
+        setTimeout(() => {
+          if (isMobile && typeof html2canvas !== "undefined") {
+            const content = document.getElementById("slip-print-content-sunmi");
+            html2canvas(content, { scale: 1, useCORS: true })
+              .then((canvas) => {
+                const base64Image = canvas.toDataURL("image/jpeg", 0.6);
+                const intentUrl = "intent:" + base64Image + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+                window.location.href = intentUrl;
+                printContainer.innerHTML = "";
+                printContainer.style.display = "none";
+              })
+              .catch((e) => {
+                console.error("html2canvas error:", e);
+                window.print();
+                setTimeout(() => {
+                  printContainer.innerHTML = "";
+                  printContainer.style.display = "none";
+                }, 3000);
+              });
+          } else {
+            window.print();
+            setTimeout(() => {
+              printContainer.innerHTML = "";
+              printContainer.style.display = "none";
+            }, 3000);
+          }
+        }, 800);
       }
 
       function fallbackIframePrint(htmlContent) {
@@ -10733,21 +10738,44 @@
 
       // Override printReceipt to add 3 columns and use the billData.billNumber
       function printReceipt(billData) {
+        let shopName = document.getElementById("slip-shop-name") ? document.getElementById("slip-shop-name").innerText : "ThepAgentBill";
+        let shopAddress = document.getElementById("slip-shop-address") ? document.getElementById("slip-shop-address").innerHTML : "";
+        let staffName = "ไม่ระบุ";
+        if (typeof currentUser !== 'undefined' && currentUser && currentUser.name) {
+            staffName = currentUser.name;
+        }
+        let queueNo = billData.queueNo || (document.getElementById("queue-no") ? document.getElementById("queue-no").value : "") || "-";
+        let tableName = queueNo;
+        if (queueNo && queueNo !== "-" && window.erpData && window.erpData["table"]) {
+            const tableObj = window.erpData["table"][queueNo];
+            if (tableObj && tableObj.name) {
+                tableName = tableObj.name;
+            }
+        }
+        tableName = tableName.replace(/^โต๊ะ\s*/, "").replace(/^Table\s*/i, "");
+
         let receiptHtml = `
-        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 58mm; margin: 0 auto;">
-            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
-            <div style="margin: 5px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบเสร็จรับเงิน</div>
+        <div style="padding: 0; background: #fff; width: 58mm; margin: 0 auto; box-sizing: border-box; color: #000; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px;">
+            <div class="print-header" style="text-align: center;">
+                <h3 style="margin:0; font-size: 20px; font-weight:bold;">${shopName}</h3>
+                <p style="font-size: 12px; margin-bottom: 5px;">${shopAddress}</p>
+                <br>
+                <h4 style="margin:5px 0 10px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบเสร็จรับเงิน</h4>
+            </div>
+            
             <div style="margin: 3px 0;">NO. ${billData.billNumber}</div>
             <div style="margin: 3px 0;">วันที่: ${new Date().toLocaleString("th-TH")}</div>
+            <div style="margin: 3px 0;">พนักงาน: ${staffName}</div>
+            <div style="margin: 3px 0; font-size: 18px; font-weight: bold;">โต๊ะ: ${tableName}</div>
             <hr style="border-top: 1px dashed black;">
             <table style="width: 100%; text-align: left; font-size: 14px; table-layout: fixed;">
                 ${billData.items
                   .map(
                     (item) => `
                     <tr>
-                        <td style="width: 55%; padding: 2px 0; word-break: break-word; white-space: normal; vertical-align: top;">${item.productName || item.name || "ไม่มีชื่อสินค้า"}</td>
-                        <td style="width: 20%; text-align: center; padding: 2px 0; vertical-align: top;">${item.qty}x${item.price}</td>
-                        <td style="width: 25%; text-align: right; padding: 2px 0; vertical-align: top;">${(item.qty * item.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                        <td style="width: 53%; padding: 2px 0; word-break: break-word; white-space: normal; vertical-align: top;">${item.productName || item.name || "ไม่มีชื่อสินค้า"}</td>
+                        <td style="width: 22%; text-align: center; padding: 2px 0; vertical-align: top; color: #555; font-size: 12px;">${item.qty}x${item.price}</td>
+                        <td style="width: 25%; text-align: right; padding: 2px 0; vertical-align: top; font-weight: bold; font-size: 15px;">${(item.qty * item.price).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
                     </tr>
                 `,
                   )
@@ -10770,7 +10798,7 @@
             </table>
             <hr style="border-top: 1px dashed black;">
             ${billData.transferInput > 0 && billData.cashInput === 0 ? '<div style="margin-top: 10px; font-weight:bold;">สแกนจ่ายด้วยพร้อมเพย์</div>' : ""}
-            <div style="margin-top: 20px;">ขอบคุณที่ใช้บริการค่ะ</div>
+            <div style="margin-top: 20px; text-align: center;">ขอบคุณที่ใช้บริการค่ะ</div>
         </div>
     `;
         sunmiSilentPrint(receiptHtml);
