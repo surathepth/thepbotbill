@@ -2194,7 +2194,7 @@
           🖼️ บันทึกภาพสลิปส่งให้ลูกค้า
         </button>
         <button type="button" class="btn-print" id="btn-print">
-          🖨️ พิมพ์สลิป (Mobile Printer 80mm)
+          🖨️ พิมพ์สลิปโมบาย 58 มม.
         </button>
 
         <div id="bank-slip-template">
@@ -6828,10 +6828,9 @@
             subtotal += parseFloat(total.replace(/,/g, "")) || 0;
 
             itemsHtml += `
-                <div class="print-item-name">${name}</div>
-                <div class="print-item-calc">
-                    <span style="font-size: 22px; font-weight: bold;">&nbsp;&nbsp;${qty} x ${price}</span>
-                    <span style="font-size: 22px; font-weight: bold;">${total}</span>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px; font-size:14px;">
+                    <div style="flex:1; padding-right:5px; word-break:break-all;">${name}</div>
+                    <div style="white-space:nowrap; text-align:right;">${qty}x${price}</div>
                 </div>
             `;
           });
@@ -6882,45 +6881,45 @@
           }
 
           let printHtml = `
-        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 100%; max-width: 576px; box-sizing: border-box; color: #000; font-family: 'Segoe UI', Tahoma, sans-serif;">
-            <div class="print-header">
-                <h3>${shopName}</h3>
-                <h4 style="margin:5px 0;">ใบเสร็จรับเงิน</h4>
-                <p>${shopAddress}</p>
+        <div id="slip-print-content" style="padding: 10px; background: #fff; width: 58mm; margin: 0 auto; box-sizing: border-box; color: #000; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px;">
+            <div class="print-header" style="text-align: center;">
+                <h3 style="margin:0; font-size: 20px; font-weight:bold;">${shopName}</h3>
+                <h4 style="margin:5px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบแสดงรายการอาหารและเครื่องดื่ม</h4>
+                <p style="font-size: 12px; margin-bottom: 10px;">${shopAddress}</p>
             </div>
             
-            <div class="print-detail-row"><span>เลขที่บิล:</span><strong>${billNum}</strong></div>
-            <div class="print-detail-row"><span>วันที่:</span><span>${new Date().toLocaleString("th-TH")}</span></div>
-            <div class="print-detail-row"><span>พนักงาน:</span><strong>${staffName}</strong></div>
-            <div class="print-detail-row"><span>โต๊ะ:</span><strong style="font-size: 32px; font-weight: 900; line-height: 1;">${tableName}</strong></div>
-            
-            <div class="print-items-title">รายการสินค้า</div>
+            <div style="margin: 3px 0;">NO. ${billNum}</div>
+            <div style="margin: 3px 0;">วันที่: ${new Date().toLocaleString("th-TH")}</div>
+            <div style="margin: 3px 0;">พนักงาน: ${staffName}</div>
+            <div style="margin: 3px 0; font-size: 18px; font-weight: bold;">โต๊ะ: ${tableName}</div>
+            <hr style="border-top: 1px dashed black;">
+            <div style="font-weight:bold; margin-bottom: 5px;">รายการสินค้า</div>
             <div>
                 ${itemsHtml}
             </div>
-            
+            <hr style="border-top: 1px dashed black;">
             <div class="print-total-section">
                 ${discountHtml}
-                <div class="print-detail-row" style="font-weight: bold; font-size: 28px;">
-                    <span>ยอดรวมทั้งสิ้น:</span>
-                    <span>${fmt(grandTotal, true)} บาท</span>
+                <div style="display:flex; justify-content:space-between; font-weight: bold; font-size: 18px;">
+                    <span>ยอดรวมทั้งสิ้น</span>
+                    <span>${fmt(grandTotal, true)}</span>
                 </div>
-                <div class="print-detail-row" style="font-size: 18px;">
-                    <span>รับเงินมา:</span>
-                    <span>${fmt(cashInput, true)} บาท</span>
+                <div style="display:flex; justify-content:space-between; font-size: 14px; margin-top: 3px;">
+                    <span>รับเงินมา</span>
+                    <span>${fmt(cashInput, true)}</span>
                 </div>
-                <div class="print-detail-row" style="font-weight: bold; font-size: 18px; color: red;">
-                    <span>เงินทอน:</span>
-                    <span>${fmt(changeDue, true)} บาท</span>
+                <div style="display:flex; justify-content:space-between; font-weight: bold; font-size: 14px; color: red; margin-top: 3px;">
+                    <span>เงินทอน</span>
+                    <span>${fmt(changeDue, true)}</span>
                 </div>
             </div>
             
             ${crmHtml}
             
-            <div class="print-footer" style="margin-top: 40px;">
-                <div style="margin-bottom: 15px; border-top: 1px dashed #000; padding-top: 15px;">
+            <div class="print-footer" style="margin-top: 20px; text-align: center;">
+                <div style="margin-bottom: 10px; border-top: 1px dashed #000; padding-top: 10px;">
                     <!-- เปลี่ยนมาดึงภาพจากโฟลเดอร์หลักชื่อ 10001_bank.png และลบ onerror ออกเพื่อป้องกันบราวเซอร์ซ่อนภาพ -->
-                    <img src="10001_bank.png" alt="QR Code Payment" style="width: 280px; max-width: 100%; height: auto; object-fit: contain;"><br>
+                    <img src="10001_bank.png" alt="QR Code Payment" style="width: 200px; max-width: 100%; height: auto; object-fit: contain;"><br>
                     <!-- โค้ดเดิมที่มีปัญหาเรื่องโฟลเดอร์ภาษาไทย ซ่อนไว้ตามกฎห้ามลบ -->
                     <!-- 
                     <img src="QRCODE-ธนาคาร/1/10001.png" alt="QR Code Payment" style="width: 280px; max-width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'"><br>
@@ -6977,7 +6976,7 @@
                 printArea.innerHTML = "";
               }, 3000);
             }
-          }, 300);
+          }, 800);
         });
 
       // --- ระบบร้านค้า (Shop Info) ---
@@ -10735,13 +10734,13 @@
       // Override printReceipt to add 3 columns and use the billData.billNumber
       function printReceipt(billData) {
         let receiptHtml = `
-        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 18px; width: 80mm; margin: 0 auto;">
-            <h2 style="margin: 0; font-size: 26px; font-weight:bold;">ThepAgentBill</h2>
-            <div style="margin: 5px 0; font-size: 20px; font-weight: bold; white-space: nowrap;">ใบเสร็จรับเงิน</div>
-            <div style="margin: 5px 0;">NO. ${billData.billNumber}</div>
-            <div style="margin: 5px 0;">วันที่: ${new Date().toLocaleString("th-TH")}</div>
+        <div style="text-align: center; font-family: 'Sarabun', 'Courier New', monospace; font-size: 14px; width: 58mm; margin: 0 auto;">
+            <h2 style="margin: 0; font-size: 20px; font-weight:bold;">ThepAgentBill</h2>
+            <div style="margin: 5px 0; font-size: 16px; font-weight: bold; white-space: nowrap;">ใบเสร็จรับเงิน</div>
+            <div style="margin: 3px 0;">NO. ${billData.billNumber}</div>
+            <div style="margin: 3px 0;">วันที่: ${new Date().toLocaleString("th-TH")}</div>
             <hr style="border-top: 1px dashed black;">
-            <table style="width: 100%; text-align: left; font-size: 16px; table-layout: fixed;">
+            <table style="width: 100%; text-align: left; font-size: 14px; table-layout: fixed;">
                 ${billData.items
                   .map(
                     (item) => `
