@@ -5638,10 +5638,12 @@
         if (!saved) return;
         try {
           const state = JSON.parse(saved);
-          if (state.items && state.items.length > 0) {
+          if (state.items && Object.keys(state.items).length > 0) {
             document.getElementById("bill-items").innerHTML = "";
-            state.items.forEach((item) => {
-              addEmptyRow(item.name, item.price, item.qty);
+            let itemsArr = Array.isArray(state.items) ? state.items : Object.values(state.items || {});
+            itemsArr.forEach((item) => {
+              let iName = item.productName || item.name || "ไม่มีชื่อสินค้า";
+              addEmptyRow(iName, item.price, item.qty);
             });
           }
           document.getElementById("queue-no").value = state.queueNo || "";
@@ -5814,8 +5816,10 @@
         if (!bill) return;
 
         document.getElementById("bill-items").innerHTML = "";
-        bill.items.forEach((item) => {
-          addEmptyRow(item.name, item.price, item.qty);
+        let itemsArr = Array.isArray(bill.items) ? bill.items : Object.values(bill.items || {});
+        itemsArr.forEach((item) => {
+          let iName = item.productName || item.name || "ไม่มีชื่อสินค้า";
+          addEmptyRow(iName, item.price, item.qty);
         });
 
         document.getElementById("queue-no").value = bill.queueNo;
@@ -5843,16 +5847,18 @@
         let totalQty = 0;
 
         let totalAmount = 0;
-        bill.items.forEach((item, index) => {
-          let qty = Number(item.qty);
-          let price = Number(item.price);
+        let itemsArr = Array.isArray(bill.items) ? bill.items : Object.values(bill.items || {});
+        itemsArr.forEach((item, index) => {
+          let qty = Number(item.qty) || 1;
+          let price = Number(item.price) || 0;
           let itemTotal = qty * price;
           totalQty += qty;
           totalAmount += itemTotal;
+          let iName = item.productName || item.name || "ไม่มีชื่อสินค้า";
           bodyHtml += `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 10px 0;">
                 <div style="flex: 1;">
-                    <div style="font-weight:bold; color:#2c3e50; font-size:15px;">${index + 1}. ${item.productName}</div>
+                    <div style="font-weight:bold; color:#2c3e50; font-size:15px;">${index + 1}. ${iName}</div>
                     <div style="font-size:13px; color:#7f8c8d; margin-top:4px;">
                         ${qty} x ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
                     </div>
@@ -5863,7 +5869,7 @@
             </div>`;
         });
 
-        if (bill.items.length > 0) {
+        if (itemsArr.length > 0) {
           bodyHtml += `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0 5px 0; margin-top: 10px; border-top: 2px solid #ccc; font-weight: bold; font-size: 18px;">
                 <span>ยอดรวมทั้งสิ้น:</span>
@@ -8200,7 +8206,8 @@
                 // Mark items as printed
                 order.hasNewItems = false;
                 if (order.items) {
-                  order.items.forEach((i) => (i.isNewItem = false));
+                  let itemsArr = Array.isArray(order.items) ? order.items : Object.values(order.items || {});
+                  itemsArr.forEach((i) => (i.isNewItem = false));
                 }
                 updates[tableKey] = order;
                 shouldUpdate = true;
@@ -8245,7 +8252,8 @@
         if (!billData.items) return;
 
         // Filter only new items that haven't been printed yet
-        let newItems = billData.items.filter((item) => item.isNewItem === true);
+        let itemsArr = Array.isArray(billData.items) ? billData.items : Object.values(billData.items || {});
+        let newItems = itemsArr.filter((item) => item.isNewItem === true);
         if (newItems.length === 0) return;
 
         let itemsHtml = "";
@@ -11320,7 +11328,7 @@
             let order = data[tableKey];
 
             // Sync all items
-            if (order.items && order.items.length > 0) {
+            if (order.items && Object.keys(order.items).length > 0) {
               // --- 1. Robust Table ID Mapping ---
               let resolvedTableId = tableKey;
               if (typeof tables !== "undefined") {
@@ -11363,13 +11371,14 @@
               }
 
               // --- 2. Rebuild Items for IPAQ ---
-              order.items.forEach((item, index) => {
+              let itemsArr = Array.isArray(order.items) ? order.items : Object.values(order.items || {});
+              itemsArr.forEach((item, index) => {
                 if (typeof tableOrders !== "undefined") {
                   let ipaqOrder = {
                     id: "O_SYNC_" + tableKey + "_" + index,
                     tableId: resolvedTableId,
                     productId: item.id || "SYNC", // สำคัญ: ดึง id เดิมกลับมา
-                    productName: item.name,
+                    productName: item.productName || item.name || "ไม่มีชื่อสินค้า",
                     qty: Number(item.qty) || 1,
                     price: Number(item.price) || 0,
                     isPaid: false,
