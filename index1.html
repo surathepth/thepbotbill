@@ -1110,6 +1110,28 @@
         <span style="font-size: 18px">🎛️</span>
         ระบบรับออเดอร์ (QR Code) หลัก:
       </div>
+      <div style="display: flex; gap: 10px;">
+        <!-- [LILIN UPDATE: 2026-07-31] สวิตช์เลือกโหมดอุปกรณ์ -->
+        <select
+          id="device-mode-switcher"
+          onchange="applyDeviceMode(this.value)"
+          style="
+            padding: 8px 12px;
+            font-family: &quot;Prompt&quot;, sans-serif;
+            font-weight: bold;
+            border-radius: 6px;
+            border: 2px solid #2980b9;
+            background: white;
+            color: #2980b9;
+            cursor: pointer;
+            font-size: 14px;
+          "
+        >
+          <option value="both">🖥️📱 ทำได้ทุกระบบ (ค่าเริ่มต้น)</option>
+          <option value="master">🖥️ โหมด Sunmi (ซ่อนคิดเงิน/พิมพ์)</option>
+          <option value="cashier">📱 โหมดมือถือ (ซ่อนหน้ารายงาน)</option>
+        </select>
+
       <select
         id="master-pos-switcher"
         onchange="changeMasterPos(this.value)"
@@ -1129,6 +1151,7 @@
         <option value="pos">🛒 ใช้ POS เก่า (ล็อค IPAQ)</option>
         <option value="ipaq">📱 ใช้ POS ใหม่ IPAQ (ล็อค POS เก่า)</option>
       </select>
+      </div>
     </div>
 
     <!-- ERP Navigation -->
@@ -11876,6 +11899,49 @@
           console.error("[IPAQ Global Rescue] Error:", e);
         }
       }, 3000); // Wait 3 seconds to ensure Firebase is connected
+
+      // ============================================================
+      // [LILIN UPDATE: 2026-07-31] DISTRIBUTED POS MODE SWITCHER
+      // ============================================================
+      function applyDeviceMode(mode) {
+        localStorage.setItem("deviceMode", mode);
+        document.body.classList.remove("master-mode", "cashier-mode");
+        if (mode === "master") {
+          document.body.classList.add("master-mode");
+        } else if (mode === "cashier") {
+          document.body.classList.add("cashier-mode");
+        }
+        console.log(`[Device Mode] Applied: ${mode}`);
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        // Inject CSS for modes
+        const style = document.createElement("style");
+        style.innerHTML = `
+          /* โหมด Master (Sunmi T2): ซ่อนปุ่มคิดเงินและปุ่มพิมพ์ */
+          body.master-mode #btn-pay,
+          body.master-mode #btn-print,
+          body.master-mode .btn-pay-bill,
+          body.master-mode .btn-print-bill {
+            display: none !important;
+          }
+          
+          /* โหมด Cashier (Mobile): ซ่อนปุ่มรายงานทั้งหมด */
+          body.cashier-mode button[data-perm="report"],
+          body.cashier-mode #btn-show-staff-report {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(style);
+
+        // Load saved mode
+        const savedMode = localStorage.getItem("deviceMode") || "both";
+        const modeSelect = document.getElementById("device-mode-switcher");
+        if (modeSelect) {
+          modeSelect.value = savedMode;
+        }
+        applyDeviceMode(savedMode);
+      });
       // --- END IPAQ DATA PERSISTENCE PATCH ---
     </script>
   </body>
