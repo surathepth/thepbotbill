@@ -11904,7 +11904,11 @@
       // [LILIN UPDATE: 2026-07-31] DISTRIBUTED POS MODE SWITCHER
       // ============================================================
       function applyDeviceMode(mode) {
-        localStorage.setItem("deviceMode", mode);
+        try {
+          localStorage.setItem("deviceMode", mode);
+        } catch (e) {
+          console.warn("[Device Mode] LocalStorage restricted on this device:", e);
+        }
         document.body.classList.remove("master-mode", "cashier-mode");
         if (mode === "master") {
           document.body.classList.add("master-mode");
@@ -11914,34 +11918,36 @@
         console.log(`[Device Mode] Applied: ${mode}`);
       }
 
-      window.addEventListener("DOMContentLoaded", () => {
-        // Inject CSS for modes
-        const style = document.createElement("style");
-        style.innerHTML = `
-          /* โหมด Master (Sunmi T2): ซ่อนปุ่มคิดเงินและปุ่มพิมพ์ */
-          body.master-mode #btn-pay,
-          body.master-mode #btn-print,
-          body.master-mode .btn-pay-bill,
-          body.master-mode .btn-print-bill {
-            display: none !important;
-          }
-          
-          /* โหมด Cashier (Mobile): ซ่อนปุ่มรายงานทั้งหมด */
-          body.cashier-mode button[data-perm="report"],
-          body.cashier-mode #btn-show-staff-report {
-            display: none !important;
-          }
-        `;
-        document.head.appendChild(style);
+      // Inject CSS for modes immediately (DOM is already parsed since script is at the bottom)
+      const style = document.createElement("style");
+      style.innerHTML = `
+        /* โหมด Master (Sunmi T2): ซ่อนปุ่มคิดเงินและปุ่มพิมพ์ */
+        body.master-mode #btn-pay,
+        body.master-mode #btn-print,
+        body.master-mode .btn-pay-bill,
+        body.master-mode .btn-print-bill {
+          display: none !important;
+        }
+        
+        /* โหมด Cashier (Mobile): ซ่อนปุ่มรายงานทั้งหมด */
+        body.cashier-mode button[data-perm="report"],
+        body.cashier-mode #btn-show-staff-report {
+          display: none !important;
+        }
+      `;
+      document.head.appendChild(style);
 
-        // Load saved mode
+      // Load saved mode immediately
+      try {
         const savedMode = localStorage.getItem("deviceMode") || "both";
         const modeSelect = document.getElementById("device-mode-switcher");
         if (modeSelect) {
           modeSelect.value = savedMode;
         }
         applyDeviceMode(savedMode);
-      });
+      } catch (e) {
+        console.error("Error loading device mode:", e);
+      }
       // --- END IPAQ DATA PERSISTENCE PATCH ---
     </script>
   </body>
