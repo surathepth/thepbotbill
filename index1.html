@@ -6680,6 +6680,23 @@
           }
 
           // [Lilin Added] ตัดสต๊อกอัตโนมัติและเก็บบันทึกลง Stock Ledger (Inventory)
+          if (!barcodeToUse) {
+            barcodeToUse = "NEW_OUT_" + Date.now() + Math.floor(Math.random() * 1000);
+            currentProductDB[barcodeToUse] = {
+              barcode: barcodeToUse,
+              name: pName,
+              category: "ทั่วไป",
+              price: pPrice,
+              cost: 0,
+              stock: 0,
+              commissionType: "none",
+              commissionValue: 0
+            };
+            if (typeof database !== "undefined" && window.shopPhone) {
+              database.ref("erp_db_products/" + window.shopPhone + "/" + barcodeToUse).update(currentProductDB[barcodeToUse]);
+            }
+          }
+
           if (barcodeToUse) {
             const prod = currentProductDB[barcodeToUse];
             const currentStock = parseFloat(prod.stock) || 0;
@@ -6761,6 +6778,9 @@
             .set(firebaseSaleData)
             .catch((err) => console.error("Firebase Sync Error:", err));
         }
+
+        // [Lilin Added] บังคับบันทึกข้อมูลการหักลบสต๊อกลงฐานข้อมูลถาวร (Firebase & LocalStorage) ทันทีที่จบบิลขาย
+        saveStockLedger();
 
         if (!WEB_APP_URL) {
           // 🔹 Local Standalone: บันทึกยอดลงหน้าต่างแอดมิน
@@ -8663,6 +8683,10 @@
           "thep_stock_ledger",
           JSON.stringify(window.stockLedger),
         );
+        localStorage.setItem(
+          "thep_product_db",
+          JSON.stringify(window.productDB),
+        );
         if (typeof database !== "undefined") {
           const infoStr = localStorage.getItem("thep_shop_info");
           if (infoStr) {
@@ -8868,10 +8892,20 @@
 
         document.getElementById("inv-mode-" + mode).style.display = "block";
 
-        if (mode === "receive_bill") {
-          let invDate = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
-          document.getElementById("bill-date").value = `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, "0")}-${String(invDate.getDate()).padStart(2, "0")}`;
+        let invDate = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
+        let dateStr = `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, "0")}-${String(invDate.getDate()).padStart(2, "0")}`;
+        let localTimeStr = typeof getLocalISOString === 'function' ? getLocalISOString(invDate).slice(0, 16) : dateStr + "T00:00";
+
+        if (mode === "manage_db") {
+          let createdInput = document.getElementById("prod-created");
+          if (createdInput && !createdInput.value) createdInput.value = localTimeStr;
+        } else if (mode === "receive_bill") {
+          document.getElementById("bill-date").value = dateStr;
         } else if (mode === "report_stock") {
+          let startDateInput = document.getElementById("inv-start-date-new");
+          let endDateInput = document.getElementById("inv-end-date-new");
+          if (startDateInput && !startDateInput.value) startDateInput.value = dateStr;
+          if (endDateInput && !endDateInput.value) endDateInput.value = dateStr;
           generateInventoryReport();
         }
       }
@@ -8915,8 +8949,24 @@
         }
 
         if (!barcodeToUse) {
-          alert("⚠️ ไม่พบสินค้าในระบบ กรุณาตรวจสอบชื่อหรือบาร์โค้ด");
-          return;
+          if (confirm("⚠️ ไม่พบสินค้า '" + searchVal + "' ในระบบ ต้องการสร้างใหม่เพื่อปรับลบสต๊อกทันทีหรือไม่?")) {
+            barcodeToUse = "NEW_ADJ_" + Date.now() + Math.floor(Math.random() * 1000);
+            window.productDB[barcodeToUse] = {
+              barcode: barcodeToUse,
+              name: searchVal,
+              category: "ทั่วไป",
+              price: 0,
+              cost: 0,
+              stock: 0,
+              commissionType: "none",
+              commissionValue: 0
+            };
+            if (typeof database !== "undefined" && window.shopPhone) {
+              database.ref("erp_db_products/" + window.shopPhone + "/" + barcodeToUse).update(window.productDB[barcodeToUse]);
+            }
+          } else {
+            return;
+          }
         }
 
         const prod = window.productDB[barcodeToUse];
