@@ -46,6 +46,21 @@
       rel="stylesheet"
     />
 
+    <!-- Polyfill: padStart สำหรับเครื่อง Sunmi T2 (Android 7.1.1 / Chrome 53) ที่ไม่รู้จักคำสั่งนี้ -->
+    <script>
+      if (!String.prototype.padStart) {
+        String.prototype.padStart = function(targetLength, padString) {
+          targetLength = targetLength >> 0;
+          padString = String(typeof padString !== 'undefined' ? padString : ' ');
+          if (this.length >= targetLength) { return String(this); }
+          var padding = '';
+          var needed = targetLength - this.length;
+          while (padding.length < needed) { padding = padding + padString; }
+          return padding.slice(0, needed) + String(this);
+        };
+      }
+    </script>
+
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -3100,7 +3115,7 @@
             // Sort by total descending
             let sortedArray = Object.keys(summary)
               .map((key) => {
-                return { name: key, ...summary[key] };
+                return Object.assign({ name: key }, summary[key]);
               })
               .sort((a, b) => b.total - a.total);
 
@@ -6260,7 +6275,7 @@
               }
             }
 
-            let rowFormattedDate = `${rY}-${String(rM).padStart(2, "0")}-${String(rD).padStart(2, "0")}`;
+            let rowFormattedDate = `${rY}-${('0' + String(rM)).slice(-2)}-${('0' + String(rD)).slice(-2)}`;
             if (rowFormattedDate !== filterDate) return;
           }
 
@@ -7272,7 +7287,7 @@
             hash = hash & hash;
           }
           let pin = Math.abs(hash * 666999345) % 1000000;
-          const secretKey = pin.toString().padStart(6, "0");
+          const secretKey = ('000000' + pin.toString()).slice(-6);
 
           if (keyInput === secretKey) {
             localStorage.setItem("thep_is_vip", "true");
@@ -8105,6 +8120,24 @@
                 }
               });
           }
+          // [Lilin Additive 2026-08-02] เพิ่มเส้นทาง Global (ถนนใหม่) ให้ทุกเครื่องดึงสต๊อกได้โดยไม่ต้องพึ่ง shopPhone
+          if (typeof database !== "undefined") {
+            database.ref("erp_db_stock_ledger_global").on("value", function(snapshot) {
+              window.stockLedger = snapshot.val() || [];
+              localStorage.setItem("thep_stock_ledger", JSON.stringify(window.stockLedger));
+              var tabInv = document.getElementById("tab-inventory");
+              if (tabInv && tabInv.classList.contains("active")) {
+                if (typeof generateInventoryReport === "function") generateInventoryReport();
+              }
+            });
+            database.ref("erp_db_products_global").on("value", function(snapshot) {
+              window.productDB = snapshot.val() || {};
+              var tabInv = document.getElementById("tab-inventory");
+              if (tabInv && tabInv.classList.contains("active")) {
+                if (typeof generateInventoryReport === "function") generateInventoryReport();
+              }
+            });
+          }
           return;
         }
 
@@ -8283,6 +8316,7 @@
         loadDB("product");
         loadDB("employee");
         loadDB("customer"); // To support CRM logic
+        loadDB("inventory"); // [Lilin Additive 2026-08-02] โหลดสต๊อกตั้งแต่เปิดหน้า เพื่อให้ Global sync พร้อมใช้ทันที
 
         // Listen for Held Bills (Orders) from Network
         if (typeof database !== "undefined") {
@@ -8707,6 +8741,15 @@
                 .catch((e) => console.log("Firebase product error", e));
             }
           }
+          // [Lilin Additive 2026-08-02] เพิ่มเส้นทาง Global (ถนนใหม่) เพื่อให้เครื่อง T2 และทุกอุปกรณ์เข้าถึงได้โดยไม่ต้องพึ่ง shopPhone
+          database
+            .ref("erp_db_stock_ledger_global")
+            .set(window.stockLedger)
+            .catch(function(e) { console.log("Firebase global ledger error", e); });
+          database
+            .ref("erp_db_products_global")
+            .set(window.productDB)
+            .catch(function(e) { console.log("Firebase global product error", e); });
         }
       }
 
@@ -9820,7 +9863,7 @@
           tableId: currentIpaqTable.id,
           tableName: currentIpaqTable.name,
           totalAmount: total,
-          items: tOrders.map((o) => ({ ...o })),
+          items: tOrders.map((o) => (Object.assign({}, o))),
           timestamp: getLocalISOString(new Date()),
         };
         sales.push(saleRecord);
@@ -10373,7 +10416,7 @@
           transferAmount: transfer,
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
-          items: tOrders.map((o) => ({ ...o })),
+          items: tOrders.map((o) => (Object.assign({}, o))),
           timestamp: getLocalISOString(getBusinessDate()),
         };
         sales.push(saleRecord);
@@ -10869,7 +10912,7 @@
           thYear;
         let seq = parseInt(localStorage.getItem("bill_seq_" + dStr) || "0") + 1;
         localStorage.setItem("bill_seq_" + dStr, seq);
-        return dStr + "-" + String(seq).padStart(5, "0");
+        return dStr + "-" + ('00000' + String(seq)).slice(-5);
       }
 
       // Override ipaqPrintBill
@@ -11052,7 +11095,7 @@
           transferAmount: transfer,
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
-          items: tOrders.map((o) => ({ ...o })),
+          items: tOrders.map((o) => (Object.assign({}, o))),
           timestamp: getLocalISOString(new Date()),
         };
         sales.push(saleRecord);
@@ -11476,7 +11519,7 @@
           transferAmount: transfer,
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
-          items: tOrders.map((o) => ({ ...o })),
+          items: tOrders.map((o) => (Object.assign({}, o))),
           timestamp: getLocalISOString(now),
         };
         if (typeof sales !== "undefined" && Array.isArray(sales)) {
