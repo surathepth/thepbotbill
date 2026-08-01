@@ -3607,6 +3607,25 @@
                 ⬅️ ออก (สำหรับผู้จัดการ)
               </button>
               <button
+                onclick="
+                  document.getElementById('tab-ipaq').classList.remove('active');
+                  document.getElementById('tab-reports').classList.add('active');
+                "
+                style="
+                  font-size: 12px;
+                  padding: 5px 10px;
+                  background: #27ae60;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                  white-space: nowrap;
+                "
+              >
+                📊 รายงาน
+              </button>
+              <button
                 onclick="repairDatabase()"
                 style="
                   font-size: 12px;
@@ -11413,11 +11432,15 @@
           o.isPaid = true;
         });
 
-        // Save stock ledger array back to localStorage
-        localStorage.setItem(
-          "thep_stock_ledger",
-          JSON.stringify(window.stockLedger || []),
-        );
+        // [Lilin Fixed] Save stock and stock ledger to Firebase and localStorage
+        if (typeof saveStockLedger === "function") {
+          saveStockLedger();
+        } else {
+          localStorage.setItem(
+            "thep_stock_ledger",
+            JSON.stringify(window.stockLedger || []),
+          );
+        }
 
         // 3. Prepare Common Data
         const now = getBusinessDate();
