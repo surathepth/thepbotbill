@@ -7302,7 +7302,7 @@
           const staffSet = new Set();
           localSales.forEach((row) => {
             const staffName =
-              row[5] || row[4].match(/พนักงาน:\s(.*?)\s\|/)?.[1] || "ไม่ระบุ";
+              row[5] || (row[4].match(/พนักงาน:\s(.*?)\s\|/) || [])[1] || "ไม่ระบุ";
             staffSet.add(staffName);
           });
 
@@ -7352,7 +7352,7 @@
           if (filterDate && rDate !== filterDate) return;
 
           const rStaff =
-            row[5] || row[4].match(/พนักงาน:\s(.*?)\s\|/)?.[1] || "ไม่ระบุ";
+            row[5] || (row[4].match(/พนักงาน:\s(.*?)\s\|/) || [])[1] || "ไม่ระบุ";
           if (filterStaff && rStaff !== filterStaff) return;
 
           totalSales += parseFloat(row[1].toString().replace(/,/g, "")) || 0;
