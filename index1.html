@@ -1424,6 +1424,19 @@
                 placeholder="เช่น 098-xxx-xxxx 094-xxx-xxxx"
               />
             </div>
+            <div class="modal-input-group">
+              <label>เวลาตัดรอบวันปิดร้าน (0-23):</label>
+              <input
+                type="number"
+                id="setup-cutoff-hour"
+                placeholder="เช่น 0 = เที่ยงคืน, 5 = ตี 5"
+                min="0"
+                max="23"
+              />
+              <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">
+                * ถ้าร้านปิดข้ามคืน เช่น ปิดตี 5 ให้ใส่เลข 5 ระบบจะนับบิลที่สร้างก่อน 05:00 น. เป็นยอดขายของเมื่อวาน
+              </div>
+            </div>
             <button
               type="button"
               class="modal-btn-save"
@@ -2858,7 +2871,8 @@
       <script>
         // กำหนดวันที่เริ่มต้นให้เป็นวันนี้
         document.addEventListener("DOMContentLoaded", () => {
-          const today = new Date().toISOString().split("T")[0];
+          let now = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
           const startInput = document.getElementById("report-start-date");
           const endInput = document.getElementById("report-end-date");
           if (startInput && endInput) {
@@ -2867,20 +2881,94 @@
           }
         });
 
+        // 🛠️ [ADDITIVE] ระบบคำนวณเงินสดส่วนต่าง (ขาด/เกิน)
+        window.currentExpectedCash = 0;
+        window.currentActualCash = null;
+
+        function calculateCashDifference() {
+            let actualStr = document.getElementById("actualCashInput").value;
+            if (actualStr === "") return;
+            let actualCash = parseFloat(actualStr) || 0;
+            let expected = window.currentExpectedCash;
+            let diff = actualCash - expected;
+            
+            window.currentActualCash = actualCash;
+            
+            let resultHtml = "";
+            resultHtml += `<tr style="border-bottom: 1px solid #eee; background-color: #f4f6f7;"><td><strong>8. ยอดเงินสดที่นับได้จริง (นับเอง):</strong></td><td style="text-align:right; font-weight:bold; color: #2980b9;">${actualCash.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            
+            if (diff > 0) {
+                resultHtml += `<tr style="font-size: 18px; color: #fff; background-color: #2ecc71;"><td><strong>9. ส่วนต่าง (เงินเกิน):</strong></td><td style="text-align:right; font-weight:bold;">+${diff.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            } else if (diff < 0) {
+                resultHtml += `<tr style="font-size: 18px; color: #fff; background-color: #e74c3c;"><td><strong>9. ส่วนต่าง (เงินขาด):</strong></td><td style="text-align:right; font-weight:bold;">${diff.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            } else {
+                resultHtml += `<tr style="font-size: 18px; color: #fff; background-color: #3498db;"><td><strong>9. ส่วนต่าง (พอดีเป๊ะ):</strong></td><td style="text-align:right; font-weight:bold;">0.00 บาท</td></tr>`;
+            }
+            
+            resultHtml += `<tr><td colspan="2" style="text-align:center; padding-top: 15px;">
+                <button onclick="closeShift(${actualCash}, ${diff})" style="padding: 12px 25px; font-size: 16px; background-color: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(231,76,60,0.3);">
+                🛑 ปิดยอดประจำวัน (เคลียร์ลิ้นชักเป็น 0)
+                </button>
+            </td></tr>`;
+
+            document.getElementById("diffResultRows").innerHTML = resultHtml;
+        }
+        function closeShift(actualCash, diff) {
+            if(confirm("🛑 ยืนยันการปิดยอดประจำวัน?\n\n(ยอดเงินในลิ้นชักและหน้าจอรายงานจะถูกรีเซ็ตเพื่อเตรียมพร้อมสำหรับวันถัดไป)")) {
+                // บันทึกสรุปการปิดกะ (สามารถขยายเพิ่มบันทึกลง Firebase ได้ในอนาคต)
+                const searchDate = document.getElementById("report-start-date").value;
+                const shiftRecord = {
+                    date: searchDate,
+                    expectedCash: window.currentExpectedCash,
+                    actualCash: actualCash,
+                    difference: diff,
+                    closedAt: getLocalISOString(getBusinessDate())
+                };
+                
+                let shiftLogs = JSON.parse(localStorage.getItem("thep_shift_logs") || "[]");
+                shiftLogs.push(shiftRecord);
+                localStorage.setItem("thep_shift_logs", JSON.stringify(shiftLogs));
+
+                // เคลียร์ยอดเงินทอนตั้งต้นของวันนี้ให้เป็น 0 (เสมือนว่าดึงเงินออกหมดแล้ว)
+                localStorage.setItem("thep_starting_cash_" + searchDate, "0");
+                if (typeof database !== "undefined") {
+                    database.ref("erp_db_drawer_cash/" + searchDate).set({
+                        amount: 0,
+                        updatedAt: getLocalISOString(getBusinessDate())
+                    }).catch(err => console.error(err));
+                }
+
+                alert("✅ ปิดยอดประจำวันเรียบร้อย!\nดึงเงินสดออกจากลิ้นชัก ระบบพร้อมสำหรับวันใหม่แล้วค่ะ");
+                
+                // ซ่อนรายงาน
+                document.getElementById("report-result-content").innerHTML = "";
+                document.getElementById("report-result-wrapper").style.display = "none";
+            }
+        }
+
         function generateReport(type) {
           const startDateStr =
             document.getElementById("report-start-date").value;
           const endDateStr = document.getElementById("report-end-date").value;
 
-          if (!startDateStr || !endDateStr) {
-            alert("⚠️ กรุณาเลือกช่วงวันที่ให้ครบถ้วนค่ะ");
-            return;
+          let startObj = new Date(0);
+          if (startDateStr) {
+            startObj = new Date(startDateStr);
+            startObj.setHours(0, 0, 0, 0);
           }
 
-          const startObj = new Date(startDateStr);
-          startObj.setHours(0, 0, 0, 0);
-          const endObj = new Date(endDateStr);
-          endObj.setHours(23, 59, 59, 999);
+          let endObj = new Date(8640000000000000);
+          if (endDateStr) {
+            endObj = new Date(endDateStr);
+            endObj.setHours(23, 59, 59, 999);
+          }
+
+          let displayStartDate = startDateStr || "เริ่มต้น";
+          let displayEndDate = endDateStr || "ปัจจุบัน";
+          let dateRangeText = `ตั้งแต่วันที่ ${displayStartDate} ถึง ${displayEndDate}`;
+          if (!startDateStr && !endDateStr) {
+            dateRangeText = "ข้อมูลทั้งหมด (All-time)";
+          }
 
           // ดึงข้อมูลการขายจาก local (รองรับระบบ offline ด้วย)
           let localSales = JSON.parse(
@@ -2970,7 +3058,7 @@
             });
 
             html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกประเภทสินค้า</h3>`;
-            html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+            html += `<p style="text-align:center; font-size:12px;">${dateRangeText}</p>`;
             html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
                                 <thead>
                                     <tr style="border-bottom: 2px solid #333;">
@@ -3017,7 +3105,7 @@
               .sort((a, b) => b.total - a.total);
 
             html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกชื่อสินค้า</h3>`;
-            html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+            html += `<p style="text-align:center; font-size:12px;">${dateRangeText}</p>`;
             html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
                                 <thead>
                                     <tr style="border-bottom: 2px solid #333;">
@@ -3062,7 +3150,7 @@
             });
 
             html += `<h3 style="text-align:center; color: #2c3e50;">รายงานยอดรวมแยกพนักงาน & ค่าคอมมิชชั่น</h3>`;
-            html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+            html += `<p style="text-align:center; font-size:12px;">${dateRangeText}</p>`;
             html += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-top:10px;">
                                 <thead>
                                     <tr style="border-bottom: 2px solid #333;">
@@ -3134,21 +3222,43 @@
             let totalCashInDrawer = netCashToSubmit + startingCash; // ยอดเงินสดที่ต้องมีในลิ้นชักจริงๆ
 
             html += `<h3 style="text-align:center; color: #e74c3c;">รายงานยอดเงินแคชเชียร์</h3>`;
-            html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+            html += `<p style="text-align:center; font-size:12px;">${dateRangeText}</p>`;
 
             html += `<div style="background-color: #fdfefe; border: 1px solid #d5dbdb; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: 'Prompt', sans-serif;">`;
             html += `<table style="width:100%; border-collapse:collapse; font-size:15px; line-height: 2;">`;
             html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>1. ยอดจำนวนบิลรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalBills.toLocaleString()} บิล</td></tr>`;
             html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>2. ยอดเงินรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #2980b9; font-weight: bold;">${totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
             html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-            html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalCashInput.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-            // 🛠️ [REDUCTIVE] ลบบรรทัดที่ 5 (ยอดเงินทอนเข้าลิ้นชัก) ทิ้งตามคำสั่งบอส เพื่อไม่ให้แคชเชียร์สับสน และขยับข้อ 6-8 ขึ้นมาเป็น 5-7
-            html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>5. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-            html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
-            html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-            html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>7. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            
+            let isSingleDay = startDateStr && endDateStr && (startDateStr === endDateStr);
+            if (isSingleDay) {
+                html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>5. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+                html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+                html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+                html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>7. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+                
+                // --- NEW CODE ---
+                window.currentExpectedCash = totalCashInDrawer;
+                window.currentActualCash = null; // รีเซ็ตค่าทุกครั้งที่ดูรายงานใหม่
+                
+                html += `<tbody id="diffResultRows"></tbody>`;
+            } else {
+                html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+                html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>5. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+                html += `<tr><td colspan="2" style="text-align:center; font-size: 12px; color: #e74c3c; padding-top: 10px; line-height: 1.4;">* รายงานแบบไม่ระบุช่วง หรือข้ามวัน จะซ่อนยอดเงินตั้งต้นลิ้นชัก (ข้อ 5 และ 7)<br>เพื่อป้องกันยอดรวมซ้ำซ้อนที่ไม่ตรงความจริง</td></tr>`;
+            }
             html += `</table>`;
             html += `</div>`;
+
+            if (isSingleDay) {
+                // กล่องกรอกข้อมูลเงินนับจริง (ไว้ใต้ตารางหลัก)
+                html += `<div style="background-color: #fdfefe; border: 2px dashed #3498db; border-radius: 8px; padding: 15px; margin-top: 15px; text-align: center; font-family: 'Prompt', sans-serif;">`;
+                html += `<label style="font-size: 16px; font-weight: bold; color: #2c3e50;">กรอกยอดเงินสดที่นับได้จริงในลิ้นชัก (เพื่อตรวจส่วนต่าง): </label><br>`;
+                html += `<input type="number" id="actualCashInput" placeholder="0.00" style="padding: 10px; font-size: 18px; width: 150px; text-align: center; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px;">`;
+                html += ` <button onclick="calculateCashDifference()" style="padding: 10px 20px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">คำนวณส่วนต่าง</button>`;
+                html += `</div>`;
+            }
 
             grandTotalAll = totalSales; // ป้องกันการ trigger "ไม่พบข้อมูล" ด้านล่างถ้ามีบิล 0 บาท
           }
@@ -6584,7 +6694,7 @@
                 new Date().getTime() +
                 "_" +
                 Math.floor(Math.random() * 1000),
-              date: new Date().toISOString(),
+              date: getLocalISOString(new Date()),
               type: "OUT_SELL",
               docNo: billNum,
               barcode: barcodeToUse,
@@ -7022,6 +7132,9 @@
           const phone1 = document
             .getElementById("setup-shop-phone1")
             .value.trim();
+          const cutoffHour = document
+            .getElementById("setup-cutoff-hour")
+            .value.trim();
 
           if (name === "" || phone1 === "") {
             alert("⚠️ กรุณาระบุชื่อร้านและเบอร์โทรศัพท์ให้ครบถ้วนค่ะ");
@@ -7031,6 +7144,12 @@
           const shopInfo = { name, address, phone1 };
           localStorage.setItem("thep_shop_info", JSON.stringify(shopInfo));
           localStorage.removeItem("thep_shop_setup_draft"); // เคลียร์ draft ทิ้งเมื่อบันทึกจริง
+          
+          if (cutoffHour !== "") {
+            localStorage.setItem("store_cutoff_hour", cutoffHour);
+          } else {
+            localStorage.setItem("store_cutoff_hour", "0");
+          }
 
           applyShopInfoToUI(shopInfo);
           shopSetupModal.style.display = "none";
@@ -7048,6 +7167,12 @@
               info.address || "";
             document.getElementById("setup-shop-phone1").value =
               info.phone1 || "";
+          }
+          const cutoffHour = localStorage.getItem("store_cutoff_hour");
+          if (cutoffHour) {
+            document.getElementById("setup-cutoff-hour").value = cutoffHour;
+          } else {
+            document.getElementById("setup-cutoff-hour").value = "0";
           }
           document.getElementById("btn-cancel-shop-setup").style.display =
             "block";
@@ -7167,9 +7292,8 @@
           });
 
           // Default วันนี้
-          document.getElementById("sr-filter-date").value = new Date()
-            .toISOString()
-            .split("T")[0];
+          let sDate = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
+          document.getElementById("sr-filter-date").value = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, "0")}-${String(sDate.getDate()).padStart(2, "0")}`;
 
           calculateStaffReport();
         });
@@ -7302,9 +7426,11 @@
           encodeURIComponent(JSON.stringify(backupData, null, 2));
         const downloadAnchorNode = document.createElement("a");
         downloadAnchorNode.setAttribute("href", dataStr);
+        let now = new Date();
+        let todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         downloadAnchorNode.setAttribute(
           "download",
-          "ThepBill_Backup_" + new Date().toISOString().split("T")[0] + ".json",
+          "ThepBill_Backup_" + todayStr + ".json",
         );
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
@@ -7353,6 +7479,20 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
     <script>
+      function getBusinessDate() {
+        let cutoffHour = parseInt(localStorage.getItem("store_cutoff_hour")) || 0;
+        let now = new Date();
+        if (now.getHours() < cutoffHour) {
+            now.setDate(now.getDate() - 1);
+        }
+        return now;
+      }
+
+      function getLocalISOString(date = new Date()) {
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        return (new Date(date.getTime() - tzOffset)).toISOString().slice(0, -1);
+      }
+
       function fmt(num, isCurrency = false) {
         if (num === null || num === undefined || num === "")
           return "0" + (isCurrency ? ".00" : "");
@@ -8455,7 +8595,8 @@
       // ฟังก์ชันบันทึกเงินทอนตั้งต้น (เงินลอย) ประจำวัน
       // ==========================================
       function promptStartingCash() {
-        let today = new Date().toISOString().split("T")[0];
+        let now = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
+        let today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         let currentCash =
           localStorage.getItem("thep_starting_cash_" + today) || "";
 
@@ -8482,7 +8623,7 @@
                 .ref("erp_db_drawer_cash/" + today)
                 .set({
                   amount: amount,
-                  updatedAt: new Date().toISOString(),
+                  updatedAt: getLocalISOString(new Date()),
                 })
                 .then(() => {
                   alert(
@@ -8595,7 +8736,7 @@
 
         window.stockLedger.push({
           id: "IN_" + new Date().getTime(),
-          date: new Date().toISOString(),
+          date: getLocalISOString(new Date()),
           type: "IN_BILL",
           docNo: docNo,
           barcode: barcodeToUse,
@@ -8690,7 +8831,7 @@
 
         window.stockLedger.push({
           id: "ADJ_" + new Date().getTime(),
-          date: new Date().toISOString(),
+          date: getLocalISOString(new Date()),
           type: ledgerType,
           docNo: "ปรับยอดด่วน",
           barcode: barcodeToUse,
@@ -8728,9 +8869,8 @@
         document.getElementById("inv-mode-" + mode).style.display = "block";
 
         if (mode === "receive_bill") {
-          document.getElementById("bill-date").value = new Date()
-            .toISOString()
-            .split("T")[0];
+          let invDate = typeof getBusinessDate === 'function' ? getBusinessDate() : new Date();
+          document.getElementById("bill-date").value = `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, "0")}-${String(invDate.getDate()).padStart(2, "0")}`;
         } else if (mode === "report_stock") {
           generateInventoryReport();
         }
@@ -8795,7 +8935,7 @@
 
         window.stockLedger.push({
           id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
           barcode: barcodeToUse,
           productName: prod.name,
           category: prod.category || "ไม่มีหมวดหมู่",
@@ -8934,8 +9074,8 @@
         }
 
         const timestamp = billDate
-          ? new Date(billDate).toISOString()
-          : new Date().toISOString();
+          ? getLocalISOString(new Date(billDate))
+          : getLocalISOString(getBusinessDate());
         let receiptRef = `บิล: ${billNo || "ไม่ระบุ"}, ร้าน: ${billSupplier || "ไม่ระบุ"}`;
         if (billNote) receiptRef += ` (${billNote})`;
 
@@ -9475,7 +9615,7 @@
           qty: 1,
           price: product.price,
           isPaid: false,
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
         };
         tableOrders.push(order);
 
@@ -9619,7 +9759,7 @@
           tableName: currentIpaqTable.name,
           totalAmount: total,
           items: tOrders.map((o) => ({ ...o })),
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
         };
         sales.push(saleRecord);
 
@@ -9789,7 +9929,7 @@
           qty: qtyToAdd,
           price: product.price,
           isPaid: false,
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
         };
         tableOrders.push(order);
 
@@ -9884,7 +10024,7 @@
           qty: qtyToAdd,
           price: product.price,
           isPaid: false,
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
         };
         tableOrders.push(order);
 
@@ -10172,7 +10312,7 @@
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
           items: tOrders.map((o) => ({ ...o })),
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(getBusinessDate()),
         };
         sales.push(saleRecord);
 
@@ -10851,7 +10991,7 @@
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
           items: tOrders.map((o) => ({ ...o })),
-          timestamp: new Date().toISOString(),
+          timestamp: getLocalISOString(new Date()),
         };
         sales.push(saleRecord);
 
@@ -10903,15 +11043,42 @@
         const startDateStr = document.getElementById("report-start-date").value;
         const endDateStr = document.getElementById("report-end-date").value;
 
-        if (!startDateStr || !endDateStr) {
-          alert("⚠️ กรุณาเลือกช่วงวันที่ให้ครบถ้วนค่ะ");
-          return;
+        let startObj = new Date(0);
+        if (startDateStr) {
+          startObj = new Date(startDateStr);
+          startObj.setHours(0, 0, 0, 0);
         }
 
-        const startObj = new Date(startDateStr);
-        startObj.setHours(0, 0, 0, 0);
-        const endObj = new Date(endDateStr);
-        endObj.setHours(23, 59, 59, 999);
+        let endObj = new Date(8640000000000000);
+        if (endDateStr) {
+          endObj = new Date(endDateStr);
+          endObj.setHours(23, 59, 59, 999);
+        }
+
+        // 🛠️ [ADDITIVE] กรองเฉพาะยอดขายหลังจากการปิดยอดรอบล่าสุด (เคลียร์ยอดเป็น 0 ทันที)
+        let shiftLogs = JSON.parse(localStorage.getItem("thep_shift_logs") || "[]");
+        let latestClosedAt = null;
+        shiftLogs.forEach(log => {
+            let logDate = new Date(log.closedAt);
+            if (logDate >= startObj && logDate <= endObj) {
+                if (!latestClosedAt || logDate > latestClosedAt) {
+                    latestClosedAt = logDate;
+                }
+            }
+        });
+        
+        let isSingleDay = startDateStr && endDateStr && (startDateStr === endDateStr);
+        if (isSingleDay && latestClosedAt) {
+            // ปรับเวลาเริ่มต้นเป็นเวลาที่ปิดยอดล่าสุด + 1 มิลลิวินาที เพื่อไม่ให้รวมยอดเก่า
+            startObj = new Date(latestClosedAt.getTime() + 1);
+        }
+
+        let displayStartDate = startDateStr || "เริ่มต้น";
+        let displayEndDate = endDateStr || "ปัจจุบัน";
+        let dateRangeText = `ตั้งแต่วันที่ ${displayStartDate} ถึง ${displayEndDate}`;
+        if (!startDateStr && !endDateStr) {
+          dateRangeText = "ข้อมูลทั้งหมด (All-time)";
+        }
 
         let localSales = JSON.parse(
           localStorage.getItem("thep_local_sales_history") || "[]",
@@ -11017,21 +11184,40 @@
 
         let html = "";
         html += `<h3 style="text-align:center; color: #e74c3c;">รายงานยอดเงินแคชเชียร์</h3>`;
-        html += `<p style="text-align:center; font-size:12px;">ตั้งแต่วันที่ ${startDateStr} ถึง ${endDateStr}</p>`;
+        html += `<p style="text-align:center; font-size:12px;">${dateRangeText}</p>`;
 
         html += `<div style="background-color: #fdfefe; border: 1px solid #d5dbdb; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: 'Prompt', sans-serif;">`;
         html += `<table style="width:100%; border-collapse:collapse; font-size:15px; line-height: 2;">`;
         html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>1. ยอดจำนวนบิลรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${totalBills.toLocaleString()} บิล</td></tr>`;
         html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>2. ยอดเงินรวมทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #2980b9; font-weight: bold;">${totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
         html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>3. ยอดจำนวนโอน ทั้งหมดจากการขาย:</strong></td><td style="text-align:right; color: #7f8c8d;">${totalTransfer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-        // แก้ไขข้อ 4 ให้แสดงยอด netCashToSubmit (เงินสดสุทธิ) แทน totalCashInput (รับเงินมา)
         html += `<tr style="border-bottom: 1px solid #eee;"><td><strong>4. ยอดจำนวนเงินสด ทั้งหมดจากการขาย:</strong></td><td style="text-align:right;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-        html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>5. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-        html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
-        html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
-        html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>7. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+        
+        if (isSingleDay) {
+            html += `<tr style="border-bottom: 1px solid #eee; background-color: #fff9c4;"><td><strong>5. เงินทอนตั้งต้นในลิ้นชัก (ประจำวัน):</strong></td><td style="text-align:right; color: #d35400;">${startingCash.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+            html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>6. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            html += `<tr style="font-size: 18px; color: #1abc9c; background-color: #e8f8f5;"><td><strong>7. เงินสดที่ต้องมีในลิ้นชักทั้งหมด (สุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${totalCashInDrawer.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            window.currentExpectedCash = totalCashInDrawer;
+            window.currentActualCash = null; // รีเซ็ตค่าทุกครั้งที่ดูรายงานใหม่
+            
+            html += `<tbody id="diffResultRows"></tbody>`;
+        } else {
+            html += `<tr><td colspan="2"><hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;"></td></tr>`;
+            html += `<tr style="font-size: 16px; color: #27ae60;"><td><strong>5. ยอดจำนวนสดนำส่ง (เฉพาะยอดขายสุทธิ):</strong></td><td style="text-align:right; font-weight:bold;">${netCashToSubmit.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</td></tr>`;
+            html += `<tr><td colspan="2" style="text-align:center; font-size: 12px; color: #e74c3c; padding-top: 10px; line-height: 1.4;">* รายงานแบบไม่ระบุช่วง หรือข้ามวัน จะซ่อนยอดเงินตั้งต้นลิ้นชัก (ข้อ 5 และ 7)<br>เพื่อป้องกันยอดรวมซ้ำซ้อนที่ไม่ตรงความจริง</td></tr>`;
+        }
         html += `</table>`;
         html += `</div>`;
+
+        if (isSingleDay) {
+            // กล่องกรอกข้อมูลเงินนับจริง (ไว้ใต้ตารางหลัก)
+            html += `<div style="background-color: #fdfefe; border: 2px dashed #3498db; border-radius: 8px; padding: 15px; margin-top: 15px; text-align: center; font-family: 'Prompt', sans-serif;">`;
+            html += `<label style="font-size: 16px; font-weight: bold; color: #2c3e50;">กรอกยอดเงินสดที่นับได้จริงในลิ้นชัก (เพื่อตรวจส่วนต่าง): </label><br>`;
+            html += `<input type="number" id="actualCashInput" placeholder="0.00" style="padding: 10px; font-size: 18px; width: 150px; text-align: center; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px;">`;
+            html += ` <button onclick="calculateCashDifference()" style="padding: 10px 20px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">คำนวณส่วนต่าง</button>`;
+            html += `</div>`;
+        }
 
         document.getElementById("report-result-content").innerHTML = html;
         document.getElementById("report-result-wrapper").style.display =
@@ -11126,7 +11312,7 @@
                 new Date().getTime() +
                 "_" +
                 Math.floor(Math.random() * 1000),
-              date: new Date().toISOString(),
+              date: getLocalISOString(getBusinessDate()),
               type: "OUT_SELL",
               docNo: autoBillNumber,
               barcode: barcodeToUse,
@@ -11172,7 +11358,7 @@
         );
 
         // 3. Prepare Common Data
-        const now = new Date();
+        const now = getBusinessDate();
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
         let itemsJSON = JSON.stringify(printBillItems);
 
@@ -11225,7 +11411,7 @@
           bankName: bankEl ? bankEl.value : "",
           customerCrm: crmEl ? crmEl.value : "",
           items: tOrders.map((o) => ({ ...o })),
-          timestamp: now.toISOString(),
+          timestamp: getLocalISOString(now),
         };
         if (typeof sales !== "undefined" && Array.isArray(sales)) {
           sales.push(saleRecord);
@@ -11411,7 +11597,7 @@
                     qty: Number(item.qty) || 1,
                     price: Number(item.price) || 0,
                     isPaid: false,
-                    timestamp: new Date().toISOString(),
+                    timestamp: getLocalISOString(new Date()),
                   };
                   tableOrders.push(ipaqOrder);
                 }
