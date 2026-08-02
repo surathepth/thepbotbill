@@ -2039,6 +2039,76 @@
           </div>
         </div>
 
+        <!-- [Lilin Additive 2026-08-02] Modal คีย์ค่าใช้จ่าย Responsive -->
+        <div id="expense-modal" class="modal-overlay" style="z-index: 10005;">
+          <div class="modal-content" style="width: 95%; max-width: 500px">
+            <div class="modal-title">💸 คีย์ค่าใช้จ่ายแคชเชียร์</div>
+            <div style="font-size: 14px; margin-bottom: 15px; text-align: center; color: #7f8c8d;">
+              ยอดเงินจะถูกหักจากลิ้นชักทันที
+            </div>
+            
+            <div class="modal-input-group">
+              <label>รายการค่าใช้จ่าย:</label>
+              <input type="text" id="expense-name" placeholder="เช่น ค่าน้ำแข็ง, ค่าน้ำดื่ม" />
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+              <div style="flex: 1;">
+                <label style="display: block; font-weight: bold; font-size: 12px; color: var(--text-main); margin-bottom: 5px;">จำนวน:</label>
+                <input type="number" id="expense-qty" value="1" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: 'Prompt', sans-serif;" />
+              </div>
+              <div style="flex: 1;">
+                <label style="display: block; font-weight: bold; font-size: 12px; color: var(--text-main); margin-bottom: 5px;">ราคาต่อหน่วย:</label>
+                <input type="number" id="expense-price" placeholder="0.00" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: 'Prompt', sans-serif;" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              style="background: #3498db; color: white; width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 15px;"
+              onclick="addExpenseItem()"
+            >
+              ➕ เพิ่มรายการ
+            </button>
+
+            <div style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
+              <table id="expense-items-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead style="background: #f1f2f6; position: sticky; top: 0;">
+                  <tr>
+                    <th style="padding: 5px; text-align: left;">รายการ</th>
+                    <th style="padding: 5px; text-align: center;">จำนวน</th>
+                    <th style="padding: 5px; text-align: right;">รวม</th>
+                    <th style="padding: 5px; text-align: center;">ลบ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- JS DOM Insert -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="text-align: right; font-size: 18px; font-weight: bold; color: #c0392b; margin-bottom: 15px;">
+              รวมเป็นเงิน: <span id="expense-total">0.00</span> บาท
+            </div>
+
+            <button
+              type="button"
+              class="modal-btn-save"
+              style="background: #c0392b"
+              onclick="saveExpense()"
+            >
+              💾 บันทึกค่าใช้จ่าย
+            </button>
+            <button
+              type="button"
+              class="modal-btn-cancel"
+              onclick="document.getElementById('expense-modal').style.display = 'none'"
+            >
+              ❌ ปิดหน้าต่าง
+            </button>
+          </div>
+        </div>
+
         <div
           id="held-bills-container"
           style="
@@ -2523,6 +2593,28 @@
             💵 บันทึกเงินทอนตั้งต้นในลิ้นชัก (เงินลอย)
           </button>
 
+          <!-- [Lilin Additive 2026-08-02] ปุ่มค่าใช้จ่าย -->
+          <button
+            type="button"
+            onclick="openExpenseModal()"
+            style="
+              background-color: #c0392b;
+              width: 100%;
+              padding: 10px;
+              font-size: 14px;
+              font-weight: bold;
+              margin-bottom: 15px;
+              border-radius: var(--radius-main);
+              color: white;
+              border: none;
+              cursor: pointer;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              transition: background-color 0.2s;
+            "
+          >
+            💸 คีย์ค่าใช้จ่าย (หักจากลิ้นชัก)
+          </button>
+
           <div class="dash-cards">
             <div class="d-card dc-day">
               <div class="dc-title">ยอดขายวันนี้</div>
@@ -2860,6 +2952,14 @@
           onclick="generateReport('cashier')"
         >
           📊 4. รายงานยอดเงินแคชเชียร์
+        </button>
+        <!-- [Lilin Additive 2026-08-02] ปุ่มรายงานค่าใช้จ่าย -->
+        <button
+          class="btn btn-save"
+          style="background-color: #c0392b"
+          onclick="generateReport('expense')"
+        >
+          📊 5. รายงานค่าใช้จ่าย
         </button>
       </div>
 
@@ -3602,6 +3702,22 @@
               🪑 เลือกโต๊ะ (Table Map)
             </h2>
             <div style="display: flex; gap: 5px;">
+              <button
+                onclick="openExpenseModal()"
+                style="
+                  font-size: 12px;
+                  padding: 5px 10px;
+                  background: #c0392b;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                  white-space: nowrap;
+                "
+              >
+                💸 คีย์ค่าใช้จ่าย
+              </button>
               <button
                 onclick="
                   document.getElementById('tab-ipaq').classList.remove('active');
@@ -12283,6 +12399,242 @@
       }
       // --- END IPAQ DATA PERSISTENCE PATCH ---
     </script>
-    <!-- Last Updated by Lilin: 2026-07-31 19:25 for IPAQ Red Table Fix -->
+    <!-- [Lilin Additive 2026-08-02] Expense Management Scripts -->
+    <script>
+      var currentExpenseItems = [];
+
+      function openExpenseModal() {
+        currentExpenseItems = [];
+        document.getElementById('expense-name').value = '';
+        document.getElementById('expense-qty').value = '1';
+        document.getElementById('expense-price').value = '';
+        renderExpenseItems();
+        document.getElementById('expense-modal').style.display = 'flex';
+      }
+
+      function addExpenseItem() {
+        var name = document.getElementById('expense-name').value.trim();
+        var qty = parseInt(document.getElementById('expense-qty').value) || 1;
+        var price = parseFloat(document.getElementById('expense-price').value) || 0;
+
+        if (!name) {
+          alert('กรุณากรอกรายการค่าใช้จ่าย');
+          return;
+        }
+        if (price <= 0) {
+          alert('กรุณากรอกราคาต่อหน่วยให้ถูกต้อง');
+          return;
+        }
+
+        currentExpenseItems.push({
+          name: name,
+          qty: qty,
+          pricePerUnit: price,
+          total: qty * price
+        });
+
+        document.getElementById('expense-name').value = '';
+        document.getElementById('expense-qty').value = '1';
+        document.getElementById('expense-price').value = '';
+        renderExpenseItems();
+      }
+
+      function removeExpenseItem(index) {
+        currentExpenseItems.splice(index, 1);
+        renderExpenseItems();
+      }
+
+      function renderExpenseItems() {
+        var tbody = document.querySelector('#expense-items-table tbody');
+        tbody.innerHTML = '';
+        var grandTotal = 0;
+
+        currentExpenseItems.forEach(function(item, idx) {
+          grandTotal += item.total;
+          var tr = document.createElement('tr');
+          tr.innerHTML = 
+            '<td style="padding: 5px; border-bottom: 1px solid #eee;">' + item.name + '</td>' +
+            '<td style="padding: 5px; border-bottom: 1px solid #eee; text-align: center;">' + item.qty + ' x ' + item.pricePerUnit.toFixed(2) + '</td>' +
+            '<td style="padding: 5px; border-bottom: 1px solid #eee; text-align: right;">' + item.total.toFixed(2) + '</td>' +
+            '<td style="padding: 5px; border-bottom: 1px solid #eee; text-align: center;">' +
+              '<button type="button" onclick="removeExpenseItem(' + idx + ')" style="background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 5px;">❌</button>' +
+            '</td>';
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById('expense-total').textContent = grandTotal.toFixed(2);
+      }
+
+      function saveExpense() {
+        if (currentExpenseItems.length === 0) {
+          alert('ไม่มีรายการค่าใช้จ่าย กรุณาเพิ่มรายการก่อนบันทึก');
+          return;
+        }
+        
+        var grandTotal = currentExpenseItems.reduce(function(sum, item) { return sum + item.total; }, 0);
+        
+        if (typeof database === 'undefined') {
+          alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+          return;
+        }
+
+        // Check drawer cash
+        var searchDate = getLocalISOString(getBusinessDate()).split("T")[0];
+        database.ref("erp_db_drawer_cash/" + searchDate).once("value").then(function(snapshot) {
+          var drawer = snapshot.val();
+          var currentDrawerCash = drawer ? parseFloat(drawer.amount) || 0 : 0;
+          
+          if (currentDrawerCash < grandTotal) {
+             if(!confirm('⚠️ ยอดเงินในลิ้นชักมีไม่พอ (มีอยู่ ' + currentDrawerCash.toFixed(2) + ' บาท)\nคุณต้องการบันทึกค่าใช้จ่ายจนเงินลิ้นชักติดลบหรือไม่?')) {
+                 return;
+             }
+          }
+
+          // Generate bill number DDMMYY-HHMM
+          var now = new Date();
+          var dd = String(now.getDate()).padStart(2, '0');
+          var mm = String(now.getMonth() + 1).padStart(2, '0');
+          var yy = String(now.getFullYear()).slice(-2);
+          var hh = String(now.getHours()).padStart(2, '0');
+          var mn = String(now.getMinutes()).padStart(2, '0');
+          var r = Math.floor(Math.random() * 100);
+          var billNo = dd + mm + yy + "-" + hh + mn + "-" + r;
+
+          var expenseData = {
+            billNo: billNo,
+            date: getLocalISOString(now),
+            items: currentExpenseItems,
+            grandTotal: grandTotal,
+            createdBy: "แคชเชียร์"
+          };
+
+          // Save Expense
+          database.ref("erp_db_expenses/" + billNo).set(expenseData).then(function() {
+             // Deduct from drawer cash
+             var newDrawerCash = currentDrawerCash - grandTotal;
+             database.ref("erp_db_drawer_cash/" + searchDate).set({
+                 amount: newDrawerCash,
+                 updatedAt: getLocalISOString(new Date())
+             }).then(function() {
+                 alert('✅ บันทึกค่าใช้จ่ายและหักเงินจากลิ้นชักเรียบร้อยแล้ว\n(หักไป ' + grandTotal.toFixed(2) + ' บาท)');
+                 document.getElementById('expense-modal').style.display = 'none';
+             });
+          }).catch(function(err) {
+             console.error("Expense saving error:", err);
+             alert('เกิดข้อผิดพลาดในการบันทึกค่าใช้จ่าย: ' + err.message);
+          });
+        });
+      }
+
+      // Hook into existing generateReport
+      var originalGenerateReport_ForExpense = generateReport;
+      generateReport = function (type) {
+        if (type === "expense") {
+          return generateExpenseReport();
+        } else {
+          return originalGenerateReport_ForExpense(type);
+        }
+      };
+
+      function generateExpenseReport() {
+        var startDateStr = document.getElementById("report-start-date").value;
+        var endDateStr = document.getElementById("report-end-date").value;
+
+        var startObj = new Date(0);
+        if (startDateStr) {
+          startObj = new Date(startDateStr);
+          startObj.setHours(0, 0, 0, 0);
+        }
+
+        var endObj = new Date(8640000000000000);
+        if (endDateStr) {
+          endObj = new Date(endDateStr);
+          endObj.setHours(23, 59, 59, 999);
+        }
+
+        var displayStartDate = startDateStr ? startDateStr : "เริ่มต้น";
+        var displayEndDate = endDateStr ? endDateStr : "ปัจจุบัน";
+        var dateRangeText = 'ตั้งแต่วันที่ ' + displayStartDate + ' ถึง ' + displayEndDate;
+        if (!startDateStr && !endDateStr) {
+          dateRangeText = "ข้อมูลทั้งหมด (All-time)";
+        }
+
+        if (typeof database === 'undefined') {
+          alert('ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
+          return;
+        }
+
+        document.getElementById("report-result-content").innerHTML = "กำลังโหลดข้อมูล...";
+        document.getElementById("report-result-wrapper").style.display = "block";
+
+        database.ref("erp_db_expenses").once("value").then(function(snapshot) {
+           var allExpenses = snapshot.val() || {};
+           var filteredExpenses = [];
+           
+           for (var billNo in allExpenses) {
+               var exp = allExpenses[billNo];
+               if (exp.date) {
+                   var expDate = new Date(exp.date);
+                   if (expDate >= startObj && expDate <= endObj) {
+                       filteredExpenses.push(exp);
+                   }
+               }
+           }
+
+           // Sort by date ascending
+           filteredExpenses.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+
+           var grandTotalExpense = 0;
+           var tbodyHtml = '';
+           var runningIndex = 1;
+           
+           filteredExpenses.forEach(function(exp) {
+               exp.items.forEach(function(item) {
+                   tbodyHtml += 
+                     '<tr>' +
+                        '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + runningIndex + '</td>' +
+                        '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + exp.billNo + '</td>' +
+                        '<td style="padding: 8px; border: 1px solid #ddd;">' + item.name + '</td>' +
+                        '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + item.qty + ' x ' + item.pricePerUnit.toFixed(2) + '</td>' +
+                        '<td style="padding: 8px; border: 1px solid #ddd; text-align: right;">' + item.total.toFixed(2) + '</td>' +
+                     '</tr>';
+                   runningIndex++;
+               });
+               grandTotalExpense += parseFloat(exp.grandTotal) || 0;
+           });
+
+           var html = 
+             '<h3 style="text-align:center; color: #c0392b; margin-bottom: 5px;">📊 รายงานค่าใช้จ่าย</h3>' +
+             '<div style="text-align:center; margin-bottom: 20px; color: #7f8c8d; font-size: 14px;">' +
+               dateRangeText +
+             '</div>' +
+             '<table style="width:100%; border-collapse:collapse; margin-bottom: 20px;">' +
+               '<thead>' +
+                 '<tr style="background-color:#f1f2f6;">' +
+                   '<th style="padding: 10px; border: 1px solid #ddd;">#</th>' +
+                   '<th style="padding: 10px; border: 1px solid #ddd;">เลขที่บิล</th>' +
+                   '<th style="padding: 10px; border: 1px solid #ddd;">รายการ</th>' +
+                   '<th style="padding: 10px; border: 1px solid #ddd;">จำนวน</th>' +
+                   '<th style="padding: 10px; border: 1px solid #ddd; text-align:right;">จำนวนเงิน</th>' +
+                 '</tr>' +
+               '</thead>' +
+               '<tbody>' +
+                 (tbodyHtml ? tbodyHtml : '<tr><td colspan="5" style="text-align:center; padding:20px;">ไม่มีข้อมูลค่าใช้จ่ายในช่องเวลานี้</td></tr>') +
+               '</tbody>' +
+               '<tfoot>' +
+                 '<tr style="font-weight:bold; background-color:#f9f9f9;">' +
+                   '<td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: right;">รวมเป็นเงินค่าใช้จ่ายทั้งสิ้น</td>' +
+                   '<td style="padding: 10px; border: 1px solid #ddd; text-align: right; color:#c0392b;">' + grandTotalExpense.toFixed(2) + '</td>' +
+                 '</tr>' +
+               '</tfoot>' +
+             '</table>';
+
+           document.getElementById("report-result-content").innerHTML = html;
+        }).catch(function(err) {
+           console.error(err);
+           document.getElementById("report-result-content").innerHTML = "เกิดข้อผิดพลาด: " + err.message;
+        });
+      }
+    </script>
   </body>
 </html>
