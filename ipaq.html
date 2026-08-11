@@ -133,6 +133,40 @@
             .cart-area { flex: none; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); }
             .menu-item { width: calc(50% - 14px); }
         }
+
+        /* === PRINT SYSTEM CSS (เพิ่มใหม่ สำหรับระบบพิมพ์บิล) === */
+        @media screen {
+            #receipt-print-area {
+                position: absolute;
+                left: -9999px;
+                top: 0;
+            }
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt-print-area,
+            #receipt-print-area * {
+                visibility: visible;
+            }
+            #receipt-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 80mm;
+                margin: 0;
+                padding: 0;
+                font-family: 'Sarabun', 'Courier New', Courier, monospace;
+                font-size: 16px;
+                color: #000;
+            }
+            @page {
+                margin: 0;
+                size: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -209,6 +243,9 @@
         </div>
     </div>
 
+    <!-- === PRINT AREA (เพิ่มใหม่ สำหรับระบบพิมพ์บิล) === -->
+    <div id="receipt-print-area"></div>
+
     <script>
         // ==========================================
         // ES5 STRICT MODE COMPATIBLE CODE FOR IOS 9
@@ -241,6 +278,7 @@
         var currentOrderItems = []; // สินค้าเดิมที่สั่งไปแล้ว
         var newCartItems = []; // สินค้าใหม่ที่เพิ่งกด
         var html5QrcodeScanner = null;
+        var orderSentForTable = false; // ล็อกปุ่มหลังส่งออเดอร์สำเร็จ
 
         // ================= LOGIC LOGIN =================
         function doLogin() {
@@ -392,6 +430,7 @@
             document.getElementById("table-screen").style.display = "none";
             document.getElementById("order-screen").style.display = "flex";
             newCartItems = [];
+            orderSentForTable = false; // รีเซ็ตล็อกเมื่อเปิดโต๊ะใหม่
             
             // ดึงข้อมูลบิลปัจจุบันของโต๊ะนี้
             database.ref("erp_db_orders/" + tId).once("value").then(function(snapshot) {
@@ -484,7 +523,7 @@
                 html += '<div class="menu-item-overlay"></div>';
                 html += '<div class="menu-item-content">';
                 html += '<div class="menu-name">' + p.name + '</div>';
-                html += '<div class="menu-price">฿' + Number(p.price).toFixed(2) + '</div>';
+                html += '<div class="menu-price">฿' + Number(p.price).toLocaleString() + '</div>';
                 html += '</div></div>';
             }
             document.getElementById("product-grid").innerHTML = html;
@@ -543,6 +582,7 @@
                     isNewItem: true
                 });
             }
+            orderSentForTable = false; // รีเซ็ตล็อกเมื่อเพิ่มรายการใหม่
             renderCart();
         }
 
@@ -577,7 +617,7 @@
                         html += '<div class="cart-item old-item">';
                         html += '<div class="cart-item-name">' + oldItem.name + '</div>';
                         html += '<div class="cart-item-qty">x' + oldItem.qty + '</div>';
-                        html += '<div class="cart-item-price">฿' + (oldItem.price * oldItem.qty).toFixed(2) + '</div>';
+                        html += '<div class="cart-item-price">฿' + (oldItem.price * oldItem.qty).toLocaleString() + '</div>';
                         html += '</div>';
                     }
                 }
@@ -597,7 +637,7 @@
                     html += '<div class="cart-item new-item">';
                     html += '<div class="cart-item-name">' + newItem.name + '<br><small style="color:gray;font-weight:normal;cursor:pointer;" onclick="addNote(' + j + ')">📝 ' + (newItem.note || 'เพิ่มหมายเหตุ') + '</small></div>';
                     html += '<div class="cart-item-qty">x' + newItem.qty + '</div>';
-                    html += '<div class="cart-item-price">฿' + (Number(newItem.price) * Number(newItem.qty)).toFixed(2) + '</div>';
+                    html += '<div class="cart-item-price">฿' + (Number(newItem.price) * Number(newItem.qty)).toLocaleString() + '</div>';
                     html += '<div style="margin-left: 10px; color:red; cursor:pointer; font-size:18px;" onclick="removeNewCartItem(' + j + ')">❌</div>';
                     html += '</div>';
                 }
@@ -631,6 +671,12 @@
                 return;
             }
 
+            // ล็อกปุ่มป้องกันกดซ้ำ
+            if (orderSentForTable) {
+                alert("ออเดอร์ถูกส่งไปแล้ว! กรุณาเพิ่มรายการใหม่ก่อนส่งอีกครั้ง");
+                return;
+            }
+
             var btn = document.querySelector(".cart-footer .btn-green");
             btn.innerHTML = "กำลังส่ง...";
             btn.disabled = true;
@@ -642,6 +688,12 @@
             }
             for (var j = 0; j < newCartItems.length; j++) {
                 combinedItems.push(newCartItems[j]);
+            }
+
+            // เก็บรายการใหม่ไว้สำหรับพิมพ์
+            var itemsForPrint = [];
+            for (var p = 0; p < newCartItems.length; p++) {
+                itemsForPrint.push(newCartItems[p]);
             }
 
             // อ่านค่าปัจจุบันใน DB เผื่อมีเครื่องอื่นสั่งชนกัน
@@ -673,16 +725,152 @@
 
                 return database.ref("erp_db_orders/" + currentTableId).set(orderData);
             }).then(function() {
-                Swal.fire("สำเร็จ!", "ส่งออเดอร์เข้าครัวเรียบร้อย", "success").then(function() {
-                    btn.innerHTML = "🚀 ส่งออเดอร์เข้าครัว";
-                    btn.disabled = false;
-                    goBackToTables();
+                // === พิมพ์ครั้งที่ 1: บิล Cash (รวมทุกรายการ อาหาร+เครื่องดื่ม) ===
+                printCashBill(itemsForPrint, currentTableName, function() {
+                    // === พิมพ์ครั้งที่ 2: บิลครัว (เฉพาะอาหาร ไม่รวมเครื่องดื่ม) ===
+                    printKitchenBillOnly(itemsForPrint, currentTableName, function() {
+                        // ล็อกปุ่มหลังส่งสำเร็จ
+                        orderSentForTable = true;
+                        btn.innerHTML = "✅ ส่งออเดอร์แล้ว";
+                        btn.disabled = true;
+                        btn.style.opacity = "0.5";
+                        Swal.fire("สำเร็จ!", "ส่งออเดอร์และพิมพ์บิลเรียบร้อย", "success");
+                    });
                 });
             }).catch(function(err) {
                 alert("เกิดข้อผิดพลาด: " + err.message);
                 btn.innerHTML = "🚀 ส่งออเดอร์เข้าครัว";
                 btn.disabled = false;
             });
+        }
+
+        // ================= PRINT CASH BILL (บิลรวม อาหาร+เครื่องดื่ม) =================
+        function printCashBill(items, tableName, callback) {
+            var printArea = document.getElementById("receipt-print-area");
+            if (!printArea) { if (callback) callback(); return; }
+            if (!items || items.length === 0) { if (callback) callback(); return; }
+
+            // ดึงชื่อร้าน
+            var shopName = "ล้านโคขุนริมโขง";
+
+            var itemsHtml = "";
+            var grandTotal = 0;
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var name = item.name || "ไม่มีชื่อสินค้า";
+                var qty = parseInt(item.qty) || 1;
+                var price = parseFloat(item.price) || 0;
+                var total = qty * price;
+                grandTotal += total;
+                itemsHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px;">';
+                itemsHtml += '<div style="flex:1; padding-right:5px; word-break:break-all;">' + name + '</div>';
+                itemsHtml += '<div style="white-space:nowrap; text-align:right;">' + qty + 'x' + price + '</div>';
+                itemsHtml += '</div>';
+            }
+
+            var now = new Date();
+            var dateStr = now.toLocaleString("th-TH");
+
+            printArea.innerHTML = '<div style="text-align:center; margin-bottom:10px;">' +
+                '<div style="font-size:14px; font-weight:bold;">' + shopName + '</div>' +
+                '<div style="font-size:9px; margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>' +
+                '<div style="font-size:10px;">ใบเสร็จ/บิลรวม</div>' +
+                '<div style="font-size:10px; margin-bottom:3px;">โต๊ะ: ' + tableName + '</div>' +
+                '<div style="font-size:9px;">' + dateStr + '</div>' +
+                '</div>' +
+                '<div style="border-top:1px dashed #000; padding:5px 0; border-bottom:1px dashed #000; margin-bottom:5px;">' +
+                itemsHtml +
+                '</div>' +
+                '<div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px; margin-top:5px;">' +
+                '<span>ยอดรวม</span>' +
+                '<span>' + grandTotal.toFixed(2) + '</span>' +
+                '</div>' +
+                '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>';
+
+            setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                    printArea.innerHTML = "";
+                    if (callback) callback();
+                }, 1000);
+            }, 500);
+        }
+
+        // ================= PRINT KITCHEN BILL (เฉพาะอาหาร ไม่รวมเครื่องดื่ม) =================
+        function printKitchenBillOnly(items, tableName, callback) {
+            var printArea = document.getElementById("receipt-print-area");
+            if (!printArea) { if (callback) callback(); return; }
+            if (!items || items.length === 0) { if (callback) callback(); return; }
+
+            // กรองเฉพาะรายการอาหาร (ไม่รวม category ประเภทเครื่องดื่ม)
+            var foodItems = [];
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                // ค้นหา category ของสินค้าจาก allProducts
+                var itemCategory = "";
+                var itemId = item.id || "";
+                for (var p = 0; p < allProducts.length; p++) {
+                    var prod = allProducts[p];
+                    if ((prod.barcode && prod.barcode === itemId) || (prod.id && prod.id === itemId) || prod.name === item.name) {
+                        itemCategory = prod.category || "";
+                        break;
+                    }
+                }
+                // ถ้าไม่ใช่เครื่องดื่ม ให้รวมเข้าบิลครัว
+                if (itemCategory !== "ประเภทเครื่องดื่ม") {
+                    foodItems.push(item);
+                }
+            }
+
+            if (foodItems.length === 0) {
+                // ไม่มีรายการอาหาร (มีแต่เครื่องดื่ม) ข้ามการพิมพ์ครัว
+                if (callback) callback();
+                return;
+            }
+
+            var itemsHtml = "";
+            for (var j = 0; j < foodItems.length; j++) {
+                var fItem = foodItems[j];
+                var fName = fItem.name || "ไม่มีชื่อสินค้า";
+                var fQty = parseInt(fItem.qty) || 1;
+                var fPrice = parseFloat(fItem.price) || 0;
+                var fTotal = fQty * fPrice;
+                var now = new Date();
+                var fTime = now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                var fDate = now.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "2-digit" });
+                var fDateTimeStr = fDate + "-" + fTime;
+                var fNoteHtml = "";
+                if (fItem.note) {
+                    var cleanNote = fItem.note.replace(/\*\s*รสชาติ/g, "").replace(/หมายเหตุ:?/g, "").trim();
+                    if (cleanNote) {
+                        fNoteHtml = '<div style="font-size: 16px; font-weight: bold; text-align: left; margin-bottom: 5px; color: #000;">' + cleanNote + '</div>';
+                    }
+                }
+
+                var pageBreak = (j < foodItems.length - 1) ? "page-break-after: always;" : "";
+                itemsHtml += '<div style="font-family: Kanit, Sarabun, sans-serif; width: 100%; padding: 0; margin: 0; box-sizing: border-box; color: #000; line-height: 1.2; ' + pageBreak + '">';
+                itemsHtml += '<div style="text-align: right; font-size: 28px; font-weight: 900; margin-bottom: 5px; margin-top: 0;">โต๊ะ ' + tableName + '</div>';
+                itemsHtml += '<div style="font-weight: 900; font-size: 24px; word-break: break-word; text-align: left; margin-bottom: 10px;">' + fName + '</div>';
+                itemsHtml += fNoteHtml;
+                itemsHtml += '<div style="display: flex; justify-content: space-between; font-size: 24px; font-weight: 900; margin-bottom: 10px;">';
+                itemsHtml += '<div style="width: 25%; text-align: left;">' + fQty + '</div>';
+                itemsHtml += '<div style="width: 35%; text-align: center;">' + fPrice.toFixed(2) + '</div>';
+                itemsHtml += '<div style="width: 40%; text-align: right;">' + fTotal.toFixed(2) + '</div>';
+                itemsHtml += '</div>';
+                itemsHtml += '<div style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px;">' + fDateTimeStr + '</div>';
+                itemsHtml += '<div style="border-bottom: 2px dashed #000; margin-top: 5px; margin-bottom: 15px;"></div>';
+                itemsHtml += '</div>';
+            }
+
+            printArea.innerHTML = itemsHtml;
+
+            setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                    printArea.innerHTML = "";
+                    if (callback) callback();
+                }, 1000);
+            }, 500);
         }
     </script>
 </body>
