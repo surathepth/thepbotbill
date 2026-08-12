@@ -9003,27 +9003,32 @@
           try { const info = JSON.parse(shopInfoStr); if (info.name) shopName = info.name; } catch (e) {}
         }
 
-        // === ครั้งที่ 1: HTML บิล Cash (รวมทุกรายการ) ===
-        let cashItemsHtml = "";
-        let grandTotal = 0;
-        newItems.forEach((item) => {
-          let name = item.productName || item.name || "ไม่มีชื่อ";
-          let qty = parseInt(item.qty) || 1;
-          let price = parseFloat(item.price) || 0;
-          grandTotal += qty * price;
-          cashItemsHtml += '<div style="display:flex;justify-content:space-between;margin-bottom:3px;"><div style="flex:1;padding-right:5px;">' + name + '</div><div style="white-space:nowrap;text-align:right;">' + qty + 'x' + price + '</div></div>';
+        // === ครั้งที่ 1: HTML บิล Cash (รวมทุกรายการ หน้าตาเหมือนบิลครัว) ===
+        let cashBodyHtml = "";
+        newItems.forEach((item, index) => {
+          let d = new Date();
+          let ft = d.toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"});
+          let fd = d.toLocaleDateString("th-TH", {day:"2-digit",month:"2-digit",year:"2-digit"});
+          let dt = fd + '-' + ft;
+          let nm = item.productName || item.name || "ไม่มีชื่อ";
+          let cn = item.note ? item.note.replace(/\*\s*รสชาติ/g,'').replace(/หมายเหตุ:?/g,'').trim() : "";
+          let nh = cn ? '<div style="font-size:16px;font-weight:bold;text-align:left;margin-bottom:5px;color:#000;">' + cn + '</div>' : '';
+          let tot = parseFloat(item.price) * parseInt(item.qty);
+          let pb = index < newItems.length - 1 ? 'page-break-after:always;' : ''; // Cash bill ก็ใช้ page-break แยกรายการเหมือนครัวเพื่อให้แม่ครัวตัดง่าย
+          
+          cashBodyHtml += '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;' + pb + '">'
+            + '<div style="text-align:right;font-size:28px;font-weight:900;margin-bottom:5px;">โต๊ะ ' + orderData.queueNo + '</div>'
+            + '<div style="font-weight:900;font-size:24px;word-break:break-word;text-align:left;margin-bottom:10px;">' + nm + '</div>'
+            + nh
+            + '<div style="display:flex;justify-content:space-between;font-size:24px;font-weight:900;margin-bottom:10px;">'
+            + '<div style="width:25%;text-align:left;">' + item.qty + '</div>'
+            + '<div style="width:35%;text-align:center;">' + parseFloat(item.price).toFixed(2) + '</div>'
+            + '<div style="width:40%;text-align:right;">' + tot.toFixed(2) + '</div></div>'
+            + '<div style="text-align:center;font-size:16px;font-weight:bold;margin-bottom:15px;">' + dt + '</div>'
+            + '<div style="border-bottom:2px dashed #000;margin-top:5px;margin-bottom:15px;"></div></div>';
         });
-        let dateStr = new Date().toLocaleString("th-TH");
-        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:auto;}body{font-family:Sarabun,Kanit,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;font-size:12px;line-height:1.3;}</style></head><body>'
-          + '<div style="text-align:center;margin-bottom:10px;"><div style="font-size:16px;font-weight:bold;">' + shopName + '</div>'
-          + '<div style="font-size:10px;margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>'
-          + '<div style="font-size:12px;font-weight:bold;">ใบเสร็จ/บิลรวม (IPAQ)</div>'
-          + '<div style="font-size:12px;margin-bottom:3px;">โต๊ะ: ' + orderData.queueNo + '</div>'
-          + '<div style="font-size:10px;">' + dateStr + '</div></div>'
-          + '<div style="border-top:1px dashed #000;padding:5px 0;border-bottom:1px dashed #000;margin-bottom:5px;">' + cashItemsHtml + '</div>'
-          + '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:5px;"><span>ยอดรวม</span><span>' + grandTotal.toFixed(2) + '</span></div>'
-          + '<div style="text-align:center;font-size:10px;margin-top:10px;">ขอบคุณที่ใช้บริการค่ะ</div>'
-          + '</body></html>';
+
+        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:auto;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
 
         // === ครั้งที่ 2: HTML บิลครัว (เฉพาะอาหาร) ===
         let foodItems = newItems.filter((item) => { let cat = item.category || ""; return cat !== "ประเภทเครื่องดื่ม"; });
