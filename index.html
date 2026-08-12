@@ -9014,9 +9014,9 @@
           let cn = item.note ? item.note.replace(/\*\s*รสชาติ/g,'').replace(/หมายเหตุ:?/g,'').trim() : "";
           let nh = cn ? '<div style="font-size:16px;font-weight:bold;text-align:left;margin-bottom:5px;color:#000;">' + cn + '</div>' : '';
           let tot = parseFloat(item.price) * parseInt(item.qty);
-          let pb = index < newItems.length - 1 ? 'page-break-after:always;' : ''; // Cash bill ก็ใช้ page-break แยกรายการเหมือนครัวเพื่อให้แม่ครัวตัดง่าย
+          // [Lilin Fix] ลบ page-break ออก เพื่อให้บิลแคชเชียร์รวมเป็นกระดาษแผ่นเดียว ไม่ตัดแยกชิ้น
           
-          cashBodyHtml += '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;' + pb + '">'
+          cashBodyHtml += '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
             + '<div style="text-align:right;font-size:28px;font-weight:900;margin-bottom:5px;">โต๊ะ ' + orderData.queueNo + '</div>'
             + '<div style="font-weight:900;font-size:24px;word-break:break-word;text-align:left;margin-bottom:10px;">' + nm + '</div>'
             + nh
