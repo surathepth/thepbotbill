@@ -9004,29 +9004,33 @@
         }
 
         // === ครั้งที่ 1: HTML บิล Cash (รวมทุกรายการ หน้าตาเหมือนบิลครัว) ===
-        let cashBodyHtml = "";
+        // [Lilin Surgical Edit] สร้างส่วนหัวบิล (Header) เพียงครั้งเดียวที่นอกลูป
+        let gDate = new Date();
+        let gTime = gDate.toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"});
+        let gDay = gDate.toLocaleDateString("th-TH", {day:"2-digit",month:"2-digit",year:"2-digit"});
+        let globalDateTime = gDay + ' ' + gTime;
+        
+        let cashBodyHtml = '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
+          + '<div style="text-align:center;font-size:28px;font-weight:900;margin-bottom:5px;">โต๊ะ: ' + orderData.queueNo + '</div>'
+          + '<div style="text-align:center;font-size:18px;font-weight:bold;margin-bottom:10px;">วันที่: ' + globalDateTime + '</div>'
+          + '<div style="border-bottom:2px dashed #000;margin-top:5px;margin-bottom:10px;"></div>';
+
         newItems.forEach((item, index) => {
-          let d = new Date();
-          let ft = d.toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"});
-          let fd = d.toLocaleDateString("th-TH", {day:"2-digit",month:"2-digit",year:"2-digit"});
-          let dt = fd + '-' + ft;
           let nm = item.productName || item.name || "ไม่มีชื่อ";
           let cn = item.note ? item.note.replace(/\*\s*รสชาติ/g,'').replace(/หมายเหตุ:?/g,'').trim() : "";
           let nh = cn ? '<div style="font-size:16px;font-weight:bold;text-align:left;margin-bottom:5px;color:#000;">' + cn + '</div>' : '';
           let tot = parseFloat(item.price) * parseInt(item.qty);
-          // [Lilin Fix] ลบ page-break ออก เพื่อให้บิลแคชเชียร์รวมเป็นกระดาษแผ่นเดียว ไม่ตัดแยกชิ้น
           
-          cashBodyHtml += '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
-            + '<div style="text-align:right;font-size:28px;font-weight:900;margin-bottom:5px;">โต๊ะ ' + orderData.queueNo + '</div>'
-            + '<div style="font-weight:900;font-size:24px;word-break:break-word;text-align:left;margin-bottom:10px;">' + nm + '</div>'
+          // ภายในลูปแสดงเฉพาะข้อมูลเมนูอาหาร ไม่แสดงโต๊ะและวันที่ซ้ำอีก
+          cashBodyHtml += '<div style="font-weight:900;font-size:24px;word-break:break-word;text-align:left;margin-bottom:10px;">' + nm + '</div>'
             + nh
             + '<div style="display:flex;justify-content:space-between;font-size:24px;font-weight:900;margin-bottom:10px;">'
-            + '<div style="width:25%;text-align:left;">' + item.qty + '</div>'
-            + '<div style="width:35%;text-align:center;">' + parseFloat(item.price).toFixed(2) + '</div>'
-            + '<div style="width:40%;text-align:right;">' + tot.toFixed(2) + '</div></div>'
-            + '<div style="text-align:center;font-size:16px;font-weight:bold;margin-bottom:15px;">' + dt + '</div>'
-            + '<div style="border-bottom:2px dashed #000;margin-top:5px;margin-bottom:15px;"></div></div>';
+            + '<div style="width:25%;text-align:left;">' + item.qty + 'x</div>'
+            + '<div style="width:35%;text-align:center;">' + parseFloat(item.price).toFixed(0) + '</div>'
+            + '<div style="width:40%;text-align:right;">' + tot.toFixed(2) + '</div></div>';
         });
+        
+        cashBodyHtml += '</div>';
 
         let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:auto;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
 
