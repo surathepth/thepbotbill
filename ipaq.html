@@ -555,7 +555,8 @@
                     price: Number(cPrice),
                     qty: 1,
                     note: cNote || "",
-                    isNewItem: true
+                    isNewItem: true,
+                    category: "นอกเมนู"
                 });
                 renderCart();
                 return;
@@ -579,7 +580,8 @@
                     price: Number(product.price),
                     qty: 1,
                     note: "",
-                    isNewItem: true
+                    isNewItem: true,
+                    category: product.category || ""
                 });
             }
             orderSentForTable = false; // รีเซ็ตล็อกเมื่อเพิ่มรายการใหม่
@@ -725,18 +727,12 @@
 
                 return database.ref("erp_db_orders/" + currentTableId).set(orderData);
             }).then(function() {
-                // === พิมพ์ครั้งที่ 1: บิล Cash (รวมทุกรายการ อาหาร+เครื่องดื่ม) ===
-                printCashBill(itemsForPrint, currentTableName, function() {
-                    // === พิมพ์ครั้งที่ 2: บิลครัว (เฉพาะอาหาร ไม่รวมเครื่องดื่ม) ===
-                    printKitchenBillOnly(itemsForPrint, currentTableName, function() {
-                        // ล็อกปุ่มหลังส่งสำเร็จ
-                        orderSentForTable = true;
-                        btn.innerHTML = "✅ ส่งออเดอร์แล้ว";
-                        btn.disabled = true;
-                        btn.style.opacity = "0.5";
-                        Swal.fire("สำเร็จ!", "ส่งออเดอร์และพิมพ์บิลเรียบร้อย", "success");
-                    });
-                });
+                // การพิมพ์จะถูกจัดการโดยเครื่องแคชเชียร์ (index.html) ผ่าน hasNewItems flag อัตโนมัติ
+                orderSentForTable = true;
+                btn.innerHTML = "✅ ส่งออเดอร์แล้ว";
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                Swal.fire("สำเร็จ!", "ส่งออเดอร์เข้าครัวเรียบร้อย", "success");
             }).catch(function(err) {
                 alert("เกิดข้อผิดพลาด: " + err.message);
                 btn.innerHTML = "🚀 ส่งออเดอร์เข้าครัว";
