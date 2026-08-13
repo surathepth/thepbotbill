@@ -9010,19 +9010,16 @@
         let gDay = gDate.toLocaleDateString("th-TH", {day:"2-digit",month:"2-digit",year:"2-digit"});
         let globalDateTime = gDay + ' ' + gTime;
         
-        let cashBodyHtml = '<div style="page-break-inside: avoid; width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
+        let cashBodyHtml = '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
           + '<div style="text-align:center;font-size:20px;font-weight:900;margin-bottom:5px;">โต๊ะ: ' + orderData.queueNo + '</div>'
           + '<div style="text-align:center;font-size:13px;font-weight:normal;margin-bottom:10px;">วันที่: ' + globalDateTime + '</div>'
           + '<div style="border-bottom:1px dashed #000;margin-top:5px;margin-bottom:10px;"></div>';
-
-        let grandTotal = 0;
 
         newItems.forEach((item, index) => {
           let nm = item.productName || item.name || "ไม่มีชื่อ";
           let cn = item.note ? item.note.replace(/\*\s*รสชาติ/g,'').replace(/หมายเหตุ:?/g,'').trim() : "";
           let nh = cn ? '<br><span style="font-size:12px;color:#000;">' + cn + '</span>' : '';
           let tot = parseFloat(item.price) * parseInt(item.qty);
-          grandTotal += tot;
           
           // ภายในลูปแสดงข้อมูลเมนูเป็นบรรทัดเดียวกัน (Single Line) แบบตัวอักษรปกติ (Normal)
           cashBodyHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;font-weight:normal;margin-bottom:5px;">'
@@ -9033,15 +9030,9 @@
         });
         
         // เติม <br> หลายๆ บรรทัดด้านล่างสุด เพื่อบังคับดันกระดาษให้พ้นใบมีดตัด 100%
-        cashBodyHtml += '<div style="border-top:1px dashed #000;margin-top:5px;margin-bottom:5px;"></div>'
-          + '<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-bottom:10px;">'
-          + '<span>ยอดรวม</span>'
-          + '<span>' + grandTotal.toFixed(2) + '</span>'
-          + '</div>'
-          + '<div style="text-align:center;font-size:12px;margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>'
-          + '<br><br><br><br><br><br><br><br></div>';
+        cashBodyHtml += '<br><br><br><br><br></div>';
 
-        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:80mm 2000mm;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
+        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:auto;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
 
         // === ครั้งที่ 2: HTML บิลครัว (เฉพาะอาหาร) ===
         let foodItems = newItems.filter((item) => { let cat = item.category || ""; return cat !== "ประเภทเครื่องดื่ม"; });

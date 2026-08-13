@@ -896,8 +896,7 @@
             var now = new Date();
             var dateStr = now.toLocaleString("th-TH");
 
-            printArea.innerHTML = '<div style="page-break-inside: avoid; width: 100%;">' +
-                '<div style="text-align:center; margin-bottom:10px;">' +
+            printArea.innerHTML = '<div style="text-align:center; margin-bottom:10px;">' +
                 '<div style="font-size:14px; font-weight:bold;">' + shopName + '</div>' +
                 '<div style="font-size:9px; margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>' +
                 '<div style="font-size:10px;">ใบเสร็จ/บิลรวม</div>' +
@@ -912,7 +911,7 @@
                 '<span>' + grandTotal.toFixed(2) + '</span>' +
                 '</div>' +
                 '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>' +
-                '<br><br><br><br><br><br><br><br></div>';
+                '<br><br><br><br><br>';
 
             setTimeout(function() {
                 window.print();
