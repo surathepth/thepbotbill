@@ -144,28 +144,25 @@
             }
         }
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #receipt-print-area,
-            #receipt-print-area * {
-                visibility: visible;
+            body > *:not(#receipt-print-area) {
+                display: none !important;
             }
             #receipt-print-area {
-                position: absolute;
+                position: relative;
                 left: 0;
                 top: 0;
                 width: 100%;
                 max-width: 80mm;
                 margin: 0;
                 padding: 0;
+                padding-bottom: 50px; /* เพิ่ม padding เผื่อตัดกระดาษ */
                 font-family: 'Sarabun', 'Courier New', Courier, monospace;
                 font-size: 16px;
                 color: #000;
             }
             @page {
                 margin: 0;
-                size: auto;
+                size: 80mm 2000mm;
             }
         }
         /* Modern Mobile UI List View Additions */
@@ -249,7 +246,7 @@
             </select>
             <button class="btn btn-blue" style="width: 100%; padding: 18px; font-size: 20px; border-radius: 15px;" onclick="openSelectedTable()">✅ เปิดโต๊ะรับออเดอร์</button>
             <div style="margin-top: 40px; text-align: center;">
-                <img src="C:/Users/ThepBot/Desktop/แก้ไขปัญหา/มือถือ/โลโก้.png" alt="ล้านโคขุนริมโขง" style="max-width: 100%; height: auto; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
+                <img src="./โลโก้.png" alt="ล้านโคขุนริมโขง" style="max-width: 100%; height: auto; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
             </div>
         </div>
     </div>
@@ -282,7 +279,7 @@
             <!-- ฝั่งขวา: ตะกร้า (ตอนนี้เป็น Bottom Sheet) -->
             <div class="cart-area" id="cart-area-modal">
                 <button class="close-cart-btn" onclick="toggleCartModal()">✖</button>
-                <div style="background: #fff; color: #2d3748; padding: 20px; text-align: center; font-weight: bold; font-size: 20px; border-bottom: 1px solid #e2e8f0; border-top-left-radius: 25px; border-top-right-radius: 25px;">
+                <div id="cart-modal-title" style="background: #fff; color: #2d3748; padding: 20px; text-align: center; font-weight: bold; font-size: 20px; border-bottom: 1px solid #e2e8f0; border-top-left-radius: 25px; border-top-right-radius: 25px;">
                     รายการสั่งของโต๊ะนี้
                 </div>
                 <div class="cart-items" id="cart-items">
@@ -501,6 +498,12 @@
             currentTableId = tId;
             currentTableName = tName;
             document.getElementById("order-table-name").innerText = tName;
+            
+            var cartTitleEl = document.getElementById("cart-modal-title");
+            if (cartTitleEl) {
+                cartTitleEl.innerText = "รายการสั่งของ " + tName;
+            }
+
             document.getElementById("table-screen").style.display = "none";
             document.getElementById("order-screen").style.display = "flex";
             newCartItems = [];
@@ -590,7 +593,7 @@
                 if (currentCategory !== "ทั้งหมด" && p.category !== currentCategory) continue;
                 if (searchTxt && p.name.toLowerCase().indexOf(searchTxt) === -1) continue;
 
-                var bgImg = (p.image && p.image.indexOf('http') === 0) ? p.image : 'file:///C:/Users/ThepBot/Desktop/แก้ไขปัญหา/มือถือ/ภาพเมนู.jpg';
+                var bgImg = (p.image && p.image.indexOf('http') === 0) ? p.image : './ภาพเมนู.jpg';
                 var itemCode = p.barcode || p.id;
                 
                 html += '<div style="display:flex; align-items:center; background:#fff; padding:15px; border-radius:15px; margin-bottom:15px; box-shadow:0 3px 10px rgba(0,0,0,0.08); border:1px solid #eee; width:100%; cursor:pointer;" onclick="addToCart(\'' + itemCode + '\')">';
@@ -743,11 +746,20 @@
             var stickyCount = document.getElementById("sticky-cart-count");
             var stickyTotal = document.getElementById("sticky-cart-total");
             var stickyBar = document.getElementById("sticky-cart-bar");
-            if (stickyCount) stickyCount.innerText = newTotalQty;
-            if (stickyTotal) stickyTotal.innerText = "฿" + newTotalPrice.toLocaleString() + " >";
+            // Calculate old items quantity for sticky count
+            var oldTotalQty = 0;
+            if (currentOrderItems && currentOrderItems.length > 0) {
+                for (var i = 0; i < currentOrderItems.length; i++) {
+                    oldTotalQty += Number(currentOrderItems[i].qty);
+                }
+            }
+            var allTotalQty = newTotalQty + oldTotalQty;
+
+            if (stickyCount) stickyCount.innerText = allTotalQty;
+            if (stickyTotal) stickyTotal.innerText = "฿" + grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " >";
             
             if (stickyBar) {
-                if (newTotalQty > 0) {
+                if (allTotalQty > 0) {
                     stickyBar.style.display = "flex";
                 } else {
                     stickyBar.style.display = "none";
@@ -884,7 +896,8 @@
             var now = new Date();
             var dateStr = now.toLocaleString("th-TH");
 
-            printArea.innerHTML = '<div style="text-align:center; margin-bottom:10px;">' +
+            printArea.innerHTML = '<div style="page-break-inside: avoid; width: 100%;">' +
+                '<div style="text-align:center; margin-bottom:10px;">' +
                 '<div style="font-size:14px; font-weight:bold;">' + shopName + '</div>' +
                 '<div style="font-size:9px; margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>' +
                 '<div style="font-size:10px;">ใบเสร็จ/บิลรวม</div>' +
@@ -898,7 +911,8 @@
                 '<span>ยอดรวม</span>' +
                 '<span>' + grandTotal.toFixed(2) + '</span>' +
                 '</div>' +
-                '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>';
+                '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>' +
+                '<br><br><br><br><br><br><br><br></div>';
 
             setTimeout(function() {
                 window.print();
@@ -974,6 +988,7 @@
                 itemsHtml += '<div style="border-bottom: 2px dashed #000; margin-top: 5px; margin-bottom: 15px;"></div>';
                 itemsHtml += '</div>';
             }
+            itemsHtml += '<br><br><br><br><br>';
 
             printArea.innerHTML = itemsHtml;
 

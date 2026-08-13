@@ -143,28 +143,25 @@
             }
         }
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #receipt-print-area,
-            #receipt-print-area * {
-                visibility: visible;
+            body > *:not(#receipt-print-area) {
+                display: none !important;
             }
             #receipt-print-area {
-                position: absolute;
+                position: relative;
                 left: 0;
                 top: 0;
                 width: 100%;
                 max-width: 80mm;
                 margin: 0;
                 padding: 0;
+                padding-bottom: 50px; /* เพิ่ม padding เผื่อตัดกระดาษ */
                 font-family: 'Sarabun', 'Courier New', Courier, monospace;
                 font-size: 16px;
                 color: #000;
             }
             @page {
                 margin: 0;
-                size: auto;
+                size: 80mm 2000mm;
             }
         }
     </style>
@@ -767,7 +764,8 @@
             var now = new Date();
             var dateStr = now.toLocaleString("th-TH");
 
-            printArea.innerHTML = '<div style="text-align:center; margin-bottom:10px;">' +
+            printArea.innerHTML = '<div style="page-break-inside: avoid; width: 100%;">' +
+                '<div style="text-align:center; margin-bottom:10px;">' +
                 '<div style="font-size:14px; font-weight:bold;">' + shopName + '</div>' +
                 '<div style="font-size:9px; margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>' +
                 '<div style="font-size:10px;">ใบเสร็จ/บิลรวม</div>' +
@@ -781,7 +779,8 @@
                 '<span>ยอดรวม</span>' +
                 '<span>' + grandTotal.toFixed(2) + '</span>' +
                 '</div>' +
-                '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>';
+                '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>' +
+                '<br><br><br><br><br><br><br><br></div>';
 
             setTimeout(function() {
                 window.print();
@@ -857,6 +856,7 @@
                 itemsHtml += '<div style="border-bottom: 2px dashed #000; margin-top: 5px; margin-bottom: 15px;"></div>';
                 itemsHtml += '</div>';
             }
+            itemsHtml += '<br><br><br><br><br>';
 
             printArea.innerHTML = itemsHtml;
 
