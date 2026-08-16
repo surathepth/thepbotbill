@@ -3519,14 +3519,14 @@
           box-sizing: border-box;
         }
         .ipaq-left {
-          width: 45%;
+          width: 65%;
           padding: 10px;
           overflow-y: auto;
           background: #ecf0f1;
           border-right: 2px solid #bdc3c7;
         }
         .ipaq-right {
-          width: 55%;
+          width: 35%;
           display: flex;
           flex-direction: column;
           background: white;
@@ -3621,7 +3621,7 @@
           position: fixed;
           top: 0;
           left: 0;
-          width: 45%;
+          width: 65%;
           height: 100vh;
           background: rgba(0, 0, 0, 0.4);
           z-index: 9999;
@@ -3642,19 +3642,21 @@
         .ipaq-menu-header {
           background: #2980b9;
           color: white;
-          padding: 10px;
-          font-size: 18px;
+          padding: 2px 10px;
+          font-size: 16px;
+          min-height: 30px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           white-space: nowrap;
         }
         .ipaq-menu-grid {
-          padding: 2px;
+          padding: 0px 2px;
           display: grid;
-          grid-template-columns: repeat(6, 1fr);
+          grid-template-columns: repeat(8, minmax(0, 1fr));
           gap: 2px;
           overflow-y: auto;
+          overflow-x: hidden;
           flex-grow: 1;
           background: #1a1a2e;
         }
@@ -3669,23 +3671,57 @@
           flex-direction: column;
           justify-content: space-between;
           color: #ffffff;
+          min-width: 0;
         }
         .ipaq-menu-item img {
           width: 100%;
-          height: 120px;
+          aspect-ratio: 4 / 3;
           object-fit: cover;
-          border-radius: 8px;
-          margin-bottom: 10px;
+          border-radius: 4px;
+          margin-bottom: 2px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
         .ipaq-menu-item-name {
-          font-size: 22px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          font-size: 13px;
           font-weight: bold;
-          margin-bottom: 5px;
+          margin-bottom: 2px;
           color: #ffffff;
+          line-height: 1.2;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
         .ipaq-menu-item-price {
-          font-size: 20px;
-          color: #2ecc71;
+          font-size: 13px;
+          font-weight: bold;
+          color: #00ff88;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .ipaq-menu-note-input {
+          width: 100%;
+          height: 28px;
+          text-align: center;
+          margin-bottom: 2px;
+          border: 1px solid #7f8c8d;
+          border-radius: 3px;
+          font-size: 16px;
+          font-weight: bold;
+          box-sizing: border-box;
+          background: #2c3e50;
+          color: #f1c40f;
+          outline: none;
+          transition: border 0.2s, box-shadow 0.2s;
+        }
+        .ipaq-menu-note-input::placeholder {
+          color: #f1c40f;
+          opacity: 1;
+        }
+        .ipaq-menu-note-input:focus {
+          border-color: #f1c40f;
+          box-shadow: 0 0 5px rgba(241, 196, 15, 0.8);
         }
       </style>
 
@@ -3772,8 +3808,8 @@
             </div>
           </div>
 
-          <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
+          <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 13px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
               <span
                 style="
                   display: inline-block;
@@ -3792,7 +3828,6 @@
                   height: 15px;
                   background: #e74c3c;
                   border-radius: 3px;
-                  margin-left: 15px;
                   margin-right: 5px;
                 "
               ></span>
@@ -3804,7 +3839,6 @@
                   height: 15px;
                   background: #f1c40f;
                   border-radius: 3px;
-                  margin-left: 15px;
                   margin-right: 5px;
                 "
               ></span>
@@ -3814,7 +3848,7 @@
               onclick="promptStartingCash()"
               style="
                 font-size: 12px;
-                padding: 5px 10px;
+                padding: 5px 8px;
                 background: #34495e;
                 color: white;
                 border: none;
@@ -3822,9 +3856,10 @@
                 cursor: pointer;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 white-space: nowrap;
+                margin-left: 5px;
               "
             >
-              💵 บันทึกเงินทอนตั้งต้น (เงินลอย)
+              💵 บันทึกเงินทอนตั้งต้น
             </button>
           </div>
           <div class="ipaq-table-grid" id="ipaq-table-grid"></div>
@@ -3909,20 +3944,26 @@
             <button
               onclick="closeIpaqMenuModal()"
               style="
-                background: none;
+                background: linear-gradient(145deg, #e74c3c, #c0392b);
                 border: none;
                 color: white;
-                font-size: 30px;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 6px 16px;
+                border-radius: 4px;
+                line-height: 1;
                 cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
               "
             >
-              &times;
+              ✖ ปิด
             </button>
           </div>
           <!-- Search Bar Added by Lilin -->
-          <div style="padding: 10px; background: #fff; text-align: center; border-bottom: 1px solid #ddd; display: flex; gap: 10px; justify-content: center; align-items: center;">
-             <input type="text" id="ipaq-menu-search" placeholder="🔍 ค้นหาชื่อเมนู อาหารและเครื่องดื่ม..." onkeyup="filterIpaqMenu()" style="flex: 1; padding: 10px; font-size: 16px; border-radius: 8px; border: 2px solid #3498db; outline: none;">
-             <button onclick="finishAndPrintKitchen('all')" style="padding: 10px 20px; font-size: 18px; font-weight: bold; background: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">✅ พิมพ์อาหารเครื่องดื่ม</button>
+          <div style="padding: 4px 10px; background: #fff; text-align: center; border-bottom: 1px solid #ddd; display: flex; gap: 10px; justify-content: center; align-items: center;">
+             <input type="text" id="ipaq-menu-search" placeholder="🔍 ค้นหาชื่อเมนู อาหารและเครื่องดื่ม..." onkeyup="filterIpaqMenu()" style="flex: 1; padding: 6px; font-size: 14px; border-radius: 8px; border: 2px solid #3498db; outline: none;">
+             <button onclick="finishAndPrintKitchen('all')" style="padding: 6px 15px; font-size: 14px; font-weight: bold; background: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">✅ พิมพ์อาหารเครื่องดื่ม</button>
           </div>
           <div class="ipaq-menu-grid" id="ipaq-menu-grid"></div>
         </div>
@@ -5171,9 +5212,9 @@
       });
 
       function getProductDB() {
-        return window.erpData && window.erpData["product"]
-          ? window.erpData["product"]
-          : {};
+        let db1 = window.erpData && window.erpData["product"] ? window.erpData["product"] : {};
+        let db2 = window.productDB || {};
+        return Object.assign({}, db1, db2);
       }
 
       // [Lilin Additive] ระบบค้นหาสินค้าอัจฉริยะ (Instant Search Autocomplete) โชว์รายละเอียดเต็ม ค้นหาได้ทันที
@@ -9010,16 +9051,19 @@
         let gDay = gDate.toLocaleDateString("th-TH", {day:"2-digit",month:"2-digit",year:"2-digit"});
         let globalDateTime = gDay + ' ' + gTime;
         
-        let cashBodyHtml = '<div style="width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
+        let cashBodyHtml = '<div style="page-break-inside: avoid; width:100%;padding:0;margin:0;box-sizing:border-box;color:#000;line-height:1.2;">'
           + '<div style="text-align:center;font-size:20px;font-weight:900;margin-bottom:5px;">โต๊ะ: ' + orderData.queueNo + '</div>'
           + '<div style="text-align:center;font-size:13px;font-weight:normal;margin-bottom:10px;">วันที่: ' + globalDateTime + '</div>'
           + '<div style="border-bottom:1px dashed #000;margin-top:5px;margin-bottom:10px;"></div>';
+
+        let grandTotal = 0;
 
         newItems.forEach((item, index) => {
           let nm = item.productName || item.name || "ไม่มีชื่อ";
           let cn = item.note ? item.note.replace(/\*\s*รสชาติ/g,'').replace(/หมายเหตุ:?/g,'').trim() : "";
           let nh = cn ? '<br><span style="font-size:12px;color:#000;">' + cn + '</span>' : '';
           let tot = parseFloat(item.price) * parseInt(item.qty);
+          grandTotal += tot;
           
           // ภายในลูปแสดงข้อมูลเมนูเป็นบรรทัดเดียวกัน (Single Line) แบบตัวอักษรปกติ (Normal)
           cashBodyHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;font-weight:normal;margin-bottom:5px;">'
@@ -9030,9 +9074,15 @@
         });
         
         // เติม <br> หลายๆ บรรทัดด้านล่างสุด เพื่อบังคับดันกระดาษให้พ้นใบมีดตัด 100%
-        cashBodyHtml += '<br><br><br><br><br></div>';
+        cashBodyHtml += '<div style="border-top:1px dashed #000;margin-top:5px;margin-bottom:5px;"></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-bottom:10px;">'
+          + '<span>ยอดรวม</span>'
+          + '<span>' + grandTotal.toFixed(2) + '</span>'
+          + '</div>'
+          + '<div style="text-align:center;font-size:12px;margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>'
+          + '<br><br><br><br><br><br><br><br></div>';
 
-        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:auto;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
+        let cashFullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cash</title><style>@page{margin:0;size:80mm 2000mm;}body{font-family:Kanit,Sarabun,Arial,sans-serif;width:72mm;margin:0 auto;padding:3mm;color:#000;}</style></head><body>' + cashBodyHtml + '</body></html>';
 
         // === ครั้งที่ 2: HTML บิลครัว (เฉพาะอาหาร) ===
         let foodItems = newItems.filter((item) => { let cat = item.category || ""; return cat !== "ประเภทเครื่องดื่ม"; });
@@ -10068,10 +10118,9 @@
 
         products = [];
         try {
-          let dbProducts =
-            window.erpData && window.erpData["product"]
-              ? window.erpData["product"]
-              : window.productDB || {};
+          let globalDb = window.erpData && window.erpData["product"] ? window.erpData["product"] : {};
+          let shopDb = window.productDB || {};
+          let dbProducts = Object.assign({}, globalDb, shopDb);
           for (let pId in dbProducts) {
             let p = dbProducts[pId];
             if (p) {
@@ -10317,11 +10366,20 @@
           item.setAttribute("data-name", p.name.toLowerCase());
           item.onclick = () => ipaqAddOrder(p);
 
-          let imgSrc =
-            p.image || "https://via.placeholder.com/150?text=No+Image";
+          let cat = p.category || "";
+          let name = p.name || "";
+          let isDrink = cat.includes("เครื่องดื่ม") || cat.includes("Bar") ||
+                        name.includes("น้ำเปล่า") || name.includes("น้ำแข็ง") || name.includes("โซดา") || name.includes("เบียร์") || name.includes("กาแฟ") ||
+                        name.includes("coke") || name.includes("LEO") || name.includes("ลีโอ") || name.includes("soda") || name.includes("โคล่า") || 
+                        name.includes("โค้ก") || name.includes("เป๊ปซี่") || name.includes("pepsi") || name.includes("สไปรท์") || name.includes("sprite") || 
+                        name.includes("heineken") || name.includes("ไฮเนเก้น") || name.toLowerCase().includes("beer") || name.includes("ไวน์") || 
+                        name.includes("แสงโสม") || name.includes("หงส์ทอง") || name.includes("รีเจนซี่") || name.includes("285");
+
+          let fallbackImg = isDrink ? "./images/bg_drink.png" : "./images/bg_meat.jpg";
+          let imgSrc = (p.image && p.image.trim() !== "") ? p.image : fallbackImg;
 
           item.innerHTML = `
-            <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+            <img src="${imgSrc}" onerror="this.src='${fallbackImg}'">
             <div class="ipaq-menu-item-name">${p.name}</div>
             <div class="ipaq-menu-item-price">${p.price.toFixed(2)}</div>
         `;
@@ -10959,23 +11017,31 @@ function _fallbackPromptEdit(orderItem) {
           item.setAttribute("data-name", p.name.toLowerCase());
           // We remove the onclick from the whole card to prevent accidental clicks when adjusting qty
 
-          let imgHtml = "";
-          if (p.image && p.image.trim() !== "") {
-            imgHtml = `<img src="${p.image}" onerror="this.style.display='none'" style="width:100%; height:50px; object-fit:cover; border-radius:3px; margin-bottom:2px;">`;
-          }
+          let cat = p.category || "";
+          let name = p.name || "";
+          let isDrink = cat.includes("เครื่องดื่ม") || cat.includes("Bar") ||
+                        name.includes("น้ำเปล่า") || name.includes("น้ำแข็ง") || name.includes("โซดา") || name.includes("เบียร์") || name.includes("กาแฟ") ||
+                        name.includes("coke") || name.includes("LEO") || name.includes("ลีโอ") || name.includes("soda") || name.includes("โคล่า") || 
+                        name.includes("โค้ก") || name.includes("เป๊ปซี่") || name.includes("pepsi") || name.includes("สไปรท์") || name.includes("sprite") || 
+                        name.includes("heineken") || name.includes("ไฮเนเก้น") || name.toLowerCase().includes("beer") || name.includes("ไวน์") || 
+                        name.includes("แสงโสม") || name.includes("หงส์ทอง") || name.includes("รีเจนซี่") || name.includes("285");
+
+          let fallbackImg = isDrink ? "./images/bg_drink.png" : "./images/bg_meat.jpg";
+          let imgSrc = (p.image && p.image.trim() !== "") ? p.image : fallbackImg;
+          let imgHtml = `<img src="${imgSrc}" onerror="this.src='${fallbackImg}'">`;
 
           item.innerHTML = `
             ${imgHtml}
-            <div class="ipaq-menu-item-name" style="margin-top:2px; font-weight:bold; font-size:16px; white-space:normal; word-wrap:break-word; line-height:1.2; color:#ffffff;">${p.name}</div>
-            <div class="ipaq-menu-item-price" style="color:#2ecc71; font-weight:bold; font-size:14px; margin-bottom:2px;">${p.price.toFixed(2)}</div>
+            <div class="ipaq-menu-item-name">${p.name}</div>
+            <div class="ipaq-menu-item-price">${p.price.toFixed(2)}</div>
             
-            <div class="ipaq-qty-control" style="display:flex; justify-content:center; align-items:center; margin-bottom:2px;">
-                <button onclick="changeIpaqTempQty('${p.id}', -1)" style="width:28px;height:28px;font-size:16px;border-radius:2px;border:none;background:#e74c3c;color:white;cursor:pointer;line-height:1;">-</button>
-                <input type="number" id="ipaq-temp-qty-${p.id}" value="1" min="1" style="width:35px;height:28px;text-align:center;margin:0 2px;border:1px solid #ccc;border-radius:2px;font-size:16px;font-weight:bold;padding:0;">
-                <button onclick="changeIpaqTempQty('${p.id}', 1)" style="width:28px;height:28px;font-size:16px;border-radius:2px;border:none;background:#2ecc71;color:white;cursor:pointer;line-height:1;">+</button>
+            <div class="ipaq-qty-control" style="display:flex; justify-content:center; align-items:flex-start; margin-bottom:2px; width:100%; height:28px; box-sizing:border-box;">
+                <button onclick="changeIpaqTempQty('${p.id}', -1)" style="flex:1; height:28px; font-size:20px; font-weight:bold; border-radius:3px 0 0 3px; border:none; background:linear-gradient(145deg, #e74c3c, #c0392b); color:white; cursor:pointer; text-shadow: 1px 1px 1px rgba(0,0,0,0.3); padding:0; margin:0; display:flex; align-items:center; justify-content:center; box-sizing:border-box;">-</button>
+                <input type="number" id="ipaq-temp-qty-${p.id}" value="1" min="1" style="width:36px; height:28px; text-align:center; margin:0; border:none; border-top:1px solid #555; border-bottom:1px solid #555; border-radius:0; font-size:15px; font-weight:bold; padding:0; background:#ecf0f1; color:#2c3e50; outline:none; box-sizing:border-box;">
+                <button onclick="changeIpaqTempQty('${p.id}', 1)" style="flex:1; height:28px; font-size:18px; font-weight:bold; border-radius:0 3px 3px 0; border:none; background:linear-gradient(145deg, #2ecc71, #27ae60); color:white; cursor:pointer; text-shadow: 1px 1px 1px rgba(0,0,0,0.3); padding:0; margin:0; display:flex; align-items:center; justify-content:center; box-sizing:border-box;">+</button>
             </div>
-            <input type="text" id="ipaq-temp-note-${p.id}" placeholder="หมายเหตุ..." style="width:100%; height:28px; text-align:center; margin-bottom:2px; border:1px solid #ccc; border-radius:2px; font-size:14px; box-sizing: border-box; color: #000;">
-            <button onclick="ipaqAddOrderById('${p.id}', this)" style="width:100%;padding:3px;background:#3498db;color:white;border:none;border-radius:2px;font-size:14px;cursor:pointer;font-weight:bold;transition: background 0.3s;">✅ เพิ่ม</button>
+            <input type="text" class="ipaq-menu-note-input" id="ipaq-temp-note-${p.id}" placeholder="หมายเหตุ...">
+            <button onclick="ipaqAddOrderById('${p.id}', this)" style="width:100%; height:28px; background:linear-gradient(145deg, #3498db, #2980b9); color:white; border:none; border-radius:3px; font-size:14px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); text-shadow: 1px 1px 1px rgba(0,0,0,0.5); padding:0; display:flex; align-items:center; justify-content:center;">✅ เพิ่ม</button>
         `;
           grid.appendChild(item);
         });
@@ -11304,7 +11370,7 @@ function _fallbackPromptEdit(orderItem) {
             tOrders.forEach((o) => {
                 let rowTotal = (parseFloat(o.qty) || 0) * (parseFloat(o.price) || 0);
                 let isDiscountable = true;
-                let currentProductDB = (window.erpData && window.erpData.product) ? window.erpData.product : (window.productDB || {});
+                let currentProductDB = Object.assign({}, (window.erpData && window.erpData.product) || {}, window.productDB || {});
                 let p = currentProductDB[o.productId] || currentProductDB[o.barcode] || Object.values(currentProductDB).find(x => x.name === o.productName || x.name === o.name);
                 if (p && p.allowDiscount === false) {
                     isDiscountable = false;
@@ -11371,7 +11437,7 @@ function _fallbackPromptEdit(orderItem) {
             tOrders.forEach((o) => {
                 let rowTotal = (parseFloat(o.qty) || 0) * (parseFloat(o.price) || 0);
                 let isDiscountable = true;
-                let currentProductDB = (window.erpData && window.erpData.product) ? window.erpData.product : (window.productDB || {});
+                let currentProductDB = Object.assign({}, (window.erpData && window.erpData.product) || {}, window.productDB || {});
                 let p = currentProductDB[o.productId] || currentProductDB[o.barcode] || Object.values(currentProductDB).find(x => x.name === o.productName || x.name === o.name);
                 if (p && p.allowDiscount === false) {
                     isDiscountable = false;
@@ -11756,6 +11822,7 @@ function _fallbackPromptEdit(orderItem) {
         let prevCrm = "";
         let prevCash = "";
         let prevTransfer = "";
+        let prevDebt = "";
         
         let isSameTable = currentIpaqTable && (currentIpaqTable.id === lastRenderedIpaqTableId);
         
@@ -11770,6 +11837,8 @@ function _fallbackPromptEdit(orderItem) {
             if (cValEl) prevCash = cValEl.value;
             let tValEl = document.getElementById("ipaq-transfer-input");
             if (tValEl) prevTransfer = tValEl.value;
+            let dbtValEl = document.getElementById("ipaq-debt-input");
+            if (dbtValEl) prevDebt = dbtValEl.value;
         }
 
         if (currentIpaqTable) {
@@ -11864,16 +11933,7 @@ function _fallbackPromptEdit(orderItem) {
                     <option value="%" ${prevDiscType === "%" ? "selected" : ""}>%</option>
                 </select>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:2px;">
-                <button onclick="changeIpaqDiscount(-100)" style="flex:1; background:#c0392b; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">-100</button>
-                <button onclick="changeIpaqDiscount(-10)" style="flex:1; background:#e74c3c; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">-10</button>
-                <button onclick="changeIpaqDiscount(-5)" style="flex:1; background:#e74c3c; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">-5</button>
-                <button onclick="changeIpaqDiscount(-1)" style="flex:1; background:#e74c3c; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">-1</button>
-                <button onclick="changeIpaqDiscount(1)" style="flex:1; background:#2ecc71; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">+1</button>
-                <button onclick="changeIpaqDiscount(5)" style="flex:1; background:#2ecc71; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">+5</button>
-                <button onclick="changeIpaqDiscount(10)" style="flex:1; background:#27ae60; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">+10</button>
-                <button onclick="changeIpaqDiscount(100)" style="flex:1; background:#27ae60; color:white; border:none; border-radius:3px; padding:3px; cursor:pointer; font-size:12px; font-weight:bold;">+100</button>
-            </div>
+            
             <div class="ipaq-net-total-row" style="font-size: 18px; margin-bottom:5px; display:flex; justify-content:space-between; font-weight:bold; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
                 <span>ยอดสุทธิ:</span>
                 <span id="ipaq-bill-net-total" style="color: #e74c3c;">${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
@@ -11889,6 +11949,11 @@ function _fallbackPromptEdit(orderItem) {
             <div style="display:flex; align-items:center; margin-bottom:5px;">
                 <span style="width:110px; color:#34495e; font-size:13px; font-weight:bold;">ยอดสแกนจ่าย:</span>
                 <input type="number" id="ipaq-transfer-input" value="${prevTransfer || "0"}" min="0" oninput="calcIpaqChange()" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="width:110px; color:#8e44ad; font-size:13px; font-weight:bold;">ยอดลูกหนี้:</span>
+                <input type="number" id="ipaq-debt-input" value="${prevDebt || "0"}" min="0" oninput="calcIpaqChange()" onclick="openDebtorModal()" placeholder="คลิกเลือกลูกหนี้" style="flex:1; padding:2px 4px; font-size:15px; text-align:right; border:1px solid #ccc; border-radius:5px 0 0 5px; outline:none; border-right:none; cursor:pointer;">
+                <button onclick="openDebtorModal()" style="width:110px; font-size:13px; padding:4px; background:#8e44ad; color:white; border:none; border-radius:0 5px 5px 0; cursor:pointer; font-weight:bold;">💸 เลือกลูกหนี้</button>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 16px; font-weight: bold; color: #27ae60; padding-top:5px; border-top:1px dashed #ccc;">
                 <span>เงินทอน:</span>
@@ -12650,7 +12715,7 @@ function _fallbackPromptEdit(orderItem) {
             tOrders.forEach((o) => {
                 let rowTotal = (parseFloat(o.qty) || 0) * (parseFloat(o.price) || 0);
                 let isDiscountable = true;
-                let currentProductDB = (window.erpData && window.erpData.product) ? window.erpData.product : (window.productDB || {});
+                let currentProductDB = Object.assign({}, (window.erpData && window.erpData.product) || {}, window.productDB || {});
                 let p = currentProductDB[o.productId] || currentProductDB[o.barcode] || Object.values(currentProductDB).find(x => x.name === o.productName || x.name === o.name);
                 if (p && p.allowDiscount === false) {
                     isDiscountable = false;
@@ -13007,7 +13072,7 @@ function _fallbackPromptEdit(orderItem) {
             tOrders.forEach((o) => {
                 let rowTotal = (parseFloat(o.qty) || 0) * (parseFloat(o.price) || 0);
                 let isDiscountable = true;
-                let currentProductDB = (window.erpData && window.erpData.product) ? window.erpData.product : (window.productDB || {});
+                let currentProductDB = Object.assign({}, (window.erpData && window.erpData.product) || {}, window.productDB || {});
                 let p = currentProductDB[o.productId] || currentProductDB[o.barcode] || Object.values(currentProductDB).find(x => x.name === o.productName || x.name === o.name);
                 if (p && p.allowDiscount === false) {
                     isDiscountable = false;
@@ -14757,6 +14822,78 @@ function ipaqPromptSplitTable() {
           </div>
         </div>
 
+    <!-- Debtor Modal (Added for Debtor Payment Flow Step 1) -->
+    <div id="debtor-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; color:#8e44ad;">💸 เลือกลูกหนี้ (CRM)</h3>
+            <input type="text" id="debtor-search-input" placeholder="ค้นหารหัส หรือ ชื่อลูกค้า..." style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px; outline:none;" oninput="searchDebtorList()">
+            <div id="debtor-list-container" style="max-height:200px; overflow-y:auto; border:1px solid #eee; border-radius:5px; padding:5px; margin-bottom:15px;">
+                <!-- List will be populated by JS -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button onclick="closeDebtorModal()" style="padding:8px 15px; background:#e74c3c; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function openDebtorModal() {
+            document.getElementById('debtor-modal').style.display = 'flex';
+            document.getElementById('debtor-search-input').value = '';
+            searchDebtorList();
+        }
+        function closeDebtorModal() {
+            document.getElementById('debtor-modal').style.display = 'none';
+        }
+        function searchDebtorList() {
+            var query = document.getElementById('debtor-search-input').value.toLowerCase();
+            var container = document.getElementById('debtor-list-container');
+            container.innerHTML = '';
+            
+            if (!window.dbCustomer || window.dbCustomer.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">ไม่มีข้อมูลลูกค้าในระบบ</div>';
+                return;
+            }
+            
+            var filtered = window.dbCustomer.filter(function(c) {
+                return (c.id && c.id.toLowerCase().includes(query)) || (c.name && c.name.toLowerCase().includes(query));
+            });
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">ไม่พบลูกค้าที่ค้นหา</div>';
+                return;
+            }
+            
+            filtered.forEach(function(c) {
+                var div = document.createElement('div');
+                div.style.padding = '8px';
+                div.style.borderBottom = '1px solid #eee';
+                div.style.cursor = 'pointer';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.onmouseover = function() { div.style.background = '#f9f9f9'; };
+                div.onmouseout = function() { div.style.background = 'transparent'; };
+                div.onclick = function() { selectDebtor(c); };
+                
+                div.innerHTML = '<div style="flex:1;">' +
+                                '<div style="font-weight:bold; color:#2c3e50;">' + (c.name || 'ไม่มีชื่อ') + '</div>' +
+                                '<div style="font-size:12px; color:#7f8c8d;">รหัส: ' + (c.id || '-') + ' | วงเงิน: ' + parseFloat(c.credit||0).toLocaleString('en-US',{minimumFractionDigits:2}) + ' บาท</div>' +
+                                '</div>' +
+                                '<div style="color:#8e44ad; font-weight:bold; align-self:center; margin-left:10px;">เลือก 👉</div>';
+                container.appendChild(div);
+            });
+        }
+        function selectDebtor(customer) {
+            const crmInput = document.getElementById('ipaq-crm-input');
+            if (crmInput) {
+                crmInput.value = customer.id || '';
+                if (typeof calcIpaqChange === 'function') calcIpaqChange();
+            }
+            closeDebtorModal();
+            // Step 1 alert to confirm the UI works
+            alert(`เลือกลูกหนี้สำเร็จ: ${customer.name || customer.id}\n\n(ตอนนี้เป็นเพียงการทดสอบ UI ขั้นตอนที่ 1 รบกวนบอสตรวจสอบความสวยงามก่อนครับ เมื่อบอสโอเค ลิลินจะเริ่มเขียนขั้นตอนที่ 2 เพื่อผูกระบบตัดวงเงินและบัญชีต่อไปค่ะ)`);
+        }
+    </script>
   </body>
 </html>
 
