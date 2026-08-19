@@ -233,18 +233,11 @@
             <span>เลือกโต๊ะ (IPAQ)</span>
             <button class="btn btn-red" style="padding: 5px 10px; font-size: 12px;" onclick="doLogout()">ออก</button>
         </div>
-        <div style="text-align: center; margin-top: 20px;">
-            <button class="btn btn-green" style="width: 80%; max-width: 300px; padding: 15px; font-size: 18px;" onclick="startScanQR()">📷 สแกน QR โต๊ะ</button>
-        </div>
-        <div id="camera-container">
-            <div id="reader" style="width:100%; margin-top: 10px;"></div>
-            <button class="btn btn-red" style="width: 100%; margin-top: 5px;" onclick="stopScanQR()">❌ ยกเลิกสแกน</button>
-        </div>
-        <div style="padding: 20px; max-width: 400px; margin: 0 auto; margin-top: 20px;">
-            <select id="table-select" style="width:100%; padding:15px; font-size:18px; border-radius:15px; border:2px solid #ccc; background:#fff; margin-bottom:15px; font-family:'Prompt',sans-serif; color:#2d3748; font-weight:bold;">
-                <option value="">-- กรุณาเลือกโต๊ะ --</option>
-            </select>
-            <button class="btn btn-blue" style="width: 100%; padding: 18px; font-size: 20px; border-radius: 15px;" onclick="openSelectedTable()">✅ เปิดโต๊ะรับออเดอร์</button>
+        <div style="padding: 20px; max-width: 600px; margin: 0 auto; margin-top: 10px;">
+            <div id="table-grid-container" class="table-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                <!-- Tables will be dynamically generated here -->
+            </div>
+            
             <div style="margin-top: 40px; text-align: center;">
                 <img src="./โลโก้.png" alt="ล้านโคขุนริมโขง" style="max-width: 100%; height: auto; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
             </div>
@@ -268,6 +261,15 @@
             <!-- ฝั่งซ้าย: เมนู -->
             <div class="menu-area">
                 <input type="text" id="menu-search" placeholder="🔍 ค้นหาเมนู..." style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; font-size: 16px;" onkeyup="filterMenu()">
+                
+                <!-- === ระบบหมายเหตุด่วน (Quick Notes) สำหรับแคชเชียร์/พนักงาน === -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;">
+                    <button class="btn btn-red" style="flex: 1; padding: 10px; font-size: 14px; white-space: nowrap;" onclick="sendQuickNote('🔥 ตามอาหาร (ออกครัวด่วน)')">🔥 ออกครัว</button>
+                    <button class="btn btn-blue" style="flex: 1; padding: 10px; font-size: 14px; white-space: nowrap;" onclick="sendQuickNote('🎵 ขอเพลง')">🎵 ขอเพลง</button>
+                    <button class="btn btn-green" style="flex: 1; padding: 10px; font-size: 14px; white-space: nowrap;" onclick="sendQuickNote('🙋 เรียกพนักงาน')">🙋 เรียกพนักงาน</button>
+                </div>
+                <!-- ======================================================= -->
+                
                 <select id="category-select" style="width:100%; padding:12px; font-size:16px; border-radius:12px; border:1px solid #ccc; background:#fff; margin-bottom:15px; font-family:'Prompt',sans-serif;" onchange="selectCategory(this.value)">
                     <option value="ทั้งหมด">ทั้งหมด</option>
                 </select>
@@ -378,9 +380,23 @@
             document.getElementById("table-screen").style.display = "block";
             loadTables();
             loadProducts();
+
+            // === ระบบ Shift Lock (ล็อกกะพนักงาน ไม่ให้ปิดเว็บทิ้ง) ===
+            window.addEventListener('beforeunload', handleShiftLock);
+        }
+
+        function handleShiftLock(e) {
+            if (currentUser) {
+                var confirmationMessage = "คุณยังอยู่ในกะการทำงาน (Shift Lock) กรุณากดปุ่ม 'ออก' (Logout) ให้เรียบร้อยก่อนปิดหน้านี้";
+                e.returnValue = confirmationMessage; 
+                return confirmationMessage; 
+            }
         }
 
         function doLogout() {
+            // ปลดล็อก Shift Lock เมื่อกดปุ่มออก
+            window.removeEventListener('beforeunload', handleShiftLock);
+
             currentUser = null;
             document.getElementById("table-screen").style.display = "none";
             document.getElementById("order-screen").style.display = "none";
@@ -421,77 +437,34 @@
         }
 
         function renderTableGrid() {
-            var html = '<option value="">-- กรุณาเลือกโต๊ะ --</option>';
+            var html = '';
             for (var i = 0; i < allTables.length; i++) {
                 var t = allTables[i];
-                html += '<option value="' + t.id + '">' + t.name + '</option>';
+                html += '<button class="table-btn" id="btn-table-' + t.id + '" onclick="openTable(\'' + t.id + '\', \'' + t.name + '\')">' + t.name + '</button>';
             }
-            var selectEl = document.getElementById("table-select");
-            if (selectEl) selectEl.innerHTML = html;
-        }
-
-        function openSelectedTable() {
-            var select = document.getElementById("table-select");
-            if (!select) return;
-            var val = select.value;
-            if (!val) { alert("กรุณาเลือกโต๊ะก่อน!"); return; }
-            var tName = val;
-            for (var i = 0; i < allTables.length; i++) {
-                if (allTables[i].id === val) { tName = allTables[i].name; break; }
-            }
-            openTable(val, tName);
+            var gridEl = document.getElementById("table-grid-container");
+            if (gridEl) gridEl.innerHTML = html;
         }
 
         function updateTableColors(occupiedMap) {
-            var select = document.getElementById("table-select");
-            if (!select) return;
-            for (var i = 0; i < select.options.length; i++) {
-                var opt = select.options[i];
-                var tId = opt.value;
-                if (!tId) continue;
-                if (occupiedMap[tId]) {
-                    if (opt.text.indexOf("🔴") === -1) opt.text = "🔴 " + opt.text + " (มีคนนั่ง)";
-                } else {
-                    opt.text = opt.text.replace("🔴 ", "").replace(" (มีคนนั่ง)", "");
-                }
-            }
-        }
-
-        // ================= LOGIC QR SCANNER =================
-        function startScanQR() {
-            document.getElementById("camera-container").style.display = "block";
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5Qrcode("reader");
-            }
-            html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, function(decodedText) {
-                // สมมติว่า QR code เก็บ ID โต๊ะ เช่น "T01" หรือ URL "?table=T01"
-                var scannedTableId = decodedText;
-                if (decodedText.indexOf("table=") !== -1) {
-                    var parts = decodedText.split("table=");
-                    scannedTableId = parts[1].split("&")[0];
-                }
-                stopScanQR();
+            for (var i = 0; i < allTables.length; i++) {
+                var tId = allTables[i].id;
+                var btn = document.getElementById("btn-table-" + tId);
+                if (!btn) continue;
                 
-                // หาชื่อโต๊ะ
-                var tName = scannedTableId;
-                for (var i = 0; i < allTables.length; i++) {
-                    if (allTables[i].id === scannedTableId) {
-                        tName = allTables[i].name;
-                        break;
-                    }
+                if (occupiedMap[tId]) {
+                    btn.classList.add("occupied");
+                    // Add pulse effect for occupied tables
+                    btn.style.animation = "pulse 2s infinite";
+                } else {
+                    btn.classList.remove("occupied");
+                    btn.style.animation = "none";
                 }
-                openTable(scannedTableId, tName);
-            }).catch(function(err) {
-                console.log(err);
-            });
-        }
-
-        function stopScanQR() {
-            document.getElementById("camera-container").style.display = "none";
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().catch(function(err){});
             }
         }
+
+
+
 
         // ================= LOGIC ORDER =================
         function openTable(tId, tName) {
@@ -528,6 +501,36 @@
             });
         }
 
+        // === ฟังก์ชันส่งหมายเหตุด่วน (Quick Notes) ===
+        function sendQuickNote(noteText) {
+            if (!currentTableId) {
+                alert("กรุณาเลือกโต๊ะก่อนส่งหมายเหตุ");
+                return;
+            }
+            
+            var noteId = "note_" + new Date().getTime();
+            var noteData = {
+                note: noteText,
+                tableId: currentTableId,
+                tableName: currentTableName,
+                time: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref("erp_db_quick_notes/" + noteId).set(noteData).then(function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งหมายเหตุสำเร็จ',
+                    text: noteText,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }).catch(function(err) {
+                alert("ส่งหมายเหตุล้มเหลว: " + err.message);
+            });
+        }
+        // ===========================================
+
         function goBackToTables() {
             if (newCartItems.length > 0) {
                 if (!confirm("คุณมีรายการที่ยังไม่ได้ส่งเข้าครัว ต้องการทิ้งหรือไม่?")) return;
@@ -538,7 +541,7 @@
 
         // ================= LOGIC PRODUCTS =================
         function loadProducts() {
-            database.ref("erp_db_product").once("value").then(function(snapshot) {
+            database.ref("erp_db_products_global").once("value").then(function(snapshot) {
                 allProducts = [];
                 var catMap = {};
                 if (snapshot.exists()) {
@@ -586,12 +589,19 @@
         }
 
         function renderProducts() {
-            var searchTxt = document.getElementById("menu-search").value.toLowerCase();
+            var searchTxt = document.getElementById("menu-search").value.toLowerCase().trim();
             var html = "";
             for (var i = 0; i < allProducts.length; i++) {
                 var p = allProducts[i];
-                if (currentCategory !== "ทั้งหมด" && p.category !== currentCategory) continue;
-                if (searchTxt && p.name.toLowerCase().indexOf(searchTxt) === -1) continue;
+                
+                // ถ้ามีการพิมพ์ค้นหา ให้ข้ามเงื่อนไขหมวดหมู่ไปเลย (ค้นหาทั้งหมด)
+                if (searchTxt) {
+                    var pName = (p.name || '').toLowerCase();
+                    if (pName.indexOf(searchTxt) === -1) continue;
+                } else {
+                    // ถ้าไม่ได้ค้นหา ให้กรองตามหมวดหมู่ปกติ
+                    if (currentCategory !== "ทั้งหมด" && p.category !== currentCategory) continue;
+                }
 
                 var bgImg = (p.image && p.image.indexOf('http') === 0) ? p.image : './ภาพเมนู.jpg';
                 var itemCode = p.barcode || p.id;
@@ -672,6 +682,17 @@
             renderCart();
         }
 
+        function changeNewCartItemQty(index, delta) {
+            if (newCartItems[index]) {
+                newCartItems[index].qty += delta;
+                if (newCartItems[index].qty <= 0) {
+                    removeNewCartItem(index);
+                } else {
+                    renderCart();
+                }
+            }
+        }
+
         function renderCart() {
             var html = "";
             var grandTotal = 0;
@@ -699,6 +720,7 @@
                         html += '<div class="cart-item-name">' + oldItem.name + '</div>';
                         html += '<div class="cart-item-qty">x' + oldItem.qty + '</div>';
                         html += '<div class="cart-item-price">฿' + (oldItem.price * oldItem.qty).toLocaleString() + '</div>';
+                        // Order Modification Lock: สินค้าเดิมที่ส่งเข้าครัวแล้ว จะไม่มีปุ่มให้กดลบเด็ดขาด!
                         html += '</div>';
                     }
                 }
@@ -715,10 +737,16 @@
                     grandTotal += (Number(newItem.price) * Number(newItem.qty));
                     uniqueItemNames[newItem.name] = true;
                     
-                    html += '<div class="cart-item new-item">';
+                    html += '<div class="cart-item new-item" style="flex-direction:column; align-items:stretch;">';
+                    html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
                     html += '<div class="cart-item-name">' + newItem.name + '<br><small style="color:gray;font-weight:normal;cursor:pointer;" onclick="addNote(' + j + ')">📝 ' + (newItem.note || 'เพิ่มหมายเหตุ') + '</small></div>';
-                    html += '<div class="cart-item-qty">x' + newItem.qty + '</div>';
-                    html += '<div class="cart-item-price">฿' + (Number(newItem.price) * Number(newItem.qty)).toLocaleString() + '</div>';
+                    html += '<div style="display:flex; align-items:center; gap:8px;">';
+                    html += '<button onclick="changeNewCartItemQty(' + j + ', -1)" style="border:none;background:#e53e3e;color:white;width:28px;height:28px;border-radius:50%;font-weight:bold;cursor:pointer;display:flex;justify-content:center;align-items:center;">-</button>';
+                    html += '<div class="cart-item-qty" style="margin:0; background:none; font-size:18px;">' + newItem.qty + '</div>';
+                    html += '<button onclick="changeNewCartItemQty(' + j + ', 1)" style="border:none;background:#38a169;color:white;width:28px;height:28px;border-radius:50%;font-weight:bold;cursor:pointer;display:flex;justify-content:center;align-items:center;">+</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<div class="cart-item-price" style="text-align:right; margin-top:8px;">฿' + (Number(newItem.price) * Number(newItem.qty)).toLocaleString() + '</div>';
                     html += '</div>';
                 }
             }
@@ -870,6 +898,32 @@
         }
 
         // ================= PRINT CASH BILL (บิลรวม อาหาร+เครื่องดื่ม) =================
+        // === AUDIT LOG SYSTEM (เชื่อมฐานข้อมูลส่วนกลาง) ===
+        function saveIpaqAuditLog(actionType, detail, tableId, tableName, staffName, oldValue, newValue) {
+            var logRef = database.ref("erp_db_audit_log").push();
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+            var timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+            
+            var logData = {
+                date: dateStr,
+                time: timeStr,
+                staff: staffName || "Unknown (Mobile)",
+                action: actionType,
+                detail: detail || "",
+                table_id: tableId || "",
+                table_name: tableName || "",
+                old_value: oldValue !== undefined ? oldValue : null,
+                new_value: newValue !== undefined ? newValue : null,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            
+            logRef.set(logData).catch(function(err) {
+                console.error("Save Audit Log Failed:", err);
+            });
+        }
+        // =================================================
+
         function printCashBill(items, tableName, callback) {
             var printArea = document.getElementById("receipt-print-area");
             if (!printArea) { if (callback) callback(); return; }
@@ -896,7 +950,8 @@
             var now = new Date();
             var dateStr = now.toLocaleString("th-TH");
 
-            printArea.innerHTML = '<div style="text-align:center; margin-bottom:10px;">' +
+            printArea.innerHTML = '<div style="page-break-inside: avoid; width: 100%;">' +
+                '<div style="text-align:center; margin-bottom:10px;">' +
                 '<div style="font-size:14px; font-weight:bold;">' + shopName + '</div>' +
                 '<div style="font-size:9px; margin-bottom:3px;">74 ถ.สำราญชายโขงเหนือ ต.มุกดาหาร<br>อ.เมืองมุกดาหาร จ.มุกดาหาร 49000 โทร 042-042628</div>' +
                 '<div style="font-size:10px;">ใบเสร็จ/บิลรวม</div>' +
@@ -911,7 +966,7 @@
                 '<span>' + grandTotal.toFixed(2) + '</span>' +
                 '</div>' +
                 '<div style="text-align:center; font-size:10px; margin-top:10px; margin-bottom:20px;">ขอบคุณที่ใช้บริการค่ะ</div>' +
-                '<br><br><br><br><br>';
+                '<br><br><br><br><br><br><br><br></div>';
 
             setTimeout(function() {
                 window.print();
