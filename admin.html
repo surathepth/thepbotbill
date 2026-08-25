@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบหลังบ้าน - เมืองแอร์ดี (Admin Dashboard)</title>
+    <!-- Google Fonts: Sarabun -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f4f6f9;
+        }
+        .admin-header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-success { background-color: #28a745; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="admin-header text-center mb-5">
+        <h2><i class="fa-solid fa-clipboard-check me-2"></i>ระบบหลังบ้าน (Admin Dashboard)</h2>
+        <p class="mb-0">จัดการคิวงานลูกค้า - ร้านเมืองแอร์ดี</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2"></i>รายการจองคิวล่าสุด</h5>
+                        <button class="btn btn-outline-success btn-sm" onclick="location.reload()"><i class="fa-solid fa-rotate-right me-1"></i>รีเฟรชข้อมูล</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่-เวลาจอง</th>
+                                        <th>ชื่อลูกค้า</th>
+                                        <th>เบอร์โทรศัพท์</th>
+                                        <th>บริการที่ต้องการ</th>
+                                        <th>รายละเอียด / อาการ</th>
+                                        <th>สถานะ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bookingsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // ใช้ Config เดียวกับเว็บหน้าบ้าน
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5yxBVLnTEj41ank6sM7rptNiwmPiZZVo",
+            authDomain: "muangairdee-62b3e.firebaseapp.com",
+            projectId: "muangairdee-62b3e",
+            storageBucket: "muangairdee-62b3e.firebasestorage.app",
+            messagingSenderId: "278310934572",
+            appId: "1:278310934572:web:5add9f5131a2bc65d3d989"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const tableBody = document.getElementById('bookingsTableBody');
+
+        // ฟังก์ชันดึงข้อมูลจาก Firebase
+        async function fetchBookings() {
+            try {
+                // ดึงข้อมูลและเรียงลำดับจากล่าสุดไปเก่าสุด
+                const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                tableBody.innerHTML = ''; // ลบข้อความโหลด
+                
+                if(querySnapshot.empty) {
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">ยังไม่มีข้อมูลการจองคิว</td></tr>';
+                    return;
+                }
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const docId = docSnap.id;
+                    
+                    // แปลง Timestamp เป็นวันที่เวลาอ่านง่าย
+                    let dateStr = "ไม่มีข้อมูลเวลา";
+                    if(data.createdAt) {
+                        const date = data.createdAt.toDate();
+                        dateStr = date.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                    }
+
+                    // จัดการป้ายสถานะ
+                    let statusClass = data.status === "เสร็จสิ้น" ? "status-success" : "status-pending";
+                    let actionBtn = data.status === "เสร็จสิ้น" 
+                        ? `<button class="btn btn-sm btn-secondary" disabled><i class="fa-solid fa-check"></i> เสร็จแล้ว</button>`
+                        : `<button class="btn btn-sm btn-success" onclick="updateStatus('${docId}')"><i class="fa-solid fa-check"></i> กดรับงาน</button>`;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${dateStr}</td>
+                        <td class="fw-bold">${data.customerName || '-'}</td>
+                        <td><a href="tel:${data.customerPhone}">${data.customerPhone || '-'}</a></td>
+                        <td><span class="badge bg-info text-dark">${data.serviceType || '-'}</span></td>
+                        <td>${data.serviceDetails || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${data.status || 'รอดำเนินการ'}</span></td>
+                        <td>${actionBtn}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
+            }
+        }
+
+        // ทำให้ฟังก์ชัน updateStatus เรียกใช้ได้จากปุ่ม HTML (Global scope)
+        window.updateStatus = async function(docId) {
+            if(confirm("ยืนยันว่าทำงานนี้เสร็จสิ้นแล้วใช่หรือไม่?")) {
+                try {
+                    const bookingRef = doc(db, "bookings", docId);
+                    await updateDoc(bookingRef, {
+                        status: "เสร็จสิ้น"
+                    });
+                    alert("อัปเดตสถานะเป็น 'เสร็จสิ้น' เรียบร้อยแล้ว!");
+                    fetchBookings(); // โหลดข้อมูลใหม่
+                } catch (error) {
+                    console.error("Error updating document: ", error);
+                    alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
+                }
+            }
+        }
+
+        // โหลดข้อมูลทันทีเมื่อเปิดหน้า
+        fetchBookings();
+    </script>
+</body>
+</html>
