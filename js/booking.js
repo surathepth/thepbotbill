@@ -1545,9 +1545,11 @@
       }
     }
 
-    // [THEP-APAI RULE 4 & 5]: ตรวจสอบว่าสลิปต้องผ่านการตรวจสอบจากฝ่ายบัญชีก่อนหรือไม่
-    const isManualApproval = Boolean(hasSlip && lastBotInspectionResult && lastBotInspectionResult.requiresManualApproval);
-    const requiresVerification = !hasSlip || isManualApproval;
+    // [THEP-APAI MISSION 54: INSTANT AUTO-APPROVE BOT PASS]:
+    // หากสลิปผ่านการตรวจสอบของบอท 100% (success === true) อนุมัติเป็น PAID ทันที ไม่ส่งไปรอแอดมิน
+    const isBotApproved = Boolean(hasSlip && lastBotInspectionResult && lastBotInspectionResult.success === true);
+    const isManualApproval = Boolean(hasSlip && lastBotInspectionResult && lastBotInspectionResult.requiresManualApproval && !isBotApproved);
+    const requiresVerification = !hasSlip || (!isBotApproved && isManualApproval);
 
     const orderData = {
       customer_name: custName,
@@ -1557,7 +1559,7 @@
       bank_ref: finalBankRef,
       slip_url: finalSlipUrl,
       requires_verification: requiresVerification,
-      payment_status: isManualApproval ? 'PENDING' : (hasSlip ? 'PAID' : 'PENDING'),
+      payment_status: isBotApproved ? 'PAID' : (isManualApproval ? 'PENDING' : (hasSlip ? 'PAID' : 'PENDING')),
       items: items
     };
 
@@ -1791,31 +1793,52 @@
     // สรุปรายการในตารางใบเสร็จ
     if (rcpItemsTableBody) {
       rcpItemsTableBody.innerHTML = '';
-      const tiersMap = {};
-      tickets.forEach(t => {
-        if (!tiersMap[t.tier_id]) {
-          tiersMap[t.tier_id] = { name: t.tier_name, count: 0 };
+      let resolvedItems = [];
+      if (typeof window.getResolvedReceiptItems === 'function') {
+        resolvedItems = window.getResolvedReceiptItems(order, tickets);
+      } else {
+        const tiersMap = {};
+        if (Array.isArray(tickets) && tickets.length > 0) {
+          tickets.forEach(t => {
+            const tid = t.tier_id || 'TIER-GENERAL';
+            if (!tiersMap[tid]) {
+              tiersMap[tid] = { name: t.tier_name || 'บัตรเข้างานคอนเสิร์ต', count: 0, price: parseFloat(t.price) || 0 };
+            }
+            tiersMap[tid].count++;
+          });
+          resolvedItems = Object.keys(tiersMap).map(tid => {
+            const it = tiersMap[tid];
+            return {
+              name: it.name,
+              quantity: it.count,
+              unitPrice: it.price,
+              lineTotal: it.count * it.price
+            };
+          });
         }
-        tiersMap[t.tier_id].count++;
-      });
+        if (resolvedItems.length === 0 && order) {
+          const tot = parseFloat(order.total_amount) || 0;
+          const qty = parseInt(order.ticket_quantity, 10) || 1;
+          const uPrice = qty > 0 ? (tot / qty) : tot;
+          resolvedItems.push({
+            name: order.tier_name || 'บัตรเข้างานคอนเสิร์ต (e-Ticket)',
+            quantity: qty,
+            unitPrice: uPrice,
+            lineTotal: tot
+          });
+        }
+      }
 
-      let rowIdx = 1;
-      const allTiers = EventPayDB.getAll('ticket_tiers');
-      Object.keys(tiersMap).forEach(tierId => {
-        const item = tiersMap[tierId];
-        const tierObj = allTiers.find(x => x.tier_id === tierId);
-        const price = tierObj ? tierObj.price : 0;
-        const lineTotal = price * item.count;
-
+      resolvedItems.forEach(item => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px dashed #e2e8f0';
         tr.innerHTML = `
           <td style="text-align: left; padding: 8px 6px;">
             <strong style="color: #0f172a; font-size: 0.88rem;">${escapeHtml(item.name)}</strong>
-            <div style="font-size: 0.74rem; color: #64748b;">@฿${price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 0.74rem; color: #64748b;">@฿${(item.unitPrice || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
           </td>
-          <td style="text-align: center; font-weight: 700; padding: 8px 4px; font-size: 0.88rem;">${item.count} ใบ</td>
-          <td style="text-align: right; font-weight: 800; padding: 8px 6px; font-size: 0.92rem; color: #0284c7;">฿${lineTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: center; font-weight: 700; padding: 8px 4px; font-size: 0.88rem;">${item.quantity} ใบ</td>
+          <td style="text-align: right; font-weight: 800; padding: 8px 6px; font-size: 0.92rem; color: #0284c7;">฿${(item.lineTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
         `;
         rcpItemsTableBody.appendChild(tr);
       });
@@ -1980,14 +2003,19 @@
     const isLineOrInApp = /Line\/|FBAV\/|Instagram|MicroMessenger|musical_ly|BytedanceWebview/i.test(navigator.userAgent);
 
     if (isMobile || isLineOrInApp) {
-      // บนมือถือหรือใน Line In-App Browser ให้เปิดโมดอลเอกสารรวมทันที เพื่อให้แตะค้างบันทึกรูปได้ 100% (ห้ามสั่งพิมพ์ window.print)
-      if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.openPdfViewer === 'function' && approvedTickets.length > 0) {
-        window.openLookupPdfViewer();
-      } else {
-        alert('⚠️ ไม่มีรายการบัตรที่ได้รับอนุมัติสำหรับบันทึกค่ะ');
+        // [THEP-APAI MISSION 54: DIRECT MOBILE SAVE / SHARE]:
+        // ไม่เรียก PDF เด็ดขาด! ดาวน์โหลดภาพตั๋ว e-Ticket คมชัดลงมือถือ หรือเปิดหน้าต่างเซฟรูป 100%
+        if (typeof SlipGenerator !== 'undefined' && approvedTickets.length > 0) {
+          approvedTickets.forEach((t, idx) => {
+            setTimeout(() => {
+              SlipGenerator.downloadTicketSlip(t, parentOrder || {}, idx + 1, approvedTickets.length);
+            }, idx * 250);
+          });
+        } else {
+          alert('💡 ไม่พบรายการตั๋วที่ได้รับอนุมัติสำหรับบันทึกค่ะ');
+        }
+        return;
       }
-      return;
-    }
 
     if (approvedTickets.length > 0 && typeof executeBookingThermalPrint === 'function') {
       executeBookingThermalPrint(parentOrder || {}, approvedTickets, 'TICKETS_ONLY');
@@ -2034,60 +2062,27 @@
   window.openBookingPdfViewer = function () {
     const { order, payment, tickets } = resolveCurrentBookingOrderAndTickets();
     if (!order || !order.order_id) {
-      alert('ไม่พบข้อมูลคำสั่งซื้อที่จะเปิดดูเอกสาร PDF ค่ะ');
+      alert('ไม่พบข้อมูลคำสั่งซื้อสำหรับบันทึกภาพค่ะ');
       return;
     }
-    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.openPdfViewer === 'function') {
-      SlipGenerator.openPdfViewer(order, payment, tickets);
-    } else {
-      alert('ระบบสร้างเอกสาร PDF ยังไม่พร้อมทำงาน');
+    if (typeof SlipGenerator !== 'undefined') {
+      SlipGenerator.downloadReceiptSlip(order, payment);
+      if (Array.isArray(tickets) && tickets.length > 0) {
+        tickets.forEach((t, idx) => {
+          setTimeout(() => {
+            SlipGenerator.downloadTicketSlip(t, order, idx + 1, tickets.length);
+          }, (idx + 1) * 250);
+        });
+      }
     }
   };
 
   /**
-   * เปิดดูเอกสาร PDF รวม และบันทึกลงเครื่อง (สำหรับหน้าค้นหาตั๋วของฉัน)
+   * บันทึกภาพตั๋วลงเครื่อง (สำหรับหน้าค้นหาตั๋วของฉัน - THEP-APAI MISSION 54 PURIFICATION)
    */
   window.openLookupPdfViewer = function () {
-    const tickets = window._lastLookupMatchedTickets || [];
-    if (!tickets || tickets.length === 0) {
-      alert('ไม่พบรายการตั๋วที่จะเปิดดูเอกสาร PDF ค่ะ');
-      return;
-    }
-    const firstTicket = tickets[0];
-    let order = {};
-    let payment = {};
-    if (typeof EventPayDB !== 'undefined' && firstTicket.order_id) {
-      order = EventPayDB.get('orders', firstTicket.order_id) || {};
-      payment = (EventPayDB.getAll('payments', p => p.order_id === firstTicket.order_id) || [])[0] || {};
-    }
-    if (!order || !order.order_id) {
-      order = {
-        order_id: firstTicket.order_id || ('ORD-' + Date.now().toString().slice(-6)),
-        customer_name: firstTicket.attendee_name || 'ลูกค้าคอนเสิร์ต',
-        customer_phone: firstTicket.attendee_phone || '-',
-        total_amount: tickets.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0),
-        created_at: firstTicket.created_at || new Date().toISOString(),
-        items: []
-      };
-    }
-    if (!order.items || order.items.length === 0) {
-      const summaryByTier = {};
-      tickets.forEach(t => {
-        const tn = t.tier_name || 'บัตรคอนเสิร์ต';
-        if (!summaryByTier[tn]) summaryByTier[tn] = { count: 0, tier_id: t.tier_id, price: t.price || 0 };
-        summaryByTier[tn].count++;
-      });
-      order.items = Object.keys(summaryByTier).map(tn => ({
-        tier_name: tn,
-        tier_id: summaryByTier[tn].tier_id,
-        quantity: summaryByTier[tn].count,
-        unit_price: summaryByTier[tn].price
-      }));
-    }
-    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.openPdfViewer === 'function') {
-      SlipGenerator.openPdfViewer(order, payment, tickets);
-    } else {
-      alert('ระบบสร้างเอกสาร PDF ยังไม่พร้อมทำงาน');
+    if (typeof window.downloadOrPrintTickets === 'function') {
+      window.downloadOrPrintTickets();
     }
   };
 
@@ -2214,9 +2209,32 @@
             <span style="color: #fbbf24; font-size: 0.8rem; margin-left: 6px;">(รอตรวจสเตทเมนต์ ${pendingCount} ใบ):</span>
           </div>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="ep-nav-btn mobile-only-action" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
-              📦 บันทึกภาพตั๋วทั้งหมด (Save All)
+            <!-- MOBILE ONLY: SINGLE PROMINENT SAVE BUTTON (THEP-APAI MISSION 54 PURIFICATION) -->
+            <button type="button" class="ep-nav-btn mobile-only-action" style="font-size: 0.82rem; padding: 7px 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);" onclick="window.downloadOrPrintTickets()">
+              💾 ดาวน์โหลด - SAVE
             </button>
+            <!-- DESKTOP PC ONLY: PRINT & SAVE PNG -->
+            <button type="button" class="ep-nav-btn desktop-only-action desktop-print-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
+              🖨️ สั่งพิมพ์ (สำหรับ PC 80mm)
+            </button>
+            <button type="button" class="ep-nav-btn desktop-only-action" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; font-weight: 800; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);" onclick="downloadTicketsImagePC()">
+              📥 ดาวน์โหลดภาพตั๋ว (Save PNG)
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      headerBannerHtml = `
+        <div style="font-size: 0.88rem; color: #34d399; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span>🎉 พบบัตรคอนเสิร์ตจำนวน ${matchedTickets.length} ใบ (อนุมัติแล้วพร้อมใช้งาน):</span>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <!-- MOBILE ONLY: SINGLE PROMINENT SAVE BUTTON (THEP-APAI MISSION 54 PURIFICATION) -->
+            <button type="button" class="ep-nav-btn mobile-only-action" style="font-size: 0.82rem; padding: 7px 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);" onclick="window.downloadOrPrintTickets()">
+              💾 ดาวน์โหลด - SAVE
+            </button>
+            <!-- DESKTOP PC ONLY: PRINT & SAVE PNG -->
             <button type="button" class="ep-nav-btn desktop-only-action desktop-print-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
               🖨️ สั่งพิมพ์ (สำหรับ PC 80mm)
             </button>
@@ -2582,12 +2600,26 @@
   function executeBookingThermalPrint(order, tickets, mode, payment) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
     if (isMobile) {
-      // [THEP-APAI MISSION 51: MOBILE NO-PRINT PROTOCOL]:
-      // ยกเลิกการสั่งพิมพ์บนมือถือทุกฟังก์ชัน 100% ป้องกันหน้าต่างพิมพ์ว่างเปล่าค้าง ให้เปิดเอกสาร 80x80 เพื่อบันทึก/แชร์
-      if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.openPdfViewer === 'function') {
-        SlipGenerator.openPdfViewer(order, payment, tickets);
-      }
-      return;
+      // [THEP-APAI MISSION 54: MOBILE NO-PRINT PROTOCOL & DIRECT IMAGE DOWNLOAD]:
+      // ยกเลิกการสั่งพิมพ์และ PDF บนมือถือทุกฟังก์ชัน 100% ให้ดาวน์โหลดภาพ 80x80 PNG คมชัดลงเครื่อง
+      if (typeof SlipGenerator !== 'undefined') {
+        if (mode === 'RECEIPT_ONLY') {
+          SlipGenerator.downloadReceiptSlip(order, payment);
+        } else if (mode === 'TICKETS_ONLY') {
+          tickets.forEach((t, idx) => {
+            setTimeout(() => {
+              SlipGenerator.downloadTicketSlip(t, order, idx + 1, tickets.length);
+            }, idx * 250);
+          });
+        } else {
+          SlipGenerator.downloadReceiptSlip(order, payment);
+          tickets.forEach((t, idx) => {
+            setTimeout(() => {
+              SlipGenerator.downloadTicketSlip(t, order, idx + 1, tickets.length);
+            }, (idx + 1) * 250);
+          });
+        }
+      }return;
     }
 
     const printContainer = document.getElementById('bookingThermalPrintContainer');

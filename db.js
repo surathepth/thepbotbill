@@ -1821,15 +1821,24 @@
         const isDup = cleanRef ? existingPayments.some(p => p.bank_ref && p.bank_ref.toUpperCase() === cleanRef.toUpperCase()) : false;
 
         // หากเป็นคำสั่งซื้อที่ส่งสลิปให้ฝ่ายบัญชีตรวจสเตทเมนต์ (requires_verification === true)
-        if (orderData.requires_verification === true) {
+        if (orderData.payment_status === 'PAID' && orderData.requires_verification !== true) {
+          // [THEP-APAI MISSION 54]: Instant Bot Pass Approved 100% -> PAID Immediately
+          initialPaymentStatus = 'PAID';
+          slipStatus = 'CONFIRMED';
+          slipNotes = 'บอทอนุมัติสลิปเงินโอนตรงตามเงื่อนไข 100% (Instant Bot Pass)';
+          createdTickets.forEach(t => {
+            t.is_void = false;
+            t.gate_status = 'WAITING_ENTRY';
+          });
+        } else if (orderData.requires_verification === true) {
           initialPaymentStatus = 'PENDING_VERIFICATION';
           slipStatus = 'PENDING_VERIFICATION';
-          slipNotes = isDup ? `ตรวจพบสลิปเลขอ้างอิงซ้ำ '${cleanRef}'` : 'รอฝ่ายบัญชีตรวจสอบสเตทเมนต์ธนาคาร (ไม่เกิน 3 นาที)';
+          slipNotes = isDup ? `ตรวจพบสลิปเลขที่อ้างอิงซ้ำ '${cleanRef}'` : 'รอฝ่ายบัญชีตรวจสเตทเมนต์ธนาคาร (ไม่เกิน 3 นาที)';
 
           if (isDup) {
             this._recordIncident('DUPLICATE_SLIP', null, null, 'ONLINE-BOOKING', '', `ตรวจพบสลิปซ้ำ '${cleanRef}' ในคำสั่งซื้อ ${orderId}`);
           }
-          // ล็อกบัตรเป็นโมฆะชั่วคราวจนกว่าจะได้รับการกดยืนยันยอดเงินจริงจากฝ่ายบัญชี
+          // ล็อกบัตรชั่วคราวจนกว่าจะได้รับการยืนยันยอดเงินจริงจากฝ่ายบัญชี
           createdTickets.forEach(t => {
             this.update('tickets', t.ticket_id, { is_void: true });
             t.is_void = true;
