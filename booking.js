@@ -11,6 +11,18 @@
 (function () {
   'use strict';
 
+  if (typeof window !== 'undefined' && typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = function (text) {
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+  }
+
   let bookingQuantities = {};
   let audioAlert = null;
   let qrcodeInstance = null;
@@ -2202,25 +2214,14 @@
             <span style="color: #fbbf24; font-size: 0.8rem; margin-left: 6px;">(รอตรวจสเตทเมนต์ ${pendingCount} ใบ):</span>
           </div>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="ep-nav-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; font-weight: 800; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);" onclick="openLookupPdfViewer()">
-              📄 เปิดดูเอกสารรวม (ขนาด 80x80)
+            <button type="button" class="ep-nav-btn mobile-only-action" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
+              📦 บันทึกภาพตั๋วทั้งหมด (Save All)
             </button>
-            <button type="button" class="ep-nav-btn desktop-print-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
-              🖨️ พิมพ์ (สำหรับ PC 80mm)
+            <button type="button" class="ep-nav-btn desktop-only-action desktop-print-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
+              🖨️ สั่งพิมพ์ (สำหรับ PC 80mm)
             </button>
-          </div>
-        </div>
-      `;
-    } else {
-      headerBannerHtml = `
-        <div style="font-size: 0.88rem; color: #34d399; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-          <span>🎉 พบบัตรคอนเสิร์ตจำนวน ${matchedTickets.length} ใบ:</span>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="ep-nav-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; font-weight: 800; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);" onclick="openLookupPdfViewer()">
-              📄 เปิดดูเอกสารรวม (ขนาด 80x80)
-            </button>
-            <button type="button" class="ep-nav-btn desktop-print-btn" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" onclick="window.downloadOrPrintTickets()">
-              🖨️ พิมพ์ทั้งหมด (สำหรับ PC 80mm)
+            <button type="button" class="ep-nav-btn desktop-only-action" style="font-size: 0.78rem; padding: 6px 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; font-weight: 800; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);" onclick="downloadTicketsImagePC()">
+              📥 ดาวน์โหลดภาพตั๋ว (Save PNG)
             </button>
           </div>
         </div>
@@ -2635,6 +2636,123 @@
   }
 
   // ==========================================================================
+  // ==========================================================================
+  // MOBILE DEDICATED ACTION HANDLERS (SAVE & SHARE PNG ONLY - NO PRINT / NO PDF)
+  // ==========================================================================
+  window.saveMobileReceiptSlip = async function () {
+    const { order, payment, tickets } = resolveCurrentBookingOrderAndTickets();
+    if (!order || !order.order_id) {
+      alert('ไม่พบคำสั่งซื้อสำหรับการบันทึกใบเสร็จค่ะ');
+      return;
+    }
+    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.downloadReceiptSlip === 'function') {
+      await SlipGenerator.downloadReceiptSlip(order, payment, tickets);
+    }
+  };
+
+  window.saveMobileTicketSlips = async function () {
+    const { order, tickets } = resolveCurrentBookingOrderAndTickets();
+    if (!tickets || tickets.length === 0) {
+      alert('ไม่พบรายการตั๋วสำหรับการบันทึกค่ะ');
+      return;
+    }
+    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.downloadTicketSlip === 'function') {
+      for (let i = 0; i < tickets.length; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        await SlipGenerator.downloadTicketSlip(tickets[i], order, i + 1, tickets.length);
+      }
+    }
+  };
+
+  window.saveMobileAllSlips = async function () {
+    const { order, payment, tickets } = resolveCurrentBookingOrderAndTickets();
+    if (!order || !order.order_id) {
+      alert('ไม่พบคำสั่งซื้อสำหรับการบันทึกค่ะ');
+      return;
+    }
+    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.downloadAllSlips === 'function') {
+      await SlipGenerator.downloadAllSlips(order, payment, tickets);
+    }
+  };
+
+  // ==========================================================================
+  // DESKTOP PC DIRECT PNG DOWNLOAD HANDLERS (NO PRINT DIALOG TRIGGER)
+  // ==========================================================================
+  window.downloadReceiptImagePC = async function () {
+    const { order, payment, tickets } = resolveCurrentBookingOrderAndTickets();
+    if (!order || !order.order_id) {
+      alert('ไม่พบคำสั่งซื้อสำหรับการดาวน์โหลดภาพใบเสร็จค่ะ');
+      return;
+    }
+    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.generateReceiptSlipCanvas === 'function') {
+      const canvas = await SlipGenerator.generateReceiptSlipCanvas(order, payment, tickets);
+      const filename = `EventPay_Receipt_${order.order_id}.png`;
+      if (canvas.toBlob) {
+        canvas.toBlob(blob => {
+          if (!blob) return;
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            if (a.parentNode) document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+          }, 1000);
+        }, 'image/png');
+      } else {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 1000);
+      }
+    }
+  };
+
+  window.downloadTicketsImagePC = async function () {
+    const { order, tickets } = resolveCurrentBookingOrderAndTickets();
+    if (!tickets || tickets.length === 0) {
+      alert('ไม่พบรายการตั๋วสำหรับการดาวน์โหลดภาพค่ะ');
+      return;
+    }
+    if (typeof SlipGenerator !== 'undefined' && typeof SlipGenerator.generateTicketSlipCanvas === 'function') {
+      for (let i = 0; i < tickets.length; i++) {
+        await new Promise(r => setTimeout(r, 250));
+        const canvas = await SlipGenerator.generateTicketSlipCanvas(tickets[i], order, i + 1, tickets.length);
+        const filename = `EventPay_Ticket_${tickets[i].ticket_id}.png`;
+        if (canvas.toBlob) {
+          canvas.toBlob(blob => {
+            if (!blob) return;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              if (a.parentNode) document.body.removeChild(a);
+              URL.revokeObjectURL(a.href);
+            }, 1000);
+          }, 'image/png');
+        } else {
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL('image/png');
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 1000);
+        }
+      }
+    }
+  };
+
+  window.downloadAllSlipsPC = async function () {
+    await window.downloadReceiptImagePC();
+    await new Promise(r => setTimeout(r, 300));
+    await window.downloadTicketsImagePC();
+  };
+
   // SMART EXPORT & PRINT FUNCTIONS (MOBILE-FRIENDLY & DESKTOP THERMAL DUAL-ENGINE)
   // ==========================================================================
   window.printAllReceiptAndTickets = function () {

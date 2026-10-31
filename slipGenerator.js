@@ -23,6 +23,71 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+  if (typeof window !== 'undefined') {
+    window.escapeHtml = escapeHtml;
+  }
+  function _orig_escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+
+  // Helper: Self-Healing Receipt Items Fallback (Thep-Apai Mission 53)
+  function getResolvedReceiptItems(order, tickets) {
+    let items = [];
+    if (order && Array.isArray(order.items) && order.items.length > 0) {
+      items = order.items.map(it => ({
+        name: it.tier_name || it.name || it.tier_id || 'บัตรคอนเสิร์ต',
+        quantity: parseInt(it.quantity || 1, 10),
+        unit_price: parseFloat(it.unit_price || 0),
+        subtotal: parseFloat(it.subtotal || (it.quantity * it.unit_price) || 0)
+      }));
+    } else if (tickets && tickets.length > 0) {
+      const summary = {};
+      tickets.forEach(t => {
+        const name = t.tier_name || 'บัตรคอนเสิร์ต';
+        if (!summary[name]) {
+          summary[name] = { name: name, quantity: 0, tier_id: t.tier_id, unit_price: 0 };
+        }
+        summary[name].quantity++;
+      });
+      const allTiers = (typeof EventPayDB !== 'undefined' && EventPayDB.getAll) ? EventPayDB.getAll('ticket_tiers') : [];
+      const totalAmount = parseFloat((order && order.total_amount) || 0);
+      Object.keys(summary).forEach(k => {
+        const s = summary[k];
+        const tierObj = allTiers.find(x => x.tier_id === s.tier_id || x.name === s.name);
+        s.unit_price = tierObj ? parseFloat(tierObj.price || 0) : (totalAmount && tickets.length > 0 ? (totalAmount / tickets.length) : 0);
+        s.subtotal = s.quantity * s.unit_price;
+        items.push(s);
+      });
+    } else if (order && order.tier_id) {
+      const allTiers = (typeof EventPayDB !== 'undefined' && EventPayDB.getAll) ? EventPayDB.getAll('ticket_tiers') : [];
+      const tierObj = allTiers.find(x => x.tier_id === order.tier_id);
+      const totalAmount = parseFloat(order.total_amount || 0);
+      const qty = parseInt(order.ticket_count || order.quantity || 1, 10);
+      const unitPrice = tierObj ? parseFloat(tierObj.price || 0) : (qty > 0 ? (totalAmount / qty) : totalAmount);
+      items.push({
+        name: tierObj ? tierObj.name : (order.tier_name || 'บัตรคอนเสิร์ต'),
+        quantity: qty,
+        unit_price: unitPrice,
+        subtotal: totalAmount || (qty * unitPrice)
+      });
+    } else if (order && order.total_amount) {
+      const totalAmount = parseFloat(order.total_amount || 0);
+      items.push({
+        name: order.tier_name || 'บัตรคอนเสิร์ต',
+        quantity: 1,
+        unit_price: totalAmount,
+        subtotal: totalAmount
+      });
+    }
+    return items;
+  }
 
   // Helper: แปลงตัวเลขเป็นคำอ่านบาทไทย
   function numberToThaiBaht(num) {
@@ -513,13 +578,10 @@
 
         <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; justify-content: center; margin-bottom: 24px;">
           <button type="button" onclick="window.shareCurrentSlipImage('${filename || 'EventPay_Ticket.png'}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; text-align: center; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
-            🔗 แชร์รูปภาพไปยัง LINE / บันทึกภาพ
-          </button>
-          <button type="button" onclick="if(window.openBookingPdfViewer){window.openBookingPdfViewer();}else if(window.openLookupPdfViewer){window.openLookupPdfViewer();}else{alert('กรุณาเปิดจากหน้าบุคกิ้งค่ะ');}" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; padding: 12px 20px; border-radius: 8px; font-weight: 800; border: 1px solid #38bdf8; cursor: pointer; width: 100%; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
-            📄 เปิดดูเอกสารรวม (ขนาด 80x80)
+            📲 บันทึก / แชร์รูปภาพ (Share & Save)
           </button>
           <button type="button" onclick="document.getElementById('epSlipMobilePreviewModal').style.display='none'" style="background: #334155; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; width: 100%; font-size: 1rem;">
-            ✓ เรียบร้อยแล้ว (ปิด)
+            ✕ ปิดหน้าต่าง (Close)
           </button>
         </div>
       </div>
@@ -738,12 +800,13 @@
         }
       }
 
-    // รายการสินค้า
-    const itemsHtml = (order.items || []).map((item, idx) => {
-      const tierName = item.tier_name || item.tier_id || 'บัตรคอนเสิร์ต';
+    // รายการสินค้า (Thep-Apai Mission 53: Self-Healing Guaranteed Rows)
+    const resolvedItems = getResolvedReceiptItems(order, tickets);
+    const itemsHtml = resolvedItems.map((item, idx) => {
+      const tierName = item.name || 'บัตรคอนเสิร์ต';
       const qty = item.quantity || 1;
       const unitPrice = parseFloat(item.unit_price || (totalAmount / (tickets.length || 1)));
-      const subtotal = qty * unitPrice;
+      const subtotal = parseFloat(item.subtotal || (qty * unitPrice));
       return `
         <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.9rem;">
           <td style="padding: 10px 8px; text-align: center;">${idx + 1}</td>
