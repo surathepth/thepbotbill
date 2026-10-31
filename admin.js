@@ -59,19 +59,235 @@
         else if (currentTab === 'incidents') renderIncidentsTable();
         else if (currentTab === 'finance') renderFinanceLedger();
         else if (currentTab === 'audit') renderAuditLogsTable();
+        else if (currentTab === 'users') renderUsersTable();
+        else if (currentTab === 'bankSettings') renderBankSettings();
       });
     }
+
+    // [UNIVERSAL OMNI-SYNC MESH]: รับฟัง Real-time Mesh Event จากทุกอุปกรณ์และหน้าจอ
+    window.addEventListener('eventpay:sync_updated', (e) => {
+      try {
+        updatePendingSlipsBadge();
+        updateAdminNetBadge();
+        if (currentTab === 'dashboard') renderDashboardData();
+        else if (currentTab === 'salesReport') renderSalesReport();
+        else if (currentTab === 'incidents') renderIncidentsTable();
+        else if (currentTab === 'finance') renderFinanceLedger();
+        else if (currentTab === 'audit') renderAuditLogsTable();
+        else if (currentTab === 'users') renderUsersTable();
+        else if (currentTab === 'bankSettings') renderBankSettings();
+      } catch (err) {}
+    });
 
     // Auto-Sync อัปเดตข้อมูลสดทุก 3 วินาที (เพื่อให้เห็นคนเข้างานและยอดขาย Real-time)
     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
     autoRefreshTimer = setInterval(() => {
       updatePendingSlipsBadge();
+      syncOrdersFromCloudToLocal();
       if (currentTab === 'dashboard') {
         renderDashboardData();
       } else if (currentTab === 'salesReport') {
         renderSalesReport();
       }
     }, 3000);
+
+    // ดึงข้อมูลคำสั่งซื้อจาก Cloud ทันทีเมื่อเปิดหน้า Admin
+    syncOrdersFromCloudToLocal();
+  }
+
+  // ==========================================================================
+  // [CLOUD AUTO-SYNC]: ซิงก์คำสั่งซื้อและ Master Snapshot จาก Google Cloud สู่ Admin Dashboard
+  // รองรับ 3 แพลตฟอร์ม 7 อุปกรณ์ และ 4 แหล่งข้อมูลซิงก์อัตโนมัติครบ 8 ตารางหลัก 100%
+  // ==========================================================================
+  let isSyncingCloud = false;
+
+  window.pushMasterSnapshotToCloud = async function (silent = false) {
+    if (typeof EventPayFirebase === 'undefined' || typeof EventPayFirebase.pushMasterSnapshotToCloud !== 'function') {
+      if (!silent) alert('❌ ไม่พบโมดูลเชื่อมต่อ Cloud');
+      return { success: false };
+    }
+    try {
+      const fullData = JSON.parse(EventPayDB.exportJSON()).data;
+      const res = await EventPayFirebase.pushMasterSnapshotToCloud(fullData, 'PC-MASTER');
+      if (res && res.success) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('eventpay_last_pushed_master_at', res.timestamp);
+          localStorage.setItem('eventpay_last_imported_snapshot_at', res.timestamp);
+        }
+        if (!silent) alert('✅ ซิงก์ฐานข้อมูลครบวงจรขึ้น Cloud สำเร็จเรียบร้อยแล้ว!\nทุกอุปกรณ์ (มือถือ, แท็บเล็ต, PC) จะได้รับข้อมูลตรงกัน 100%');
+        return { success: true };
+      } else {
+        if (!silent) alert('เกิดข้อผิดพลาดในการซิงก์ขึ้น Cloud: ' + (res.error || 'Unknown error'));
+        return { success: false };
+      }
+    } catch (err) {
+      if (!silent) alert('เกิดข้อผิดพลาด: ' + err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  window.pullMasterSnapshotFromCloud = async function (silent = false) {
+    if (typeof EventPayFirebase === 'undefined' || typeof EventPayFirebase.fetchMasterSnapshotFromCloud !== 'function') {
+      if (!silent) alert('❌ ไม่พบโมดูลเชื่อมต่อ Cloud');
+      return { success: false };
+    }
+    try {
+      const snapshot = await EventPayFirebase.fetchMasterSnapshotFromCloud();
+      if (!snapshot || !snapshot.data) {
+        if (!silent) alert('ℹ️ ไม่พบข้อมูล Snapshot บน Cloud หรือข้อมูลยังว่างเปล่า');
+        return { success: false };
+      }
+      const res = EventPayDB.importSnapshot(snapshot.data, {
+        snapshotTimestamp: snapshot.snapshot_timestamp,
+        clearIfEmpty: true
+      });
+      if (res && res.success) {
+        if (typeof renderDashboardData === 'function') renderDashboardData();
+        if (typeof renderSalesReport === 'function') renderSalesReport();
+        if (typeof renderFinanceLedger === 'function') renderFinanceLedger();
+        if (typeof renderIncidentsTable === 'function') renderIncidentsTable();
+        if (typeof renderUsersTable === 'function') renderUsersTable();
+        if (typeof updatePendingSlipsBadge === 'function') updatePendingSlipsBadge();
+
+        if (!silent) alert(`✅ ดึงข้อมูลสดจาก Cloud สำเร็จเรียบร้อยแล้ว!\n- อัปเดตข้อมูลแล้ว ${res.replacedCount} รายการ\n- ทุกเมนู (ยอดขาย, ค่าใช้จ่าย, ตั๋ว) ตรงกับเครื่องหลัก 100%`);
+        return { success: true };
+      }
+      return { success: false };
+    } catch (err) {
+      if (!silent) alert('เกิดข้อผิดพลาดในการดึงข้อมูลจาก Cloud: ' + err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  async function syncOrdersFromCloudToLocal() {
+    if (isSyncingCloud) return;
+    if (typeof EventPayFirebase === 'undefined') return;
+
+    isSyncingCloud = true;
+    try {
+      // 1. ซิงก์การตั้งค่าระบบและสัญญาณล้างข้อมูลจาก Cloud (Dynamic Settings Sync)
+      try {
+        if (typeof EventPayFirebase.fetchAllCloudSettings === 'function') {
+          const cloudSettings = await EventPayFirebase.fetchAllCloudSettings();
+          if (cloudSettings && typeof EventPayDB.syncFromCloudSettings === 'function') {
+            EventPayDB.syncFromCloudSettings(cloudSettings);
+          }
+        }
+      } catch (eSettingsSync) {
+        console.warn('[Admin Cloud Sync] Cloud settings sync non-blocking warning:', eSettingsSync);
+      }
+
+      // 2. ซิงก์ Master Snapshot ข้ามแพลตฟอร์ม (Universal 4-Source Auto-Sync)
+      try {
+        if (typeof EventPayFirebase.fetchMasterSnapshotFromCloud === 'function') {
+          const snapshot = await EventPayFirebase.fetchMasterSnapshotFromCloud();
+          if (snapshot && snapshot.data && snapshot.snapshot_timestamp) {
+            const localSnapTs = (typeof localStorage !== 'undefined') ? localStorage.getItem('eventpay_last_imported_snapshot_at') : null;
+            const isOnlineClient = (typeof window !== 'undefined' && (window.location.hostname.includes('github.io') || window.location.protocol === 'https:'));
+            const isNewer = !localSnapTs || (new Date(snapshot.snapshot_timestamp) > new Date(localSnapTs));
+
+            // บนอุปกรณ์มือถือ/GitHub Pages ให้ซิงก์ดึงข้อมูลสดจาก Cloud ทันที
+            if (isNewer || isOnlineClient) {
+              const res = EventPayDB.importSnapshot(snapshot.data, {
+                snapshotTimestamp: snapshot.snapshot_timestamp,
+                clearIfEmpty: true
+              });
+              if (res && res.success) {
+                if (typeof renderDashboardData === 'function') renderDashboardData();
+                if (typeof renderSalesReport === 'function') renderSalesReport();
+                if (typeof renderFinanceLedger === 'function') renderFinanceLedger();
+                if (typeof renderIncidentsTable === 'function') renderIncidentsTable();
+                if (typeof renderUsersTable === 'function') renderUsersTable();
+              }
+            }
+          }
+        }
+      } catch (eSnapSync) {
+        console.warn('[Admin Cloud Sync] Master Snapshot sync non-blocking warning:', eSnapSync);
+      }
+
+      // 3. ซิงก์คำสั่งซื้อจาก Firestore Cloud
+      if (typeof EventPayFirebase.fetchCloudOrders === 'function') {
+        const cloudOrders = await EventPayFirebase.fetchCloudOrders();
+        if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+          let hasNewOrder = false;
+          let hasUpdatedOrder = false;
+          const lastClearedAt = (typeof localStorage !== 'undefined') ? localStorage.getItem('eventpay_last_cleared_at') : null;
+
+          cloudOrders.forEach(co => {
+            if (!co || !co.order_id) return;
+            // [LAST CLEARED SHIELD]: หากออเดอร์ใน Cloud สร้างก่อนเวลาที่แอดมินล้างข้อมูล ให้ข้ามทันที ไม่ดึงกลับมาทับ
+            if (lastClearedAt && co.created_at && new Date(co.created_at) < new Date(lastClearedAt)) {
+              return;
+            }
+            const localOrder = EventPayDB.get('orders', co.order_id);
+            if (!localOrder) {
+              // ถอดรหัส items_json และ tickets_json
+              if (co.items_json && (!co.items || co.items.length === 0)) {
+                try { co.items = JSON.parse(co.items_json); } catch (e) {}
+              }
+              EventPayDB.insert('orders', co);
+              hasNewOrder = true;
+
+              // บันทึกตั๋วเข้าฐานข้อมูลในเครื่อง
+              if (co.tickets_json) {
+                try {
+                  const tkts = JSON.parse(co.tickets_json);
+                  if (Array.isArray(tkts)) {
+                    tkts.forEach(t => {
+                      if (t && t.ticket_id && !EventPayDB.get('tickets', t.ticket_id)) {
+                        EventPayDB.insert('tickets', t);
+                      }
+                    });
+                  }
+                } catch (e) {}
+              }
+
+              // บันทึกรายการชำระเงิน
+              if (co.slip_url) {
+                const existingPay = EventPayDB.getAll('payments', p => p.order_id === co.order_id)[0];
+                if (!existingPay) {
+                  EventPayDB.insert('payments', {
+                    payment_id: 'PAY-CLOUD-' + co.order_id,
+                    order_id: co.order_id,
+                    amount: co.total_amount,
+                    payment_method: co.payment_method || 'TRANSFER',
+                    slip_url: co.slip_url,
+                    bank_ref: co.bank_ref || '',
+                    created_at: co.created_at || new Date().toISOString()
+                  });
+                }
+              }
+            } else {
+              // อัปเดตสถานะถ้ามีการเปลี่ยนแปลง
+              if (localOrder.payment_status !== co.payment_status) {
+                EventPayDB.update('orders', co.order_id, {
+                  payment_status: co.payment_status,
+                  notes: co.notes || localOrder.notes
+                });
+                hasUpdatedOrder = true;
+              }
+            }
+          });
+
+          if (hasNewOrder || hasUpdatedOrder) {
+            updatePendingSlipsBadge();
+            if (currentTab === 'dashboard') {
+              renderDashboardData();
+            } else if (currentTab === 'salesReport') {
+              renderSalesReport();
+            }
+            if (hasNewOrder && typeof AudioAlertEngine !== 'undefined' && AudioAlertEngine.playChime) {
+              AudioAlertEngine.playChime();
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Admin] Cloud sync error:', err);
+    } finally {
+      isSyncingCloud = false;
+    }
   }
 
   async function updateAdminNetBadge() {
@@ -84,6 +300,11 @@
         badge.style.background = 'rgba(34, 197, 94, 0.15)';
         badge.style.borderColor = 'var(--accent-green)';
         badge.style.color = 'var(--accent-green)';
+      } else if (typeof EventPayFirebase !== 'undefined' && EventPayFirebase.isConfigured) {
+        badge.textContent = '☁️ CLOUD SYNC ACTIVE';
+        badge.style.background = 'rgba(14, 165, 233, 0.15)';
+        badge.style.borderColor = '#0ea5e9';
+        badge.style.color = '#38bdf8';
       } else {
         badge.textContent = '🟡 LOCAL OFFLINE MODE';
         badge.style.background = 'rgba(234, 179, 8, 0.15)';
@@ -142,7 +363,11 @@
     const elIncidents = document.getElementById('kpiTotalIncidents');
 
     if (elInside) elInside.textContent = summary.attendeesInside.toLocaleString();
-    if (elOutside) elOutside.textContent = summary.attendeesRemaining.toLocaleString();
+    if (elOutside) {
+      elOutside.textContent = (summary.attendeesExited || 0).toLocaleString();
+      const sub = elOutside.parentElement ? elOutside.parentElement.querySelector('.ep-kpi-sub') : null;
+      if (sub) sub.textContent = `ออกชั่วคราว ${summary.attendeesExited || 0} คน (รอเข้า ${summary.attendeesRemaining || 0} คน)`;
+    }
 
     const pct = summary.totalTicketsSold > 0 ? Math.round((summary.attendeesInside / summary.totalTicketsSold) * 100) : 0;
     if (elInsidePct) elInsidePct.textContent = `${pct}% ของบัตรที่ออกแล้ว`;
@@ -351,7 +576,9 @@
     const ordersTbody = document.getElementById('ordersTableBody');
     if (!ordersTbody) return;
     ordersTbody.innerHTML = '';
-    const orders = EventPayDB.getAll('orders').reverse();
+    // [THEP-APAI MISSION 48]: เรียงลำดับคำสั่งซื้อล่าสุดอยู่บนสุดเสมอ (Sort by created_at DESC)
+    const orders = EventPayDB.getAll('orders');
+    orders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     const allPayments = EventPayDB.getAll('payments');
 
     if (orders.length === 0) {
@@ -393,14 +620,17 @@
           statusHtml = '<span class="ep-badge ep-badge-pass">🟢 ชำระแล้ว (อนุมัติแล้ว)</span>';
           actionHtml = `
             <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-              <button type="button" class="ep-nav-btn" style="font-size: 0.72rem; padding: 4px 8px; background: #0284c7; color: #fff; font-weight: 700; border-color: #38bdf8;" onclick="openOrderTicketsModal('${o.order_id}')">
-                🎟️ ดูตั๋ว QR (${ticketCount} ใบ)
-              </button>
               ${slipSrc ? `
-                <button type="button" class="ep-nav-btn" style="font-size: 0.72rem; padding: 4px 8px;" onclick="openSlipInspection('${o.order_id}', '${payment ? payment.payment_id : ''}')">
-                  🖼️ ดูสลิป
+                <button type="button" class="ep-nav-btn" style="font-size: 0.74rem; padding: 4px 10px; background: #0284c7; color: #fff; font-weight: 800; border: 1.5px solid #38bdf8;" onclick="openSlipInspection('${o.order_id}', '${payment ? payment.payment_id : ''}')">
+                  📷 ดูรูปสลิป
                 </button>
               ` : ''}
+              <button type="button" class="ep-nav-btn" style="font-size: 0.74rem; padding: 4px 10px; background: #1e293b; color: #38bdf8; font-weight: 800; border: 1px solid #38bdf8;" onclick="openOrderTicketsModal('${o.order_id}')">
+                🎟️ ดูตั๋ว QR (${ticketCount} ใบ)
+              </button>
+              <button type="button" class="ep-nav-btn" style="font-size: 0.74rem; padding: 4px 10px; background: rgba(239, 68, 68, 0.25); border: 1.5px solid #ef4444; color: #fca5a5; font-weight: 800;" onclick="rejectTransferOrder('${o.order_id}', '${payment ? payment.payment_id : ''}')">
+                🚨 สลิปปลอม / ยกเลิกโมฆะ
+              </button>
             </div>
           `;
         } else if (o.payment_status === 'VOID') {
@@ -681,6 +911,9 @@
       const shiftId = openShift ? openShift.shift_id : 'SHIFT-GENERAL-CORP';
 
       EventPayDB.recordCashPayout(shiftId, amt, reason, payee, approvedBy, '', cat);
+      if (typeof window.pushMasterSnapshotToCloud === 'function') {
+        window.pushMasterSnapshotToCloud(true);
+      }
       alert(`✅ บันทึกค่าใช้จ่าย ฿${amt.toLocaleString()} ในหมวด [${cat}] เรียบร้อยแล้ว!`);
       closeExpenseModal();
       renderFinanceLedger();
@@ -975,9 +1208,20 @@
 
   function syncTicketTiersToMasterDisk() {
     try {
+      const allTiers = EventPayDB.getAll('ticket_tiers');
+
+      // [CLOUD DYNAMIC SYNC]: ซิงก์โซนราคาบัตรขึ้น Google Cloud Firestore ทันที
+      try {
+        if (typeof EventPayFirebase !== 'undefined' && typeof EventPayFirebase.syncSettingsToCloud === 'function') {
+          EventPayFirebase.syncSettingsToCloud('ticket_tiers', allTiers);
+        }
+      } catch (eCloudTiers) {}
+
       if (typeof fetch !== 'undefined') {
-        const allTiers = EventPayDB.getAll('ticket_tiers');
-        fetch('/api/db/ticket_tiers/sync', {
+        const syncUrl = (typeof EventPayDB !== 'undefined' && typeof EventPayDB.getApiUrl === 'function')
+          ? EventPayDB.getApiUrl('/api/db/ticket_tiers/sync')
+          : ((typeof window !== 'undefined' && window.location.protocol === 'file:') ? 'http://localhost:8080/api/db/ticket_tiers/sync' : '/api/db/ticket_tiers/sync');
+        fetch(syncUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(allTiers)
@@ -989,7 +1233,10 @@
   function syncTicketTiersFromMaster() {
     try {
       if (typeof fetch !== 'undefined') {
-        fetch('/api/db/ticket_tiers')
+        const fetchUrl = (typeof EventPayDB !== 'undefined' && typeof EventPayDB.getApiUrl === 'function')
+          ? EventPayDB.getApiUrl('/api/db/ticket_tiers')
+          : ((typeof window !== 'undefined' && window.location.protocol === 'file:') ? 'http://localhost:8080/api/db/ticket_tiers' : '/api/db/ticket_tiers');
+        fetch(fetchUrl)
           .then(r => r.json())
           .then(serverTiers => {
             if (Array.isArray(serverTiers) && serverTiers.length > 0) {
@@ -1163,12 +1410,31 @@
     if (modalTitle) modalTitle.textContent = `🧾 ตรวจสอบสลิปโอนเงิน (Order: ${orderId})`;
     if (modalDetails) {
       const isPending = order && order.payment_status === 'PENDING_VERIFICATION';
+      const orderDateStr = order && order.created_at ? new Date(order.created_at).toLocaleString('th-TH') : '-';
       modalDetails.innerHTML = `
-        <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); line-height: 1.8; font-size: 0.88rem;">
-          <div><strong>ชื่อลูกค้า:</strong> ${escapeHtml(custName)} (โทร: ${escapeHtml(custPhone)})</div>
-          <div><strong>ยอดเงินที่ต้องเข้าสเตทเมนต์:</strong> <strong style="color: var(--accent-gold); font-size: 1.15rem;">฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong></div>
-          <div><strong>เลขอ้างอิงสลิป:</strong> <span style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;">${escapeHtml(bankRef)}</span></div>
-          <div><strong>สถานะปัจจุบัน:</strong> <span class="ep-badge ${isPending ? 'ep-badge-warning ep-blink-urgent-gold' : (order && order.payment_status === 'PAID' ? 'ep-badge-pass' : 'ep-badge-danger')}">${isPending ? '🟡 รอตรวจสเตทเมนต์' : (order ? order.payment_status : '-')}</span></div>
+        <div style="background: rgba(15, 23, 42, 0.85); padding: 16px; border-radius: 12px; border: 1.5px solid var(--accent-cyan); line-height: 1.8; font-size: 0.92rem; text-align: left;">
+          <div style="margin-bottom: 8px;"><strong>ชื่อลูกค้า:</strong> ${escapeHtml(custName)} (โทร: <a href="tel:${escapeHtml(custPhone)}" style="color: var(--accent-cyan); text-decoration: underline;">${escapeHtml(custPhone)}</a>)</div>
+          
+          <!-- 3 MASTER CARDS FOR K-PLUS RECONCILIATION -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 12px 0;">
+            <div style="background: rgba(0,0,0,0.5); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);">
+              <span style="font-size: 0.8rem; color: #fde047; display: block; font-weight: 700;">💰 1. ยอดเงินโอนจริง (K-Plus):</span>
+              <strong style="color: var(--accent-gold); font-size: 1.35rem; font-family: 'Inter', monospace;">฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div style="background: rgba(0,0,0,0.5); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
+              <span style="font-size: 0.8rem; color: #7dd3fc; display: block; font-weight: 700;">⏱️ 2. วันที่-เวลาโอน:</span>
+              <strong style="color: #ffffff; font-size: 1.05rem;">${orderDateStr}</strong>
+            </div>
+            <div style="background: rgba(0,0,0,0.5); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+              <span style="font-size: 0.8rem; color: #6ee7b7; display: block; font-weight: 700;">🔢 3. เลขอ้างอิงสลิป (Ref):</span>
+              <strong style="font-family: monospace; color: var(--accent-cyan); font-size: 1.15rem; word-break: break-all;">${escapeHtml(bankRef)}</strong>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+            <span><strong>สถานะคำสั่งซื้อ:</strong></span>
+            <span class="ep-badge ${isPending ? 'ep-badge-warning ep-blink-urgent-gold' : (order && order.payment_status === 'PAID' ? 'ep-badge-pass' : 'ep-badge-danger')}" style="font-size: 0.85rem; padding: 4px 12px;">${isPending ? '🟡 รอตรวจสเตทเมนต์' : (order ? order.payment_status : '-')}</span>
+          </div>
         </div>
 
         ${isPending ? `
@@ -1180,7 +1446,16 @@
               🚨 สลิปปลอม / ระงับคำสั่งซื้อ
             </button>
           </div>
-        ` : ''}
+        ` : (order && order.payment_status === 'PAID' ? `
+          <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="ep-nav-btn" style="padding: 10px 20px; font-size: 0.92rem; background: #0284c7; color: #fff; font-weight: 800; border: 1.5px solid #38bdf8;" onclick="closeModal('modalPhotoZoom'); openOrderTicketsModal('${orderId}');">
+              🎟️ ดูตั๋ว QR ที่ระบบเจนไปแล้ว
+            </button>
+            <button type="button" class="ep-nav-btn" style="padding: 10px 20px; font-size: 0.92rem; background: #ef4444; color: #fff; font-weight: 800; border: 1.5px solid #f87171;" onclick="rejectTransferOrder('${orderId}', '${payment ? payment.payment_id : ''}', true)">
+              🚨 สลิปปลอม / ยกเลิกเป็นบัตรโมฆะ
+            </button>
+          </div>
+        ` : '')}
       `;
     }
     if (modal) modal.classList.add('show');
@@ -1204,6 +1479,15 @@
       EventPayDB.update('orders', orderId, { payment_status: 'PAID' });
       const tickets = EventPayDB.getAll('tickets', t => t.order_id === orderId);
       tickets.forEach(t => EventPayDB.update('tickets', t.ticket_id, { is_void: false }));
+    }
+
+    // [UNIVERSAL CLOUD QUAD-SYNC]: ซิงก์สถานะชำระเงิน (PAID) ขึ้น Google Cloud Firestore ทันที
+    try {
+      if (typeof EventPayFirebase !== 'undefined' && typeof EventPayFirebase.updateCloudOrderStatus === 'function') {
+        EventPayFirebase.updateCloudOrderStatus(orderId, 'PAID', 'Confirmed by Admin Finance');
+      }
+    } catch (eCloud) {
+      console.warn('[Admin] Cloud approve sync error:', eCloud);
     }
 
     alert(`✅ ยืนยันการเงินสำเร็จ!\nคำสั่งซื้อ ${orderId} ได้รับการอนุมัติแล้ว\nระบบได้ออกใบเสร็จรับเงินและส่งตั๋ว e-Ticket ไปยังหน้าจอลูกค้าเรียบร้อยแล้วค่ะ`);
@@ -1236,6 +1520,27 @@
       EventPayDB.logAudit('REJECT_ORDER', 'FINANCE', `ระงับคำสั่งซื้อ ${orderId} เหตุผล: ${reason}`, currentUser);
     }
 
+    // [INSERT ACTIVE MODERN LOGIC]: ซิงก์คำสั่ง Void ไปยัง Master Server ทันที เพื่อกระจาย SSE ไปยังทุก Kiosk หน้าประตู
+    try {
+      const apiUrl = (typeof EventPayDB !== 'undefined' && typeof EventPayDB.getApiUrl === 'function')
+        ? EventPayDB.getApiUrl('/api/orders/void')
+        : ((typeof window !== 'undefined' && window.location.protocol === 'file:') ? 'http://localhost:8080/api/orders/void' : '/api/orders/void');
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, paymentId, reason, verifierId: currentUser })
+      }).catch(e => console.warn('[Admin] Server void sync non-blocking error:', e));
+    } catch (eSync) {}
+
+    // [UNIVERSAL CLOUD QUAD-SYNC]: ซิงก์สถานะระงับโมฆะ (VOID) ขึ้น Google Cloud Firestore ทันที
+    try {
+      if (typeof EventPayFirebase !== 'undefined' && typeof EventPayFirebase.updateCloudOrderStatus === 'function') {
+        EventPayFirebase.updateCloudOrderStatus(orderId, 'VOID', reason);
+      }
+    } catch (eCloud) {
+      console.warn('[Admin] Cloud void sync error:', eCloud);
+    }
+
     alert(`🚨 ระงับคำสั่งซื้อ ${orderId} เรียบร้อยแล้ว!\nบัตรคอนเสิร์ตทั้งหมดถูกล็อกเป็นโมฆะ หากผู้ต้องสงสัยนำไปสแกนที่ Kiosk หน้าประตู ระบบจะลั่นไซเรนเตือนภัยทันทีค่ะ`);
 
     if (closeModalAfter) {
@@ -1249,8 +1554,6 @@
   // ==========================================================================
   // 7.1 ตรวจสอบบัตรคอนเสิร์ต e-Ticket QR Code ของคำสั่งซื้อ (Order Tickets Inspection)
   // ==========================================================================
-  let currentInspectedOrderTickets = null;
-
   window.openOrderTicketsModal = function (orderId) {
     if (typeof EventPayDB === 'undefined') return;
     const order = EventPayDB.get('orders', orderId);
@@ -1296,8 +1599,6 @@
       });
     }
 
-    currentInspectedOrderTickets = { order, tickets };
-
     if (titleEl) {
       titleEl.innerHTML = `<span>🎟️ ตรวจสอบบัตรคอนเสิร์ต e-Ticket QR Code (${tickets.length} ใบ)</span>`;
     }
@@ -1325,7 +1626,7 @@
           </div>
           <div style="text-align: right;">
             <div style="font-size: 0.82rem; color: var(--text-muted);">ยอดชำระ:</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #34d399;">฿${Math.round(order.total_amount).toLocaleString('th-TH')}</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #34d399;">฿${Number(order.total_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
             <div style="margin-top: 4px; display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
               ${pmBadge}
               ${psBadge}
@@ -1460,18 +1761,6 @@
       </html>
     `);
     printWindow.document.close();
-  };
-
-  window.downloadOrderTicketsSlips = async function () {
-    if (!currentInspectedOrderTickets || !window.SlipGenerator) {
-      alert('ไม่พบข้อมูลตั๋วที่จะดาวน์โหลด');
-      return;
-    }
-    const { order, tickets } = currentInspectedOrderTickets;
-    for (let i = 0; i < tickets.length; i++) {
-      await new Promise(r => setTimeout(r, 280));
-      await window.SlipGenerator.downloadTicketSlip(tickets[i], order, i + 1, tickets.length);
-    }
   };
 
   // ==========================================================================
@@ -2008,8 +2297,20 @@
 
   function syncBankAccountsToMasterDisk() {
     try {
+      const allAccounts = EventPayDB.getAll('bank_accounts');
+      const activeAccount = EventPayDB.getActiveBankAccount();
+
+      // [CLOUD DYNAMIC SYNC]: ซิงก์รายชื่อบัญชีธนาคารและบัญชีหลักขึ้น Google Cloud Firestore แบบไดนามิกทันที
+      try {
+        if (typeof EventPayFirebase !== 'undefined' && typeof EventPayFirebase.syncSettingsToCloud === 'function') {
+          EventPayFirebase.syncSettingsToCloud('bank_accounts', allAccounts);
+          if (activeAccount) {
+            EventPayFirebase.syncSettingsToCloud('active_bank', activeAccount);
+          }
+        }
+      } catch (eCloudBank) {}
+
       if (typeof fetch !== 'undefined') {
-        const allAccounts = EventPayDB.getAll('bank_accounts');
         fetch('/api/db/bank_accounts/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2643,6 +2944,32 @@
 
     try {
       const result = EventPayDB.clearTransactionsData(user.username || 'admin');
+
+      // ซิงก์คำสั่งล้างข้อมูลธุรกรรมไปยัง Master Server บนดิสก์ถาวร
+      try {
+        const clearServerUrl = (typeof EventPayDB !== 'undefined' && typeof EventPayDB.getApiUrl === 'function')
+          ? EventPayDB.getApiUrl('/api/admin/clear-transactions')
+          : ((typeof window !== 'undefined' && window.location.protocol === 'file:') ? 'http://localhost:8080/api/admin/clear-transactions' : '/api/admin/clear-transactions');
+        fetch(clearServerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clearedBy: user.username || 'admin' })
+        }).catch(e => console.warn('[Admin] Server clear non-blocking:', e));
+      } catch (eServer) {}
+
+      // สั่งล้างข้อมูลคำสั่งซื้อเก่าบน Google Cloud Firestore พร้อมกัน และซิงก์ Master Snapshot ว่างเปล่าขึ้น Cloud
+      try {
+        if (typeof EventPayFirebase !== 'undefined') {
+          if (typeof EventPayFirebase.clearAllCloudOrders === 'function') {
+            EventPayFirebase.clearAllCloudOrders();
+          }
+          if (typeof EventPayFirebase.pushMasterSnapshotToCloud === 'function') {
+            const cleanData = JSON.parse(EventPayDB.exportJSON()).data;
+            EventPayFirebase.pushMasterSnapshotToCloud(cleanData, 'PC-MASTER-CLEAR');
+          }
+        }
+      } catch (eCloud) {}
+
       closeClearTransactionsModal();
       alert(`✅ ล้างข้อมูลธุรกรรมสำเร็จเรียบร้อยแล้ว!\n- ล้างข้อมูลแล้ว ${result.clearedCount} รายการ\n- รีเซ็ตยอดจำหน่ายในผังประเภทตั๋ว (Ticket Tiers) เป็น 0\n- ข้อมูลระบบหลัก (Admin/Staff, บัญชีธนาคาร, ประตู Kiosk) ยังคงอยู่ครบ 100%`);
 

@@ -94,6 +94,15 @@
       });
     }
 
+    // [UNIVERSAL OMNI-SYNC MESH]: รับฟัง Real-time Mesh Event จากทุกอุปกรณ์และหน้าจอ
+    window.addEventListener('eventpay:sync_updated', (e) => {
+      try {
+        updateGateStats();
+        renderActiveOutsideBoard();
+        updateKioskNetBadge();
+      } catch (err) {}
+    });
+
     // ดึงกระดานคนอยู่นอกงานแบบ Periodic Update ทุก 10 วินาที เพื่อรีเฟรชเวลา (agoStr)
     setInterval(() => {
       renderActiveOutsideBoard();

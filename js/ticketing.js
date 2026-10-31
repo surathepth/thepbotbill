@@ -45,6 +45,17 @@
       });
     }
 
+    // [UNIVERSAL OMNI-SYNC MESH]: รับฟัง Real-time Mesh Event จากทุกอุปกรณ์และหน้าจอ
+    window.addEventListener('eventpay:sync_updated', (e) => {
+      try {
+        renderTierCards();
+        loadActiveShift();
+        renderPromptPayQr();
+        updateTotalSummary();
+        updateNetworkBadge();
+      } catch (err) {}
+    });
+
     // ปลดล็อก Web Audio ทันทีเมื่อผู้ใช้คลิกหน้าจอครั้งแรก
     document.addEventListener('click', function unlockOnce() {
       if (audioAlert) audioAlert.unlockAudio();

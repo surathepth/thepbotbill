@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>EventPay Admin - ศูนย์บัญชาการและตรวจสอบการเงินความปลอดภัยคอนเสิร์ต</title>
-  <link rel="stylesheet" href="css/styles.css?v=20261024_0100">
+  <link rel="stylesheet" href="css/styles.css?v=52.0">
   <script>
     // Auto-Bridge: หากเปิดจาก Explorer (file:///) และ Master Server (Port 8080) ทำงานอยู่ ให้บริดจ์อัตโนมัติ
     (function() {
@@ -44,13 +44,6 @@
       </div>
 
       <nav class="ep-nav-links">
-        <span class="ep-nav-btn" style="background: #0f172a; border-color: #312e81; font-size: 0.78rem;" id="adminSyncStatus">
-          🟢 Auto-Sync สดทุก 3 วินาที
-        </span>
-        <span class="ep-nav-btn" style="background: rgba(0, 229, 255, 0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); font-size: 0.78rem;" id="adminNetModeBadge">
-          📡 ตรวจหาเครื่องแม่ข่าย LAN...
-        </span>
-
         <!-- QUICK PORTALS DROPDOWN -->
         <div class="ep-dropdown">
           <button type="button" class="ep-dropdown-btn">
@@ -1214,14 +1207,14 @@
     </div>
   </div>
 
-  <!-- CORE SCRIPTS -->
-  <script src="js/qrcode.min.js?v=20261024_0100"></script>
-  <script src="js/audioAlertEngine.js?v=20261024_0100"></script>
-  <script src="js/hardwareBridge.js?v=20261024_0100"></script>
-  <script src="js/db.js?v=20261024_0100"></script>
-  <script src="js/firebaseAdapter.js?v=20261024_0100"></script>
-  <script src="js/authGuard.js?v=20261024_0100"></script>
-  <script src="js/admin.js?v=20261024_0100"></script>
+  <!-- CORE SCRIPTS (CACHE-BUSTING v49.0) -->
+  <script src="js/qrcode.min.js?v=52.0"></script>
+  <script src="js/audioAlertEngine.js?v=52.0"></script>
+  <script src="js/hardwareBridge.js?v=52.0"></script>
+  <script src="js/db.js?v=52.0"></script>
+  <script src="js/firebaseAdapter.js?v=52.0"></script>
+  <script src="js/authGuard.js?v=52.0"></script>
+  <script src="js/admin.js?v=52.0"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (typeof EventPayAuth !== 'undefined') {

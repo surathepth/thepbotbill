@@ -246,13 +246,24 @@
     getUsers() {
       const db = this._getDB();
       if (db) {
-        return db.getAll(COLLECTION_USERS);
+        let list = db.getAll(COLLECTION_USERS);
+        if (!list || list.length === 0) {
+          if (typeof db._healLegacyUsers === 'function') {
+            db._healLegacyUsers();
+            list = db.getAll(COLLECTION_USERS);
+          } else {
+            this._seedUsersIfEmpty();
+            list = db.getAll(COLLECTION_USERS);
+          }
+        }
+        return (list && list.length > 0) ? list : DEFAULT_SEED_USERS;
       }
       if (typeof localStorage !== 'undefined') {
         try {
           const raw = localStorage.getItem('eventpay_db_' + COLLECTION_USERS);
-          return raw ? JSON.parse(raw) : [];
-        } catch (e) { return []; }
+          const parsed = raw ? JSON.parse(raw) : [];
+          if (parsed && parsed.length > 0) return parsed;
+        } catch (e) { }
       }
       return DEFAULT_SEED_USERS;
     }

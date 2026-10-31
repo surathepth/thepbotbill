@@ -91,9 +91,12 @@
         this._seedFinancialCategoriesIfMissing();
         this._seedBankAccountsIfMissing();
         this._seedTicketTiersIfMissing();
+        this._seedUsersIfMissing();
       }
       // ระบบเยียวยาข้อมูลอัตโนมัติ (Self-Healing Migration) สำหรับทุกสภาพแวดล้อม (file:///, localhost, cloud)
       this._healLegacyTicketTiers();
+      this._healLegacyBankAccounts();
+      this._healLegacyUsers();
     }
 
     _initNetworkSync() {
@@ -108,6 +111,10 @@
         if (typeof fetch !== 'undefined') {
           this.checkMasterConnection();
         }
+        // [UNIVERSAL OMNI-SYNC ENGINE]: เริ่มต้น Heartbeat Poller ซิงก์ข้อมูล 4 แหล่ง อัตโนมัติ 100%
+        this._cloudHeartbeatInitTimer = setTimeout(() => {
+          this._startCloudHeartbeatPoller();
+        }, 150);
       }
     }
 
@@ -211,6 +218,21 @@
         });
       }
 
+      // บันทึกเวลาที่ล้างข้อมูลลงในระบบ เพื่อเป็นเกราะป้องกันไม่ให้ออเดอร์เก่าถูกดึงกลับมาทับ
+      const nowCleared = new Date().toISOString();
+      this._setItem('eventpay_last_cleared_at', nowCleared);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('eventpay_last_cleared_at', nowCleared);
+      }
+
+      // [UNIVERSAL CLOUD REALTIME SYNC]: ส่งสัญญาณล้างข้อมูลขึ้น Firestore Cloud เพื่อให้มือถือและทุกอุปกรณ์รีเซ็ตพร้อมกัน
+      try {
+        if (clearedBy !== 'AUTO-CLOUD-SYNC' && typeof EventPayFirebase !== 'undefined' && typeof EventPayFirebase.broadcastClearTransactionsToCloud === 'function') {
+          const clearedData = JSON.parse(this.exportJSON()).data;
+          EventPayFirebase.broadcastClearTransactionsToCloud(nowCleared, clearedData).catch(e => console.warn('[DB] Clear cloud broadcast warning:', e));
+        }
+      } catch (eCloudBroadcast) {}
+
       // บันทึก Audit Log รายการแรกของการล้างข้อมูล
       try {
         this.logAudit('CLEAR_TRANSACTIONS', 'SYSTEM', `ล้างข้อมูลธุรกรรมทั้งหมด ${clearedCount} รายการ โดยสิทธิ์ผู้ดูแลระบบสูงสุด`, clearedBy);
@@ -230,8 +252,17 @@
     seedDefaultData() {
       const now = new Date().toISOString();
 
-      // 1. งานคอนเสิร์ต
+      // 1. งานคอนเสิร์ต (อัปเดตงานคอนเสิร์ตจริง: เขาใหญ่ THAI ROCK 2 FEST ตามคำสั่งเทพอภัย)
       const events = [
+        {
+          event_id: 'EVT-THAIROCK2-2027',
+          name: 'เขาใหญ่ THAI ROCK 2 FEST',
+          venue: 'ณ ลานราชสีห์-มา ถนนธนะรัชต์ กม.21 เขาใหญ่',
+          start_date: '2027-03-20T14:00:00Z',
+          end_date: '2027-03-21T02:00:00Z',
+          total_capacity: 10000,
+          status: 'ACTIVE'
+        },
         {
           event_id: 'EVT-CONCERT-001',
           name: 'THEP-APAI & LILIN SUPREME MEGA CONCERT 2026',
@@ -243,12 +274,12 @@
         }
       ];
 
-      // 2. โซนและประเภทบัตร (Default Tiers ตรงตามราคาจริงหน้า Admin ของเทพอภัย 100%)
+      // 2. โซนและประเภทบัตร (Default Tiers ตรงตามราคาจริง THAI ROCK 2 FEST ของเทพอภัย 100%)
       const ticket_tiers = [
+        { tier_id: 'TIER-EARLY-ROCK', name: 'Early Rock (จำกัด 2,000 ใบ)', price: 790.00, quota: 2000, sold: 0 },
+        { tier_id: 'TIER-REG-ROCK', name: 'Regular Rock (บัตรราคาปกติ)', price: 1500.00, quota: 7500, sold: 0 },
         { tier_id: 'TIER-VIP', name: 'VIP Front Row (Zone A)', price: 2000.00, quota: 500, sold: 0 },
-        { tier_id: 'TIER-REG', name: 'Regular Seated (Zone B)', price: 1500.00, quota: 2000, sold: 0 },
-        { tier_id: 'TIER-STD', name: 'General Standing (Zone C)', price: 1200.00, quota: 5000, sold: 0 },
-        { tier_id: 'TIER-GEN', name: 'ทั่วไป', price: 1000.00, quota: 1000, sold: 0 }
+        { tier_id: 'TIER-TEST-5', name: 'บัตรทดสอบโอนจริง 5 บาท (KBank)', price: 5.00, quota: 500, sold: 0 }
       ];
 
       // 3. ประตูตรวจบัตร (Gates)
@@ -470,6 +501,7 @@
 
       this._seedFinancialCategoriesIfMissing();
       this._seedBankAccountsIfMissing();
+      this._seedUsersIfMissing();
 
       this._setItem('system_initialized', 'true');
       this._setItem('db_version', DB_VERSION);
@@ -520,9 +552,9 @@
             account_id: 'BANK-001',
             bank_name: 'ธนาคารกสิกรไทย (KBANK)',
             bank_code: 'KBANK',
-            account_number: '081-234-5678',
-            account_name: 'บริษัท สุรเทพอภัย คอนเสิร์ต จำกัด (EventPay Official)',
-            promptpay_id: '0812345678',
+            account_number: '128-3-25644-4',
+            account_name: 'สุรเทพ ศรีสารคาม',
+            promptpay_id: '0947834659',
             promptpay_type: 'PHONE',
             is_active: true,
             notes: 'บัญชีหลักสำหรับรับโอนเงินค่าบัตรคอนเสิร์ตและ PromptPay QR Code หน้าเว็บ',
@@ -564,7 +596,8 @@
           { tier_id: 'TIER-VIP', name: 'VIP Front Row (Zone A)', price: 2000.00, quota: 500, sold: 0 },
           { tier_id: 'TIER-REG', name: 'Regular Seated (Zone B)', price: 1500.00, quota: 2000, sold: 0 },
           { tier_id: 'TIER-STD', name: 'General Standing (Zone C)', price: 1200.00, quota: 5000, sold: 0 },
-          { tier_id: 'TIER-GEN', name: 'ทั่วไป', price: 1000.00, quota: 1000, sold: 0 }
+          { tier_id: 'TIER-GEN', name: 'ทั่วไป', price: 1000.00, quota: 1000, sold: 0 },
+          { tier_id: 'TIER-TEST-5', name: 'บัตรทดสอบโอนจริง 5 บาท (KBank)', price: 5.00, quota: 500, sold: 0 }
         ];
         this._saveCollection('ticket_tiers', defaultTiers);
       }
@@ -572,7 +605,7 @@
 
     /**
      * ระบบเยียวยาและอัปเกรดราคาบัตรอัตโนมัติ (Self-Healing Legacy Tier Migration)
-     * บังคับตรวจจับราคาตกค้างรุ่นเก่า (5000 / 2500) และอัปเกรดเป็นราคาทางการ 4 โซน 100%
+     * บังคับตรวจจับราคาตกค้างรุ่นเก่า (5000 / 2500) และอัปเกรดเป็นราคาทางการ 100%
      * ทำงานอัตโนมัติทั้งบน file:/// (Explorer), http://localhost:8080 (Browser), และ Cloud
      */
     _healLegacyTicketTiers() {
@@ -582,29 +615,22 @@
         return;
       }
 
+      // ลบ TIER-TEST-1 (1 บาท) ออกจากระบบอัตโนมัติ หากมีตกค้าง
+      if (tiers.some(t => t.tier_id === 'TIER-TEST-1')) {
+        const cleaned = tiers.filter(t => t.tier_id !== 'TIER-TEST-1');
+        this._saveCollection('ticket_tiers', cleaned);
+      }
+
       const officialTiers = [
         { tier_id: 'TIER-VIP', name: 'VIP Front Row (Zone A)', price: 2000.00, quota: 500, sold: 0 },
         { tier_id: 'TIER-REG', name: 'Regular Seated (Zone B)', price: 1500.00, quota: 2000, sold: 0 },
         { tier_id: 'TIER-STD', name: 'General Standing (Zone C)', price: 1200.00, quota: 5000, sold: 0 },
         { tier_id: 'TIER-GEN', name: 'ทั่วไป', price: 1000.00, quota: 1000, sold: 0 },
-        { tier_id: 'TIER-TEST-5', name: 'บัตรทดสอบโอนจริง 5 บาท (KBank)', price: 5.00, quota: 500, sold: 0 },
-        { tier_id: 'TIER-TEST-1', name: 'บัตรทดสอบโอนจริง 1 บาท (KBank)', price: 1.00, quota: 500, sold: 0 }
+        { tier_id: 'TIER-TEST-5', name: 'บัตรทดสอบโอนจริง 5 บาท (KBank)', price: 5.00, quota: 500, sold: 0 }
       ];
 
-      // ตรวจสอบและเติมบัตรทดสอบโอนจริง 1 บาท และ 5 บาท หากยังไม่มีในระบบ
-      let tiersModified = false;
-      ['TIER-TEST-5', 'TIER-TEST-1'].forEach(testId => {
-        if (!tiers.find(t => t.tier_id === testId)) {
-          const off = officialTiers.find(o => o.tier_id === testId);
-          if (off) {
-            tiers.push({ ...off });
-            tiersModified = true;
-          }
-        }
-      });
-      if (tiersModified) {
-        this._saveCollection('ticket_tiers', tiers);
-      }
+      // เคารพสิทธิ์การลบ/แก้ไขประเภทราคาบัตรของแอดมินหน้างาน ไม่แอบยัดเยียดบัตรทดสอบกลับเข้ามาซ้ำ
+      // (ลบรายการบัตรทดสอบแล้วจะหายไปอย่างถาวร 100% ไม่เด้งกลับมาอีก)
 
       // ตรวจสอบว่ามีราคาผิดเพี้ยนรุ่นเก่าหรือไม่ (VIP === 5000 หรือ REG === 2500 หรือขาด TIER-GEN)
       const vip = tiers.find(t => t.tier_id === 'TIER-VIP');
@@ -623,9 +649,453 @@
         });
         this._saveCollection('ticket_tiers', healed);
         if (typeof console !== 'undefined') {
-          console.log('🩺 [EventPayDB:Self-Healing] อัปเกรดราคาบัตรทางการ 4 โซน (2000/1500/1200/1000) สำเร็จสมบูรณ์!');
+          console.log('[EventPayDB] Self-Healing Tier Migration: Realigned tiers to official active zones.');
         }
       }
+    }
+
+    /**
+     * ระบบเยียวยาบัญชีธนาคารอัตโนมัติ (Self-Healing Bank Accounts Migration)
+     * อัปเกรดเลขบัญชีทดสอบเก่า (081-234-5678) เป็นบัญชีทางการ (128-3-25644-4) อัตโนมัติทุกอุปกรณ์
+     */
+    _healLegacyBankAccounts() {
+      let accounts = this.getAll('bank_accounts');
+      if (!Array.isArray(accounts) || accounts.length === 0) {
+        this._seedBankAccountsIfMissing();
+        return;
+      }
+      let modified = false;
+      accounts.forEach(acc => {
+        if (acc.account_number === '081-234-5678' || acc.promptpay_id === '0812345678') {
+          acc.account_number = '128-3-25644-4';
+          acc.bank_name = 'ธนาคารกสิกรไทย (KBANK)';
+          acc.account_name = 'สุรเทพ ศรีสารคาม';
+          acc.promptpay_id = '0947834659';
+          acc.promptpay_type = 'PHONE';
+          acc.updated_at = new Date().toISOString();
+          modified = true;
+        }
+      });
+      if (modified) {
+        this._saveCollection('bank_accounts', accounts);
+      }
+    }
+
+    /**
+     * โหลดข้อมูลผู้ใช้งานและกำหนดสิทธิ์เริ่มต้น 5 บัญชีทางการ (The 5 Official Master Accounts by Thep-Apai)
+     */
+    _seedUsersIfMissing() {
+      const existing = this._getItem('users');
+      let users = [];
+      if (existing) {
+        try {
+          users = JSON.parse(existing);
+        } catch (e) {
+          users = [];
+        }
+      }
+      if (!users || users.length === 0) {
+        const defaultUsers = [
+          {
+            user_id: 'USER-ADMIN-01',
+            username: 'admin',
+            password: '9999',
+            name: 'Admin',
+            role: 'ADMIN',
+            permissions: { booking: true, index: true, kiosk: true, admin: true },
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: 'USER-ACC-01',
+            username: 'account',
+            password: '8888',
+            name: 'Account',
+            role: 'ACCOUNTANT',
+            permissions: { booking: true, index: true, kiosk: true, admin: false },
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: 'USER-FIN-01',
+            username: 'finance',
+            password: '7777',
+            name: 'finance',
+            role: 'ACCOUNTANT',
+            permissions: { booking: true, index: true, kiosk: true, admin: false },
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: 'USER-CASHIER-01',
+            username: 'cashier',
+            password: '1111',
+            name: 'cashier',
+            role: 'STAFF',
+            permissions: { booking: true, index: true, kiosk: true, admin: false },
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: 'USER-GUARD-01',
+            username: 'security guard',
+            password: '2222',
+            name: 'Security guard',
+            role: 'STAFF',
+            permissions: { booking: false, index: false, kiosk: true, admin: false },
+            created_at: new Date().toISOString()
+          }
+        ];
+        this._saveCollection('users', defaultUsers);
+      }
+    }
+
+    /**
+     * ระบบเยียวยาบัญชีผู้ใช้งานอัตโนมัติ (Self-Healing Master Accounts Migration)
+     * บังคับให้ 5 บัญชีหลักมีอยู่เสมอ 100% ทุกสภาพแวดล้อม (file:///, localhost, cloud)
+     * พร้อมคงบัญชีที่สร้างเพิ่มไว้ครบถ้วน 100%
+     */
+    _healLegacyUsers() {
+      let users = this.getAll('users');
+      if (!Array.isArray(users) || users.length === 0) {
+        this._seedUsersIfMissing();
+        return;
+      }
+
+      const officialUsers = [
+        {
+          user_id: 'USER-ADMIN-01',
+          username: 'admin',
+          password: '9999',
+          name: 'Admin',
+          role: 'ADMIN',
+          permissions: { booking: true, index: true, kiosk: true, admin: true }
+        },
+        {
+          user_id: 'USER-ACC-01',
+          username: 'account',
+          password: '8888',
+          name: 'Account',
+          role: 'ACCOUNTANT',
+          permissions: { booking: true, index: true, kiosk: true, admin: false }
+        },
+        {
+          user_id: 'USER-FIN-01',
+          username: 'finance',
+          password: '7777',
+          name: 'finance',
+          role: 'ACCOUNTANT',
+          permissions: { booking: true, index: true, kiosk: true, admin: false }
+        },
+        {
+          user_id: 'USER-CASHIER-01',
+          username: 'cashier',
+          password: '1111',
+          name: 'cashier',
+          role: 'STAFF',
+          permissions: { booking: true, index: true, kiosk: true, admin: false }
+        },
+        {
+          user_id: 'USER-GUARD-01',
+          username: 'security guard',
+          password: '2222',
+          name: 'Security guard',
+          role: 'STAFF',
+          permissions: { booking: false, index: false, kiosk: true, admin: false }
+        }
+      ];
+
+      const normalize = str => String(str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      let modified = false;
+
+      officialUsers.forEach(official => {
+        const existingIdx = users.findIndex(u => normalize(u.username) === normalize(official.username));
+        if (existingIdx === -1) {
+          users.push({ ...official, created_at: new Date().toISOString() });
+          modified = true;
+        } else {
+          const existing = users[existingIdx];
+          if (existing.password !== official.password || existing.role !== official.role || !existing.permissions) {
+            users[existingIdx] = {
+              ...existing,
+              password: official.password,
+              role: official.role,
+              permissions: official.permissions
+            };
+            modified = true;
+          }
+        }
+      });
+
+      if (modified) {
+        this._saveCollection('users', users);
+      }
+    }
+
+    /**
+     * ซิงก์การตั้งค่าระบบจาก Cloud เข้าสู่ Local Database (Dynamic Cross-Platform Synchronization)
+     */
+    syncFromCloudSettings(cloudSettings) {
+      if (!cloudSettings) return;
+
+      // 1. ตรวจสอบและซิงก์สัญญาณล้างข้อมูล (System State Clear Timestamp)
+      const sysState = cloudSettings.systemState || cloudSettings.system_state;
+      if (sysState && sysState.last_cleared_at) {
+        const cloudClearedAt = new Date(sysState.last_cleared_at).getTime();
+        const localClearedAtStr = this._getItem('eventpay_last_cleared_at') || (typeof localStorage !== 'undefined' ? localStorage.getItem('eventpay_last_cleared_at') : null);
+        const localClearedAt = localClearedAtStr ? new Date(localClearedAtStr).getTime() : 0;
+
+        if (cloudClearedAt > localClearedAt) {
+          console.log('[DB Cloud Sync] พบสัญญาณล้างข้อมูลใหม่จาก Cloud ➔ ทำการรีเซ็ตข้อมูลธุรกรรมท้องถิ่นเป็น ฿0.00');
+          this.clearTransactionsData('AUTO-CLOUD-SYNC');
+          this._setItem('eventpay_last_cleared_at', sysState.last_cleared_at);
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('eventpay_last_cleared_at', sysState.last_cleared_at);
+          }
+        }
+      }
+
+      // 2. ซิงก์รายชื่อบัญชีธนาคาร และบัญชีหลัก (Dynamic Active Bank)
+      const bAccounts = cloudSettings.bankAccounts || cloudSettings.bank_accounts;
+      if (bAccounts && Array.isArray(bAccounts) && bAccounts.length > 0) {
+        this._saveCollection('bank_accounts', bAccounts);
+      }
+      const actBank = cloudSettings.activeBank || cloudSettings.active_bank;
+      if (actBank && actBank.account_id) {
+        this.setActiveBankAccount(actBank.account_id);
+      }
+
+      // 3. ซิงก์ประเภทราคาบัตร (Ticket Tiers)
+      const tTiers = cloudSettings.ticketTiers || cloudSettings.ticket_tiers;
+      if (tTiers && Array.isArray(tTiers) && tTiers.length > 0) {
+        this._saveCollection('ticket_tiers', tTiers);
+      }
+    }
+
+    /**
+     * นำเข้าและแทนที่ฐานข้อมูลจาก Master Snapshot (Universal Cloud Auto-Heal & Replace)
+     * รองรับการซิงก์ครบทุกตารางจาก Cloud สู่เครื่องลูกข่าย (มือถือ, แท็บเล็ต, PC)
+     */
+    importSnapshot(snapshotData, options = {}) {
+      if (!snapshotData || typeof snapshotData !== 'object') return { success: false, message: 'Invalid snapshot data' };
+
+      const collections = [
+        'events', 'ticket_tiers', 'gates', 'staff',
+        'cash_sessions', 'cash_payouts', 'tickets',
+        'wristbands', 'orders', 'payments',
+        'audit_logs', 'security_incidents',
+        'revenue_categories', 'expense_categories', 'users',
+        'bank_accounts'
+      ];
+
+      let replacedCount = 0;
+      collections.forEach(col => {
+        if (snapshotData[col] && Array.isArray(snapshotData[col])) {
+          this._saveCollection(col, snapshotData[col]);
+          replacedCount += snapshotData[col].length;
+        } else if (options.clearIfEmpty && (col === 'orders' || col === 'tickets' || col === 'payments' || col === 'cash_payouts')) {
+          this._saveCollection(col, []);
+        }
+      });
+
+      // ซิงก์บัญชีธนาคารหลัก ราคาบัตร และสิทธิ์ผู้ใช้งานให้เรียบร้อยสมบูรณ์ 100%
+      this._healLegacyBankAccounts();
+      this._healLegacyTicketTiers();
+      this._healLegacyUsers();
+
+      const ts = options.snapshotTimestamp || new Date().toISOString();
+      this._setItem('eventpay_last_imported_snapshot_at', ts);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('eventpay_last_imported_snapshot_at', ts);
+      }
+
+      return { success: true, replacedCount };
+    }
+
+    /**
+     * ดันภาพถ่ายฐานข้อมูลกลางทั้งหมดขึ้น Google Cloud Firestore (Omni-Sync Cloud Push)
+     */
+    async pushMasterSnapshotToCloud(silent = false) {
+      const adapter = (typeof EventPayFirebase !== 'undefined') ? EventPayFirebase : (typeof root !== 'undefined' && root.EventPayFirebase ? root.EventPayFirebase : null);
+      if (!adapter || typeof adapter.pushMasterSnapshotToCloud !== 'function') {
+        return { success: false, message: 'EventPayFirebase adapter not found' };
+      }
+      try {
+        const fullData = JSON.parse(this.exportJSON()).data;
+        const deviceId = (typeof window !== 'undefined' && window.location.protocol === 'file:') ? 'PC-EXPLORER' : 'DEVICE-OMNI';
+        const res = await adapter.pushMasterSnapshotToCloud(fullData, deviceId);
+        if (res && res.success) {
+          const now = res.timestamp || new Date().toISOString();
+          this._lastLocalPushTimestamp = now;
+          this._setItem('eventpay_last_imported_snapshot_at', now);
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('eventpay_last_imported_snapshot_at', now);
+          }
+          if (!silent) console.log('[DB Omni-Sync] Master snapshot pushed to Cloud successfully at', now);
+        }
+        return res;
+      } catch (err) {
+        if (!silent) console.warn('[DB Omni-Sync] Push master snapshot warning:', err.message);
+        return { success: false, error: err.message };
+      }
+    }
+
+    /**
+     * ดึงภาพถ่ายฐานข้อมูลกลางทั้งหมดจาก Google Cloud Firestore ลงสู่เครื่อง (Omni-Sync Cloud Pull)
+     */
+    async pullMasterSnapshotFromCloud(force = false) {
+      const adapter = (typeof EventPayFirebase !== 'undefined') ? EventPayFirebase : (typeof root !== 'undefined' && root.EventPayFirebase ? root.EventPayFirebase : null);
+      if (!adapter || typeof adapter.fetchMasterSnapshotFromCloud !== 'function') {
+        return { success: false, message: 'EventPayFirebase adapter not found' };
+      }
+      try {
+        const snap = await adapter.fetchMasterSnapshotFromCloud();
+        if (!snap || !snap.data) {
+          return { success: false, message: 'No snapshot data on Cloud' };
+        }
+
+        const cloudTs = snap.snapshot_timestamp ? new Date(snap.snapshot_timestamp).getTime() : 0;
+        const localTsStr = this._getItem('eventpay_last_imported_snapshot_at') || (typeof localStorage !== 'undefined' ? localStorage.getItem('eventpay_last_imported_snapshot_at') : null);
+        const localTs = localTsStr ? new Date(localTsStr).getTime() : 0;
+
+        if (!force && cloudTs <= localTs) {
+          return { success: true, updated: false, message: 'Local database is already up-to-date' };
+        }
+
+        const importResult = this.importSnapshot(snap.data, {
+          snapshotTimestamp: snap.snapshot_timestamp,
+          clearIfEmpty: true
+        });
+
+        if (importResult.success) {
+          this._setItem('eventpay_last_imported_snapshot_at', snap.snapshot_timestamp);
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('eventpay_last_imported_snapshot_at', snap.snapshot_timestamp);
+          }
+          // ส่ง Custom Event ให้ทุก UI ในหน้าต่างนี้อัปเดตทันที
+          if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+            const ev = (typeof CustomEvent !== 'undefined')
+              ? new CustomEvent('eventpay:sync_updated', { detail: { action: 'cloud_snapshot_imported', timestamp: snap.snapshot_timestamp, source: 'CLOUD_OMNI_SYNC' } })
+              : { type: 'eventpay:sync_updated', detail: { action: 'cloud_snapshot_imported', timestamp: snap.snapshot_timestamp, source: 'CLOUD_OMNI_SYNC' } };
+            window.dispatchEvent(ev);
+          }
+          // แจ้งเตือน DB syncListeners
+          if (Array.isArray(this.syncListeners)) {
+            this.syncListeners.forEach(fn => {
+              try { fn({ action: 'cloud_snapshot_imported', timestamp: snap.snapshot_timestamp }); } catch (e) {}
+            });
+          }
+          console.log('[DB Omni-Sync] Cloud snapshot imported successfully:', importResult.replacedCount, 'records at', snap.snapshot_timestamp);
+          return { success: true, updated: true, records: importResult.replacedCount };
+        }
+        return importResult;
+      } catch (err) {
+        console.warn('[DB Omni-Sync] Pull master snapshot warning:', err.message);
+        return { success: false, error: err.message };
+      }
+    }
+
+    /**
+     * ตัวตรวจจับและซิงก์ข้อมูลอัตโนมัติในพื้นหลัง (Universal Background Cloud Heartbeat Poller)
+     */
+    _startCloudHeartbeatPoller() {
+      if (this._cloudPollerActive) return;
+      this._cloudPollerActive = true;
+
+      // ดึงข้อมูลครั้งแรกทันทีที่เปิดหน้าจอ (Instant Initial Hydration)
+      this._cloudInitialHydrationTimer = setTimeout(() => {
+        this.pullMasterSnapshotFromCloud(false).catch(() => {});
+      }, 300);
+
+      // วนลูปตรวจจับ Heartbeat ทุก 2.5 วินาที
+      this._cloudPollerInterval = setInterval(async () => {
+        try {
+          const adapter = (typeof EventPayFirebase !== 'undefined') ? EventPayFirebase : null;
+          if (!adapter || typeof adapter.fetchCloudSetting !== 'function') return;
+
+          // อ่านสถานะเบาบาง (Lightweight System State)
+          const state = await adapter.fetchCloudSetting('system_state');
+          if (!state) return;
+
+          // 1. ตรวจสอบสัญญาณล้างข้อมูล (System State Clear Signal)
+          if (state.last_cleared_at) {
+            const cloudClearedAt = new Date(state.last_cleared_at).getTime();
+            const localClearedAtStr = this._getItem('eventpay_last_cleared_at') || (typeof localStorage !== 'undefined' ? localStorage.getItem('eventpay_last_cleared_at') : null);
+            const localClearedAt = localClearedAtStr ? new Date(localClearedAtStr).getTime() : 0;
+            if (cloudClearedAt > localClearedAt) {
+              console.log('[DB Omni-Sync Poller] ตรวจพบสัญญาณล้างข้อมูลใหม่จาก Cloud:', state.last_cleared_at);
+              this.clearTransactionsData('AUTO-CLOUD-SYNC');
+              this._setItem('eventpay_last_cleared_at', state.last_cleared_at);
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('eventpay_last_cleared_at', state.last_cleared_at);
+              }
+              if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                const ev = (typeof CustomEvent !== 'undefined')
+                  ? new CustomEvent('eventpay:sync_updated', { detail: { action: 'clear_transactions', timestamp: state.last_cleared_at } })
+                  : { type: 'eventpay:sync_updated', detail: { action: 'clear_transactions', timestamp: state.last_cleared_at } };
+                window.dispatchEvent(ev);
+              }
+              return;
+            }
+          }
+
+          // 2. ตรวจสอบว่ามี Snapshot ใหม่กว่าในเครื่องหรือไม่
+          if (state.last_snapshot_at) {
+            const cloudSnapAt = new Date(state.last_snapshot_at).getTime();
+            const localSnapAtStr = this._getItem('eventpay_last_imported_snapshot_at') || (typeof localStorage !== 'undefined' ? localStorage.getItem('eventpay_last_imported_snapshot_at') : null);
+            const localSnapAt = localSnapAtStr ? new Date(localSnapAtStr).getTime() : 0;
+            const lastLocalPush = this._lastLocalPushTimestamp ? new Date(this._lastLocalPushTimestamp).getTime() : 0;
+
+            if (cloudSnapAt > localSnapAt && cloudSnapAt > lastLocalPush) {
+              await this.pullMasterSnapshotFromCloud(false);
+            }
+          }
+        } catch (ePoller) {
+          // ป้องกัน error หลุดรบกวนระบบ
+        }
+      }, 2500);
+    }
+
+    /**
+     * สั่งหยุดตัวตรวจจับ Heartbeat ในพื้นหลัง (สำหรับการทดสอบหรือหยุดชั่วคราว)
+     */
+    stopCloudSyncEngine() {
+      if (this._cloudHeartbeatInitTimer) {
+        clearTimeout(this._cloudHeartbeatInitTimer);
+        this._cloudHeartbeatInitTimer = null;
+      }
+      if (this._cloudInitialHydrationTimer) {
+        clearTimeout(this._cloudInitialHydrationTimer);
+        this._cloudInitialHydrationTimer = null;
+      }
+      if (this._cloudPollerInterval) {
+        clearInterval(this._cloudPollerInterval);
+        this._cloudPollerInterval = null;
+      }
+      this._cloudPollerActive = false;
+    }
+
+    /**
+     * หน่วงเวลาส่งข้อมูลขึ้น Cloud อัตโนมัติเมื่อเกิดการเปลี่ยนแปลงข้อมูล (Debounced Reactive Auto-Push)
+     */
+    _scheduleCloudAutoSync(collection, action, record) {
+      const syncableCols = [
+        'orders', 'tickets', 'payments', 'cash_payouts', 'cash_sessions',
+        'security_incidents', 'ticket_tiers', 'bank_accounts', 'events', 'gates', 'staff', 'users'
+      ];
+      if (!syncableCols.includes(collection)) return;
+
+      // ส่งสัญญาณแจ้งหน้าจอเดียวกันทันทีแบบเรียลไทม์ 0ms
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        const ev = (typeof CustomEvent !== 'undefined')
+          ? new CustomEvent('eventpay:sync_updated', { detail: { action, collection, record, source: 'local_mutation' } })
+          : { type: 'eventpay:sync_updated', detail: { action, collection, record, source: 'local_mutation' } };
+        window.dispatchEvent(ev);
+      }
+
+      // หน่วงเวลา 400ms เพื่อรวบยอดคำสั่งซื้อและตั๋วหลายใบแล้วดันขึ้น Cloud ทีเดียว
+      if (this._cloudSyncTimer) {
+        clearTimeout(this._cloudSyncTimer);
+      }
+      this._cloudSyncTimer = setTimeout(() => {
+        this.pushMasterSnapshotToCloud(true);
+      }, 400);
     }
 
     /**
@@ -671,6 +1141,7 @@
       });
       this._saveCollection('bank_accounts', accounts);
       this.logAudit('BANK_SET_ACTIVE', 'FINANCE', `เปิดใช้งานบัญชีหลัก: ${accountId}`, 'USER-ADMIN');
+      this._scheduleCloudAutoSync('bank_accounts', 'update', { account_id: accountId });
       return true;
     }
 
@@ -877,6 +1348,10 @@
       return items;
     }
 
+    find(collection, filterFn = null) {
+      return this.getAll(collection, filterFn);
+    }
+
     get(collection, id, keyField = null) {
       const items = this._loadCollection(collection);
       const key = keyField || this._getDefaultKeyField(collection);
@@ -887,6 +1362,7 @@
       const items = this._loadCollection(collection);
       items.push(record);
       this._saveCollection(collection, items);
+      this._scheduleCloudAutoSync(collection, 'insert', record);
       return record;
     }
 
@@ -898,6 +1374,7 @@
 
       items[index] = { ...items[index], ...updates };
       this._saveCollection(collection, items);
+      this._scheduleCloudAutoSync(collection, 'update', items[index]);
       return items[index];
     }
 
@@ -907,8 +1384,9 @@
       const index = items.findIndex(item => String(item[key]) === String(id));
       if (index === -1) return false;
 
-      items.splice(index, 1);
+      const deleted = items.splice(index, 1)[0];
       this._saveCollection(collection, items);
+      this._scheduleCloudAutoSync(collection, 'delete', deleted);
       return true;
     }
 
@@ -1706,7 +2184,8 @@
         'cash_sessions', 'cash_payouts', 'tickets',
         'wristbands', 'orders', 'payments',
         'audit_logs', 'security_incidents',
-        'revenue_categories', 'expense_categories', 'users'
+        'revenue_categories', 'expense_categories', 'users',
+        'bank_accounts'
       ];
       const backup = {
         exportedAt: new Date().toISOString(),

@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "email": "srisarakhams@gmail.com",
+  "app_password": "xbfmaqpwxkicvupn",
+  "host": "imap.gmail.com",
+  "port": 993,
+  "check_interval_seconds": 2,
+  "min_amount": 1.0,
+  "bank_filter": [
+    "KBANK",
+    "กสิกร",
+    "Kasikorn",
+    "K-Speed",
+    "SCB",
+    "ไทยพาณิชย์",
+    "BBL",
+    "กรุงเทพ",
+    "PROMPTPAY"
+  ]
+}

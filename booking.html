@@ -2,12 +2,15 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>จองบัตรคอนเสิร์ตออนไลน์ | EventPay Official Booking</title>
-  <link rel="stylesheet" href="css/styles.css?v=20261024_0100">
+  <link rel="stylesheet" href="css/styles.css?v=52.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
     // Auto-Bridge: หากเปิดจาก Explorer (file:///) และ Master Server (Port 8080) ทำงานอยู่ ให้บริดจ์อัตโนมัติ
     (function() {
@@ -25,6 +28,535 @@
     })();
   </script>
   <style>
+    /* ========================================================================
+       KHAO YAI SOFT SKY & AZURE DEPTH THEME (CONFIRMED BY THEP-APAI)
+       ภารกิจที่ 44: สวยงามตา โดดเด่น ไม่ทึบ ไม่มัวหมอง สมองโล่ง มีชีวิตชีวา
+       ======================================================================== */
+    :root {
+      --bg-primary: #e8f4fd;
+      --bg-card: #d7ecfc;
+      --bg-card-hover: #c4e3fb;
+      --border-color: #38bdf8;
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-dim: #64748b;
+      --accent-gold: #ffb703;
+      --accent-cyan: #0284c7;
+      --accent-green: #06d6a0;
+      --accent-red: #ff2a6d;
+      --font-family: 'Prompt', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    *, *:before, *:after {
+      box-sizing: border-box !important;
+    }
+
+    html, body {
+      font-family: var(--font-family) !important;
+      background: linear-gradient(180deg, #e8f4fd 0%, #f2f8fe 100%) !important;
+      color: #0f172a !important;
+      line-height: 1.6 !important;
+      min-height: 100vh !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      touch-action: pan-y !important;
+    }
+
+    /* OFFICIAL NON-VAT RECEIPT (THERMAL 80MM STANDARD) */
+    .ep-official-receipt, #officialReceiptCard {
+      max-width: 380px !important;
+      width: 100% !important;
+      margin: 0 auto 20px auto !important;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1.5px solid #38bdf8 !important;
+      border-radius: 14px !important;
+      padding: 16px !important;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.12) !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+    .ep-receipt-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+      margin: 12px 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    .ep-receipt-table th, .ep-receipt-table td {
+      padding: 8px 4px !important;
+      font-size: 0.82rem !important;
+      word-break: break-word !important;
+    }
+
+    .ep-ticket-pass {
+      max-width: 380px !important;
+      width: 100% !important;
+      margin: 0 auto 14px auto !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+    .ep-header {
+      background: #ffffff !important;
+      border-bottom: 1.5px solid #bae6fd !important;
+      box-shadow: 0 4px 20px rgba(2, 132, 199, 0.08) !important;
+    }
+
+    .ep-header-inner h1 {
+      color: #0284c7 !important;
+      font-weight: 800 !important;
+    }
+
+    .ep-booking-container {
+      max-width: 1200px !important;
+      margin: 20px auto !important;
+      padding: 0 16px !important;
+    }
+
+    /* STEP CARDS - AZURE BLUE DEPTH (+15%) WITH SOFT SKY BORDER */
+    .ep-step-card {
+      background: linear-gradient(135deg, #d7ecfc 0%, #c4e3fb 100%) !important;
+      border: 1.5px solid #38bdf8 !important;
+      border-radius: 18px !important;
+      padding: 22px !important;
+      margin-bottom: 22px !important;
+      box-shadow: 0 12px 30px -4px rgba(2, 132, 199, 0.14), inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+      color: #0f172a !important;
+    }
+
+    .ep-step-header {
+      border-bottom: 1.5px solid rgba(56, 189, 248, 0.4) !important;
+      padding-bottom: 14px !important;
+      margin-bottom: 18px !important;
+    }
+
+    .ep-step-num {
+      width: 36px !important;
+      height: 36px !important;
+      background: linear-gradient(135deg, #ff2a6d 0%, #ff6b35 100%) !important;
+      color: #ffffff !important;
+      border-radius: 50% !important;
+      font-weight: 900 !important;
+      font-size: 1.15rem !important;
+      box-shadow: 0 4px 12px rgba(255, 42, 109, 0.35) !important;
+    }
+
+    .ep-step-title {
+      font-size: 1.25rem !important;
+      font-weight: 800 !important;
+      color: #0f172a !important;
+      letter-spacing: 0.2px !important;
+    }
+
+    /* TIER ITEM CARDS INSIDE STEP 1 (THEP-APAI STANDARD IMAGE 2) */
+    .ep-tier-item {
+      background: #ffffff !important;
+      border: 1.5px solid #93c5fd !important;
+      border-radius: 16px !important;
+      padding: 16px 20px !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
+      color: #0f172a !important;
+      transition: all 0.2s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      margin-bottom: 14px !important;
+    }
+
+    .ep-tier-item:hover {
+      border-color: #0284c7 !important;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.16) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    .ep-tier-item.selected {
+      border-color: #ff2a6d !important;
+      background: #ffffff !important;
+      box-shadow: 0 8px 26px rgba(255, 42, 109, 0.18) !important;
+    }
+
+    .ep-tier-name {
+      color: #0f172a !important;
+      font-weight: 900 !important;
+      font-size: 1.22rem !important;
+    }
+
+    .ep-tier-meta {
+      color: #475569 !important;
+      font-weight: 600 !important;
+      font-size: 0.82rem !important;
+    }
+
+    .ep-tier-price {
+      color: #e11d48 !important;
+      font-weight: 900 !important;
+      font-size: 1.85rem !important;
+      font-family: 'Inter', 'Prompt', sans-serif !important;
+      line-height: 1.1 !important;
+    }
+
+    /* STEPPER BUTTONS & INPUT (THEP-APAI STANDARD IMAGE 2) */
+    .ep-qty-control {
+      background: #ffffff !important;
+      border: 1.5px solid #cbd5e1 !important;
+      border-radius: 24px !important;
+      padding: 4px 6px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08) !important;
+    }
+
+    .ep-qty-btn {
+      width: 32px !important;
+      height: 32px !important;
+      background: #f8fafc !important;
+      border: 1.5px solid #cbd5e1 !important;
+      color: #0f172a !important;
+      border-radius: 50% !important;
+      font-weight: 900 !important;
+      font-size: 1.2rem !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .ep-qty-btn:hover {
+      background: #e2e8f0 !important;
+      border-color: #94a3b8 !important;
+    }
+
+    .ep-qty-input {
+      width: 40px !important;
+      text-align: center !important;
+      border: none !important;
+      background: transparent !important;
+      font-size: 1.2rem !important;
+      font-weight: 900 !important;
+      color: #0f172a !important;
+      outline: none !important;
+    }
+
+    /* RESERVATION TIMER PILL (THEP-APAI STANDARD IMAGE 4) */
+    .ep-reservation-pill {
+      background: #ffffff !important;
+      border: 1.5px solid #bae6fd !important;
+      border-radius: 20px !important;
+      padding: 4px 14px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08) !important;
+    }
+
+    /* BOT AI TRUST BADGE (THEP-APAI STANDARD IMAGE 3) */
+    .ep-trust-bot-badge {
+      background: #ecfdf5 !important;
+      border: 1.5px solid #a7f3d0 !important;
+      border-radius: 12px !important;
+      padding: 10px 14px !important;
+      margin-bottom: 14px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08) !important;
+    }
+
+    .ep-qty-btn:hover {
+      background: #e0f2fe !important;
+      color: #ff2a6d !important;
+    }
+
+    .ep-qty-btn:active {
+      transform: scale(0.92) !important;
+      background: #ff2a6d !important;
+      color: #ffffff !important;
+    }
+
+    .ep-qty-input {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #bae6fd !important;
+      border-radius: 8px !important;
+      font-weight: 900 !important;
+      font-size: 1.25rem !important;
+      font-family: 'Inter', 'Prompt', sans-serif !important;
+    }
+
+    /* SUMMARY BAR */
+    .ep-booking-summary-bar {
+      background: #ffffff !important;
+      border: 1.5px solid #93c5fd !important;
+      border-radius: 14px !important;
+      padding: 14px 20px !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
+    }
+
+    .ep-summary-label {
+      color: #334155 !important;
+      font-weight: 700 !important;
+    }
+
+    .ep-summary-count {
+      color: #0284c7 !important;
+      font-weight: 900 !important;
+    }
+
+    .ep-summary-amount {
+      color: #e11d48 !important;
+      font-weight: 900 !important;
+      font-size: 1.5rem !important;
+      font-family: 'Inter', 'Prompt', sans-serif !important;
+    }
+
+    /* FORM INPUTS */
+    .ep-input {
+      background: #ffffff !important;
+      border: 1.5px solid #93c5fd !important;
+      border-radius: 12px !important;
+      color: #0f172a !important;
+      padding: 12px 16px !important;
+      font-size: 0.95rem !important;
+      font-family: var(--font-family) !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.04) !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .ep-input:focus {
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
+      outline: none !important;
+    }
+
+    .ep-form-label {
+      color: #0f172a !important;
+      font-weight: 800 !important;
+      margin-bottom: 6px !important;
+    }
+
+    /* PAYMENT RIGHT COLUMN BOXES */
+    .ep-promptpay-box {
+      background: #ffffff !important;
+      border: 1.5px solid #93c5fd !important;
+      border-radius: 16px !important;
+      padding: 20px !important;
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.1) !important;
+      text-align: center !important;
+    }
+
+    .ep-promptpay-title {
+      color: #0284c7 !important;
+      font-weight: 900 !important;
+      font-size: 1.15rem !important;
+    }
+
+    .ep-amount-value {
+      color: #e11d48 !important;
+      font-weight: 900 !important;
+      font-size: 1.6rem !important;
+      font-family: 'Inter', 'Prompt', sans-serif !important;
+    }
+
+    #bookingPromptPayAccInfo {
+      background: #ffffff !important;
+      border: 2px solid #0284c7 !important;
+      border-radius: 14px !important;
+      color: #0f172a !important;
+      font-size: 0.92rem !important;
+      line-height: 1.6 !important;
+      padding: 14px 16px !important;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12) !important;
+      text-align: left !important;
+    }
+
+    #bookingPromptPayAccInfo,
+    #bookingPromptPayAccInfo * {
+      color: #0f172a !important;
+    }
+
+    #bookingPromptPayAccInfo strong,
+    #bookingPromptPayAccInfo span,
+    #bookingPromptPayAccInfo div {
+      color: #0f172a !important;
+    }
+
+    #bookingPromptPayAccInfo .ep-acc-num-badge {
+      font-family: monospace, 'Inter', sans-serif !important;
+      font-size: 1.3rem !important;
+      font-weight: 900 !important;
+      color: #0f172a !important;
+      background: #f8fafc !important;
+      border: 2px solid #0284c7 !important;
+      padding: 3px 12px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15) !important;
+      letter-spacing: 0.5px !important;
+      display: inline-block !important;
+    }
+
+    #bookingPromptPayAccInfo .ep-pp-id-badge {
+      color: #0284c7 !important;
+      font-family: monospace, 'Inter', sans-serif !important;
+      font-size: 1.1rem !important;
+      font-weight: 900 !important;
+      background: #f0f9ff !important;
+      padding: 2px 10px !important;
+      border-radius: 6px !important;
+      border: 1.5px solid #bae6fd !important;
+      display: inline-block !important;
+    }
+
+    /* SLIP BOX */
+    .ep-slip-box, #bookingLegacySlipArea {
+      background: #ffffff !important;
+      border: 1.5px solid #93c5fd !important;
+      border-radius: 16px !important;
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.08) !important;
+      padding: 16px !important;
+    }
+
+    #bookingSlipUploadZone {
+      background: #f0f7fe !important;
+      border: 2px dashed #0284c7 !important;
+      border-radius: 12px !important;
+      padding: 16px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    #bookingSlipUploadZone:hover {
+      background: #e0f2fe !important;
+      border-color: #0369a1 !important;
+    }
+
+    #bookingSlipUploadZone .ep-upload-title {
+      color: #0284c7 !important;
+      font-weight: 800 !important;
+      font-size: 0.98rem !important;
+    }
+
+    #bookingSlipUploadZone .ep-upload-sub {
+      color: #475569 !important;
+      font-weight: 600 !important;
+      font-size: 0.78rem !important;
+    }
+
+    #bookingBotInspectionCard {
+      background: #f0f9ff !important;
+      border: 1.5px solid #0284c7 !important;
+      border-radius: 10px !important;
+      padding: 10px 14px !important;
+    }
+
+    #bookingBotStatusBadge {
+      color: #0284c7 !important;
+      font-weight: 800 !important;
+    }
+
+    /* PRIMARY SUBMIT BUTTON */
+    .ep-btn-submit {
+      background: linear-gradient(135deg, #ff2a6d 0%, #ff6b35 100%) !important;
+      color: #ffffff !important;
+      font-weight: 900 !important;
+      font-size: 1.1rem !important;
+      border-radius: 14px !important;
+      padding: 14px 24px !important;
+      box-shadow: 0 8px 24px -3px rgba(255, 42, 109, 0.45) !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .ep-btn-submit:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 12px 28px -3px rgba(255, 42, 109, 0.55) !important;
+    }
+
+    /* TIMER RADAR */
+    #zeroSlipLiveRadar {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+      border: 1.5px solid #f59e0b !important;
+      border-radius: 12px !important;
+      color: #78350f !important;
+      font-weight: 700 !important;
+    }
+
+    #zeroSlipLiveRadar div, #zeroSlipLiveRadar span, #zeroSlipLiveRadar p {
+      color: #78350f !important;
+    }
+
+    #zeroSlipLiveRadar .radar-pulse-title {
+      color: #065f46 !important;
+      font-weight: 800 !important;
+    }
+
+    #zeroSlipLiveRadar .radar-timer-label {
+      color: #78350f !important;
+      font-weight: 700 !important;
+    }
+
+    #zeroSlipCountdownTimer {
+      color: #b45309 !important;
+      font-weight: 900 !important;
+      background: #ffffff !important;
+      border: 1px solid #fcd34d !important;
+      padding: 2px 8px !important;
+      border-radius: 6px !important;
+    }
+
+    #zeroSlipLiveRadar .radar-advice-text {
+      color: #78350f !important;
+      font-weight: 700 !important;
+    }
+
+    /* HIDE DEV SIMULATION BOX FOR CLIENT VIEW (PRESERVED IN DOM FOR TEST RUNS) */
+    #bookingDevSimulateBox {
+      display: none !important;
+    }
+
+    /* MODAL TICKET LOOKUP */
+    #modalTicketLookup .ep-modal {
+      background: #ffffff !important;
+      border: 1.5px solid #38bdf8 !important;
+      border-radius: 20px !important;
+      box-shadow: 0 20px 40px rgba(2, 132, 199, 0.2) !important;
+      color: #0f172a !important;
+    }
+
+    #modalTicketLookup .ep-modal-header {
+      border-bottom: 1.5px solid #e2e8f0 !important;
+    }
+
+    #modalTicketLookup .ep-modal-title {
+      color: #0284c7 !important;
+      font-weight: 800 !important;
+    }
+
+    #modalTicketLookup .ep-modal-footer {
+      border-top: 1.5px solid #e2e8f0 !important;
+    }
+
+    /* FOOTER */
+    .ep-booking-footer {
+      background: #ffffff !important;
+      border-top: 1.5px solid #bae6fd !important;
+      color: #334155 !important;
+      box-shadow: 0 -4px 20px rgba(2, 132, 199, 0.05) !important;
+    }
+
+    .ep-footer-brand-title {
+      color: #0284c7 !important;
+      font-weight: 800 !important;
+    }
+
     /* สไตล์ปรับแต่งหน้าพอร์ทัลลูกค้าจองออนไลน์ (Master 2-Column Split 1400px) */
     .ep-booking-container {
       max-width: 1400px;
@@ -592,6 +1124,21 @@
       .ep-social-links {
         justify-content: flex-start;
       }
+      /* [THEP-APAI MISSION 51: MOBILE NO-PRINT PROTOCOL] */
+      .desktop-print-btn, .mobile-no-print {
+        display: none !important;
+      }
+      .mobile-only-action {
+        display: flex !important;
+      }
+    }
+    @media (min-width: 769px) {
+      .mobile-only-action {
+        display: none !important;
+      }
+      .desktop-print-btn {
+        display: inline-flex !important;
+      }
     }
     /* [INSERT ACTIVE MODERN LOGIC - RULE 2]: ทรงใบสลิปโอนเงินสากล (Universal e-Slip Receipt Standard) สำหรับมือถือและทุกอุปกรณ์ */
     .ep-official-receipt {
@@ -923,22 +1470,23 @@
     <div class="ep-header-inner">
       <div class="ep-brand" style="display: flex; align-items: center; gap: 14px;">
         <img src="assets/ice-logo-new.jpg" alt="Ice Pro Sound Logo" class="ep-header-logo" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; box-shadow: 0 2px 10px rgba(0,0,0,0.4); display: block;" onerror="this.src='assets/ice-logo.jpg'">
-        <h1 style="font-size: 1.25rem; font-weight: 800; color: #60a5fa; letter-spacing: 0.5px; margin: 0; line-height: 1; display: flex; align-items: center;">
+        <h1 style="font-size: 1.25rem; font-weight: 800; color: #0284c7; letter-spacing: 0.5px; margin: 0; line-height: 1; display: flex; align-items: center;">
           บริษัท ไอซ์ โปรซาวด์ จำกัด
         </h1>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <!-- BACK / HOME NAVIGATION BUTTON (SAFE MOBILE GESTURE SHIELD) -->
+        <button type="button" class="ep-nav-btn" onclick="if(window.history.length > 1){window.history.back();}else{window.location.href='booking.html';}" style="background: #ffffff; border: 1.5px solid #0284c7; color: #0284c7; font-weight: 800; font-size: 0.84rem; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 4px rgba(2, 132, 199, 0.12);" title="กลับสู่หน้าก่อนหน้า">
+          ← ย้อนกลับ
+        </button>
         <!-- DUAL-MODE BADGE (LIVE / TEST) -->
         <span id="bookingModeBadge" class="ep-badge ep-badge-pass" style="font-size: 0.8rem; padding: 6px 12px; cursor: pointer; user-select: none;" title="กดสลับโหมด หรือกดคีย์ลัด Alt+T" onclick="toggleBookingUiMode()">
           <span id="bookingModeBadgeDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 4px;"></span>
           <span id="bookingModeBadgeText">🟢 LIVE (หน้างานจริง)</span>
         </span>
-        <button type="button" class="ep-nav-btn" onclick="openTicketLookupModal()" style="background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8; font-weight: 700; font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; cursor: pointer;">
+        <button type="button" class="ep-nav-btn" onclick="openTicketLookupModal()" style="background: #f0f9ff; border: 1.5px solid #0284c7; color: #0284c7; font-weight: 800; font-size: 0.84rem; padding: 6px 14px; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 4px rgba(2, 132, 199, 0.12);">
           🔍 ค้นหาบัตร e-Ticket ของฉัน
         </button>
-        <span class="ep-badge ep-badge-pass" style="font-size: 0.8rem; padding: 6px 12px;">
-          🟢 ระบบจองตั๋วออนไลน์พร้อมใช้ (24 ชม.)
-        </span>
       </div>
     </div>
   </header>
@@ -947,6 +1495,13 @@
   <main class="ep-booking-container">
 
     <!-- BOOKING FORM AREA: 2-COLUMN SPLIT GRID -->
+    
+    <!-- CONCERT TITLE HEADER (CLEAN MINIMALIST INTER STYLE) -->
+    <div style="text-align: center; margin-bottom: 20px; padding: 12px 20px; background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 14px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
+      <h2 style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.3px;">เขาใหญ่ THAI ROCK 2 FEST</h2>
+      <span style="background: #f0f9ff; color: #0284c7; border: 1.5px solid #bae6fd; font-size: 0.82rem; font-weight: 800; padding: 4px 12px; border-radius: 20px;">20 มีนาคม 2570</span>
+    </div>
+
     <div id="bookingFormSection" class="ep-booking-grid">
       
       <!-- LEFT COLUMN (60%): TICKETS & BUYER INFO -->
@@ -958,12 +1513,15 @@
               <div class="ep-step-num">1</div>
               <div class="ep-step-title">เลือกโซนบัตรและจำนวน</div>
             </div>
-            <div style="font-size: 0.88rem; color: var(--accent-gold); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span>🎟️</span>
-              <strong id="bookingEventName" style="color: #fff;">CONCERT EVENT 2026</strong>
-              <span style="color: rgba(255,255,255,0.3);">|</span>
-              <span id="bookingVenue" style="color: var(--accent-cyan); font-size: 0.82rem;">Impact Arena | กำลังโหลดข้อมูล...</span>
+            <!-- THEP-APAI STANDARD IMAGE 4: RESERVATION LOCK TIMER PILL -->
+            <div class="ep-reservation-pill">
+              <span style="font-size: 1rem;">⚡</span>
+              <span style="font-weight: 800; font-size: 0.86rem; color: #0f172a;">สิทธิ์ของคุณล็อกไว้:</span>
+              <strong id="bookingLockCountdownTimer" style="font-family: monospace, 'Inter'; font-size: 0.95rem; font-weight: 900; color: #ea580c;">09:59 นาที</strong>
             </div>
+            <!-- Preserved hidden for JS/DOM compatibility 100% -->
+            <span id="bookingEventName" style="display: none;">เขาใหญ่ THAI ROCK 2 FEST</span>
+            <span id="bookingVenue" style="display: none;">ณ ลานราชสีห์-มา ถนนธนะรัชต์ กม.21 เขาใหญ่</span>
           </div>
 
           <div class="ep-tier-list" id="bookingTierGrid">
@@ -1028,6 +1586,18 @@
             <div class="ep-step-title" id="bookingStep3Title">ชำระเงินผ่านพร้อมเพย์ / แนบสลิปรับตั๋วทันที</div>
           </div>
 
+          <!-- THEP-APAI STANDARD IMAGE 3: BOT AI TRUST BADGE -->
+          <div class="ep-trust-bot-badge">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #10b981; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; flex-shrink: 0;">✓</div>
+            <div style="flex: 1; text-align: left;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <strong style="color: #065f46; font-size: 0.95rem; font-weight: 900;">Bot AI ตรวจสลิปฉับไว</strong>
+                <span style="background: #d1fae5; color: #047857; font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 12px; border: 1px solid #6ee7b7;">100% ผ่าน</span>
+              </div>
+              <div style="color: #047857; font-size: 0.82rem; font-weight: 700; margin-top: 2px;">เงินเข้าบัญชีนาย สุรเทพ ศรีสารคาม ทันที</div>
+            </div>
+          </div>
+
           <div class="ep-promptpay-box">
             <div class="ep-promptpay-title">พร้อมเพย์ QR CODE</div>
 
@@ -1040,28 +1610,28 @@
               <span class="ep-amount-label">ยอดเงินที่ต้องโอน:</span>
               <strong id="bookingPromptPayTotal" class="ep-amount-value">฿0.00</strong>
             </div>
-            <div class="ep-promptpay-acc-info" id="bookingPromptPayAccInfo" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 0.82rem; text-align: left; line-height: 1.5;">
+            <div class="ep-promptpay-acc-info" id="bookingPromptPayAccInfo">
               <!-- Dynamically rendered by renderPromptPayQr() -->
             </div>
 
             <!-- SYSTEM C REAL-TIME PULSE RADAR & COUNTDOWN -->
-            <div id="zeroSlipLiveRadar" style="display: none; margin-top: 12px; padding: 12px 14px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 8px; text-align: center;">
-              <div style="display: flex; justify-content: center; align-items: center; gap: 8px; color: #34d399; font-weight: 700; font-size: 0.92rem;">
-                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite;"></span>
+            <div id="zeroSlipLiveRadar" style="display: none; margin-top: 12px; padding: 12px 14px; text-align: center;">
+              <div class="radar-pulse-title" style="display: flex; justify-content: center; align-items: center; gap: 8px; color: #065f46; font-weight: 800; font-size: 0.95rem;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25); animation: pulse 1.5s infinite;"></span>
                 <span>ระบบตรวจจับเงินเข้าอัตโนมัติ 100%</span>
               </div>
-              <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
-                ⏱️ สแกนจ่ายภายใน: <strong id="zeroSlipCountdownTimer" style="font-family: monospace; font-size: 1.05rem; color: var(--accent-gold);">03:00</strong> นาที
+              <div class="radar-timer-label" style="font-size: 0.88rem; color: #78350f; font-weight: 700; margin-top: 5px;">
+                ⏱️ สแกนจ่ายภายใน: <strong id="zeroSlipCountdownTimer">03:00</strong> นาที
               </div>
-              <div style="font-size: 0.76rem; color: #38bdf8; margin-top: 4px;">
+              <div class="radar-advice-text" style="font-size: 0.82rem; color: #78350f; font-weight: 700; margin-top: 6px; line-height: 1.45;">
                 💡 โอนเงินแล้วแนบรูปสลิปด้านล่าง BotAdmin จะตรวจจับและออกตั๋วพร้อมใบเสร็จทางการให้อัตโนมัติใน 1.5 วินาที!
               </div>
               <!-- DEV SIMULATION BOX: HIDDEN IN LIVE PRODUCTION MODE, SHOWN ONLY IN TEST MODE (Alt+T or ?mode=test) -->
-              <div id="bookingDevSimulateBox" style="display: none; margin-top: 10px; padding: 8px; background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 6px;">
-                <div style="font-size: 0.72rem; color: #f59e0b; margin-bottom: 6px; font-weight: 600;">
+              <div id="bookingDevSimulateBox" style="display: none; margin-top: 10px; padding: 8px; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 6px;">
+                <div style="font-size: 0.76rem; color: #b45309; margin-bottom: 6px; font-weight: 700;">
                   🛠️ โหมดทดสอบสำหรับแอดมิน (TEST Mode):
                 </div>
-                <button type="button" id="btnSimulateZeroSlipWebhook" class="ep-nav-btn" style="background: rgba(16, 185, 129, 0.22); border: 1.5px solid #10b981; color: #34d399; font-size: 0.8rem; padding: 7px 16px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);" onclick="simulateZeroSlipWebhook()">
+                <button type="button" id="btnSimulateZeroSlipWebhook" class="ep-nav-btn" style="background: #ecfdf5; border: 1.5px solid #10b981; color: #065f46; font-size: 0.82rem; padding: 7px 16px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);" onclick="simulateZeroSlipWebhook()">
                   ⚡ ทดสอบจำลองธนาคารแจ้งเงินเข้า (Bot 1.5 วินาที)
                 </button>
               </div>
@@ -1069,36 +1639,39 @@
           </div>
 
           <!-- SLIP ATTACHMENT & INSTANT BOT VERIFICATION -->
-          <div id="bookingLegacySlipArea" class="ep-slip-box" style="margin-top: 14px; border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 14px; background: rgba(15, 23, 42, 0.65);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <label class="ep-form-label" style="font-size: 0.95rem; color: #38bdf8; margin-bottom: 0; font-weight: 700;">
+          <div id="bookingLegacySlipArea" class="ep-slip-box" style="margin-top: 14px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <label class="ep-form-label" style="font-size: 0.98rem; color: #0f172a; margin-bottom: 0; font-weight: 800;">
                 📸 แนบรูปภาพสลิปโอนเงิน (รับตั๋วทันที 1.5 วินาที)
               </label>
-              <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">⚡ Instant QR Ticket</span>
+              <span style="font-size: 0.74rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 3px 10px; border-radius: 6px; font-weight: 700;">⚡ Instant QR Ticket</span>
             </div>
 
             <!-- Hidden File Input for Real Slip Upload -->
             <input type="file" id="bookingSlipFileInput" accept="image/*" style="display: none;" onchange="handleSlipFileSelect(event)">
 
             <!-- Dropzone / Click to Upload Button -->
-            <div id="bookingSlipUploadZone" style="border: 2px dashed #38bdf8; border-radius: 8px; padding: 14px; text-align: center; background: rgba(56, 189, 248, 0.06); cursor: pointer; transition: all 0.2s ease;" onclick="document.getElementById('bookingSlipFileInput').click()">
-              <div style="font-size: 1.8rem; margin-bottom: 4px;">📷</div>
-              <div style="font-size: 0.92rem; font-weight: 700; color: #38bdf8;">คลิกหรือแตะเพื่อแนบรูปภาพสลิปโอนเงิน</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">รองรับไฟล์รูปภาพ JPG, PNG (ระบบจะบีบอัดรูปภาพให้อัตโนมัติในเครื่อง)</div>
+            <div id="bookingSlipUploadZone" onclick="document.getElementById('bookingSlipFileInput').click()">
+              <div style="font-size: 2rem; margin-bottom: 4px;">📷</div>
+              <div class="ep-upload-title" style="font-size: 1rem; font-weight: 800; color: #0284c7;">คลิกหรือแตะเพื่อแนบรูปภาพสลิปโอนเงิน</div>
+              <div class="ep-upload-sub" style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-top: 3px;">รองรับไฟล์รูปภาพ JPG, PNG (ระบบจะบีบอัดรูปภาพให้อัตโนมัติในเครื่อง)</div>
             </div>
 
             <!-- SLIP PREVIEW CONTAINER -->
-            <div id="bookingSlipPreviewContainer" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 10px;">
+            <div id="bookingSlipPreviewContainer" style="display: none; margin-top: 10px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px;">
               <div style="display: flex; gap: 12px; align-items: center;">
-                <img id="bookingSlipPreviewImg" src="" alt="สลิปที่แนบ" style="width: 70px; height: 90px; object-fit: cover; border-radius: 6px; border: 1.5px solid #38bdf8; background: #000;">
+                <img id="bookingSlipPreviewImg" src="" alt="สลิปที่แนบ" style="width: 70px; height: 90px; object-fit: cover; border-radius: 6px; border: 1.5px solid #0284c7; background: #ffffff;">
                 <div style="flex: 1; text-align: left;">
-                  <div style="font-size: 0.82rem; font-weight: 700; color: #34d399;">✓ แนบรูปภาพสลิปเรียบร้อยแล้ว</div>
-                  <div id="bookingSlipFileName" style="font-size: 0.74rem; color: #94a3b8; word-break: break-all; margin-top: 2px;"></div>
-                  <div id="bookingSlipAmountConfirmWrap" style="margin-top: 6px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 0.78rem; color: #cbd5e1;">ยอดเงินตามสลิป:</span>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                      <span style="color: #38bdf8; font-weight: 700; font-size: 0.85rem;">฿</span>
-                      <input type="number" id="bookingSlipAmountInput" step="0.01" style="width: 95px; background: #0f172a; border: 1px solid #38bdf8; color: #34d399; font-weight: 700; font-size: 0.95rem; border-radius: 4px; padding: 2px 6px; text-align: right;" value="0.00">
+                  <div style="font-size: 0.88rem; font-weight: 800; color: #166534;">✓ แนบรูปภาพสลิปเรียบร้อยแล้ว</div>
+                  <div id="bookingSlipFileName" style="font-size: 0.76rem; color: #475569; font-weight: 600; word-break: break-all; margin-top: 2px;"></div>
+                  <!-- [REMARKED BY THEP-APAI: นำช่องกรอกยอดเงินตามสลิปออก 100% เพื่อป้องกันการทุจริตและลดขั้นตอนที่ยุ่งยาก] -->
+                  <!-- MANUAL SLIP AMOUNT INPUT REMOVED: SYSTEM AUTOMATICALLY INSPECTS SLIP VIA BOOKING BOT -->
+                  <div id="bookingBotInspectionCard" style="margin-top: 8px; background: #f0f9ff; border: 1.5px solid #0284c7; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem;">
+                    <div id="bookingBotStatusBadge" style="display: flex; align-items: center; gap: 6px; color: #0284c7; font-weight: 800;">
+                      <span>🤖</span> <span id="bookingBotStatusText">Bot บุคกิ้ง กำลังตรวจสอบสลิป...</span>
+                    </div>
+                    <div id="bookingBotDetailText" style="font-size: 0.76rem; color: #334155; font-weight: 600; margin-top: 3px; line-height: 1.4;">
+                      ตรวจสลิปจริง, ตรวจชื่อธนาคารผู้รับ, เลขบัญชีผู้รับ, ชื่อผู้รับ และยอดเงินตรง 100%
                     </div>
                   </div>
                   <button type="button" class="ep-nav-btn" style="padding: 3px 8px; font-size: 0.72rem; margin-top: 6px; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #fca5a5;" onclick="removeAttachedSlip(event)">
@@ -1113,10 +1686,10 @@
             <input type="hidden" id="bookingBankRefInput" value="">
             <div id="bookingSlipStatus" style="font-size: 0.85rem; margin-top: 8px; color: #34d399; font-weight: 700; text-align: center;"></div>
 
-            <!-- AMOUNT MISMATCH ALERT (APPEARS WHEN SLIP AMOUNT < ORDER TOTAL) -->
+            <!-- AMOUNT MISMATCH & DESTINATION MISMATCH ALERT -->
             <div id="bookingAmountMismatchAlert" style="display: none; background: rgba(127, 29, 29, 0.95); border: 1.5px solid #ef4444; border-radius: 8px; padding: 12px; margin-top: 10px; color: #fff; text-align: left; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
               <div style="font-weight: 800; font-size: 0.95rem; color: #fca5a5; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                <span>🚨</span> <span>ยอดเงินโอนไม่ตรงกับยอดจองตั๋ว!</span>
+                <span id="bookingMismatchAlertIcon">🚨</span> <span id="bookingMismatchAlertTitle">ยอดเงินโอนไม่ตรงกับยอดจองตั๋ว!</span>
               </div>
               <div id="bookingAmountMismatchText" style="font-size: 0.85rem; line-height: 1.5; color: #fee2e2;"></div>
             </div>
@@ -1235,47 +1808,45 @@
             </div>
           </div>
           <div class="ep-receipt-meta-col">
-            <div class="ep-receipt-badge-title">ใบเสร็จรับเงิน (RECEIPT)</div>
+            <div class="ep-receipt-badge-title">ใบเสร็จรับเงิน</div>
             <div class="ep-receipt-meta-item">เลขที่ใบเสร็จ: <strong id="rcpNumber"><span id="succReceiptId">-</span></strong></div>
             <div class="ep-receipt-meta-item">วันที่ / เวลา: <strong id="rcpDate">-</strong></div>
           </div>
         </div>
 
         <!-- BUYER & PAYMENT INFO -->
-        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; font-size: 0.88rem; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; font-size: 0.85rem; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
           <div>
             <div><strong>ชื่อลูกค้า:</strong> <span id="rcpCustName"><strong id="succCustName">-</strong></span></div>
             <div><strong>เบอร์โทรศัพท์:</strong> <span id="rcpCustPhone"><span id="succCustPhone">-</span></span></div>
           </div>
           <div style="text-align: right;">
-            <div><strong>ช่องทางชำระ:</strong> โอนเงินผ่านระบบพร้อมเพย์ (Bank Transfer)</div>
+            <div><strong>ช่องทางชำระ:</strong> โอนเงิน / พร้อมเพย์</div>
             <div><strong>เลขอ้างอิงสลิป:</strong> <span id="rcpBankRef" style="font-family: monospace; font-weight: 700; color: #0284c7;"><span id="succBankRef">-</span></span></div>
             <span id="succTotalAmount" style="display: none;">-</span>
           </div>
         </div>
 
-        <!-- ITEMS TABLE -->
-        <table class="ep-receipt-table">
+        <!-- ITEMS TABLE (3 COMPACT COLUMNS FOR 80MM THERMAL STANDARD) -->
+        <table class="ep-receipt-table" style="width: 100%; table-layout: fixed; border-collapse: collapse; margin: 12px 0;">
           <thead>
-            <tr>
-              <th style="width: 50px; text-align: center;">ลำดับ</th>
-              <th>รายการบัตรคอนเสิร์ต</th>
-              <th style="width: 90px; text-align: center;">จำนวน</th>
-              <th style="width: 120px; text-align: right;">ราคาต่อหน่วย</th>
-              <th style="width: 130px; text-align: right;">จำนวนเงิน (บาท)</th>
+            <tr style="background: #f1f5f9; font-size: 0.82rem; border-bottom: 1.5px solid #cbd5e1;">
+              <th style="text-align: left; padding: 8px 6px; width: 55%;">รายการบัตร</th>
+              <th style="text-align: center; padding: 8px 4px; width: 20%;">จำนวน</th>
+              <th style="text-align: right; padding: 8px 6px; width: 25%;">รวม (บาท)</th>
             </tr>
           </thead>
           <tbody id="rcpItemsTableBody">
             <!-- Dynamically populated -->
           </tbody>
           <tfoot>
-            <tr style="background: #f1f5f9; font-weight: 700;">
-              <td colspan="4" style="text-align: right; padding: 10px 12px;">ยอดชำระสุทธิ (Total Amount):</td>
-              <td id="rcpGrandTotal" style="text-align: right; padding: 10px 12px; font-size: 1.15rem; color: #0369a1;">฿0.00</td>
+            <tr style="background: #f8fafc; font-weight: 800; border-top: 1.5px solid #cbd5e1;">
+              <td colspan="2" style="text-align: right; padding: 10px 6px; font-size: 0.92rem; color: #0f172a;">ยอดชำระสุทธิ:</td>
+              <td id="rcpGrandTotal" style="text-align: right; padding: 10px 6px; font-size: 1.1rem; color: #0284c7; font-weight: 900;">฿0.00</td>
             </tr>
-            <tr style="background: #f8fafc; font-size: 0.85rem;">
-              <td colspan="5" style="padding: 8px 12px; color: #475569;">
-                <strong>จำนวนเงินตัวอักษร:</strong> <span id="rcpTotalThaiText">-</span>
+            <tr style="background: #ffffff; font-size: 0.82rem; border-top: 1px dashed #e2e8f0;">
+              <td colspan="3" style="padding: 8px 6px; color: #475569; text-align: right;">
+                <strong>คำอ่าน:</strong> (<span id="rcpTotalThaiText">-</span>)
               </td>
             </tr>
           </tfoot>
@@ -1313,16 +1884,23 @@
         <!-- Dynamically rendered ticket cards -->
       </div>
 
-      <!-- ACTION BUTTONS (DOWNLOAD & PRINT & NEW BOOKING) -->
+      <!-- ACTION BUTTONS (DOWNLOAD & SHARE & NEW BOOKING - MOBILE NO-PRINT PROTOCOL) -->
       <div class="ep-success-actions" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
-        <button type="button" class="ep-nav-btn" style="background: var(--accent-green); color: #000; font-weight: 800; padding: 12px 24px; font-size: 1rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);" onclick="printAllReceiptAndTickets()">
-          📥 บันทึกทั้งหมด (สลิปใบเสร็จ + บัตร) ลงมือถือ
+        <!-- MOBILE ACTIONS: UPLOAD / DOWNLOAD / SHARE (80x80) ONLY -->
+        <button type="button" class="ep-nav-btn mobile-only-action" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 800; padding: 12px 24px; font-size: 1rem; border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: none; align-items: center; gap: 8px;" onclick="printAllReceiptAndTickets()">
+          📲 แชร์ / บันทึกทั้งหมด (ใบเสร็จ 80x80 + ตั๋วเข้างาน)
+        </button>
+        <button type="button" class="ep-nav-btn desktop-print-btn" style="background: var(--accent-green); color: #000; font-weight: 800; padding: 12px 24px; font-size: 1rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);" onclick="printAllReceiptAndTickets()">
+          🖨️ พิมพ์ทั้งหมด (สำหรับคอมพิวเตอร์ Xprinter 80mm)
+        </button>
+        <button type="button" class="ep-nav-btn" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; font-weight: 800; padding: 12px 24px; font-size: 1rem; border: 1px solid #38bdf8; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);" onclick="openBookingPdfViewer()">
+          📄 เปิดดูเอกสารรวม (ขนาด 80x80)
         </button>
         <button type="button" class="ep-nav-btn" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; padding: 12px 20px; font-size: 0.95rem;" onclick="printReceiptOnly()">
-          🧾 บันทึกสลิปใบเสร็จรับเงิน (PNG)
+          🧾 บันทึก / ดาวน์โหลด ใบเสร็จรับเงิน (80x80)
         </button>
         <button type="button" class="ep-nav-btn" style="background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); font-weight: 700; padding: 12px 20px; font-size: 0.95rem;" onclick="printTicketsOnly()">
-          🎫 บันทึกบัตร e-Ticket QR Code (PNG)
+          🎫 บันทึก / ดาวน์โหลด บัตร e-Ticket QR Code (80x80)
         </button>
         <button type="button" class="ep-nav-btn" style="background: #334155; color: #fff; padding: 12px 20px; font-size: 0.95rem;" onclick="location.reload()">
           ➕ จองบัตรเพิ่ม
@@ -1425,13 +2003,14 @@
   <!-- DEDICATED THERMAL 80MM PRINT CONTAINER (ISOLATED FROM SCREEN DOM) -->
   <div id="bookingThermalPrintContainer" style="display: none;"></div>
 
-  <!-- JAVASCRIPT MODULES -->
-  <script src="js/qrcode.min.js?v=20261024_0100"></script>
-  <script src="js/db.js?v=20261024_0100"></script>
-  <script src="js/audioAlertEngine.js?v=20261024_0100"></script>
-  <script src="js/slipGenerator.js?v=20261024_0100"></script>
-  <script src="js/authGuard.js?v=20261024_0100"></script>
-  <script src="js/firebaseAdapter.js?v=20261029_1600"></script>
-  <script src="js/booking.js?v=20261029_1600"></script>
+  <!-- JAVASCRIPT MODULES (CACHE-BUSTING v49.0 FOR INSTANT LIVE SYNC) -->
+  <script src="js/jsQR.min.js?v=52.0"></script>
+  <script src="js/qrcode.min.js?v=52.0"></script>
+  <script src="js/db.js?v=52.0"></script>
+  <script src="js/audioAlertEngine.js?v=52.0"></script>
+  <script src="js/slipGenerator.js?v=52.0"></script>
+  <script src="js/authGuard.js?v=52.0"></script>
+  <script src="js/firebaseAdapter.js?v=52.0"></script>
+  <script src="js/booking.js?v=52.0"></script>
 </body>
 </html>
